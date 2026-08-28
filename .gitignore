@@ -17,3 +17,4 @@ coverage/
 vscode
 __pycache__/
 *.db
+scripts.md
