@@ -1,3 +1,4 @@
+
 node_modules/
 dist/
 .env
@@ -11,3 +12,8 @@ yarn-error.log*
 coverage/
 /.pnp.cjs
 .cache/
+
+.vscode
+vscode
+__pycache__/
+*.db
