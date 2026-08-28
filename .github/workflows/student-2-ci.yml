@@ -1,0 +1,46 @@
+# TODO: remove comments once requirements.txt, and tests have been written
+# name: Student 2 - Yu-Ting
+
+# on:
+#   push:
+#     branches: [main]
+#     paths:
+#       - "student-2-yuting/**"
+#   pull_request:
+#     branches: [main]
+#     paths:
+#       - "student-2-yuting/**"
+
+# jobs:
+#   pytest-validation:
+#     name: Pre-commit pytest validation
+#     runs-on: ubuntu-latest
+#     steps:
+#       - uses: actions/checkout@v4
+
+#       - name: Set up Python
+#         uses: actions/setup-python@v5
+#         with:
+#           python-version: "3.11"
+
+#       - name: Install backend dependencies
+#         run: |
+#           pip install -r student-2-yuting/backend/requirements.txt
+#           pip install pytest
+
+#       - name: Install database dependencies
+#         run: |
+#           pip install -r student-2-yuting/database/requirements.txt
+
+#       - name: Run pytest
+#         run: pytest student-2-yuting/tests/ -v
+
+#   ai-assisted-testing:
+#     name: Post-commit AI-assisted unit testing
+#     needs: pytest-validation
+#     runs-on: ubuntu-latest
+#     steps:
+#       - uses: actions/checkout@v4
+
+#       - name: Placeholder for AI-assisted test step
+#         run: echo "AI-assisted unit testing step — to be implemented"
