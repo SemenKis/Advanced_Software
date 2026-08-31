@@ -1,15 +1,15 @@
 # TODO: remove comments once requirements.txt, and tests have been written
-# name: Student 1 - Bea
+name: Student 1 - Bea
 
-# on:
-#   push:
-#     branches: [main]
-#     paths:
-#       - "student-1-bea/**"
-#   pull_request:
-#     branches: [main]
-#     paths:
-#       - "student-1-bea/**"
+on:
+  push:
+    branches: [main]
+    paths:
+      - "student-1-bea/**"
+  pull_request:
+    branches: [main]
+    paths:
+      - "student-1-bea/**"
 
 # jobs:
 #   pytest-validation:

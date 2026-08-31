@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Warehouse - Order Management</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;family=IBM+Plex+Mono:wght@500&amp;display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../css/styles.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <div class="mark">W</div>
+    <div class="name">Warehouse</div>
+    <div class="sub">Order Management</div>
+  </div>
+</header>
+
+<div class="shell">
+  <div class="toolbar">
+    <h1>Orders <span class="count" id="orderCount"></span></h1>
+    <div class="toolbar-actions">
+      <input type="text" id="searchInput" class="search" placeholder="Search ID, consignee, route…">
+      <select id="statusFilter">
+        <option value="">All statuses</option>
+        <option value="Pending">Pending</option>
+        <option value="PickedUp">Picked up</option>
+        <option value="InTransit">In transit</option>
+        <option value="OutForDelivery">Out for delivery</option>
+        <option value="Delivered">Delivered</option>
+        <option value="Cancelled">Cancelled</option>
+      </select>
+      <button class="btn primary" id="newOrderBtn" commandfor="newOrderForm" command="show-modal">+ New order</button>
+    </div>
+  </div>
+</div>
+<!-- Trigger Button -->
+<button id="openModalBtn">Open Form Modal</button>
+
+<!-- Modal Dialog -->
+<dialog id="formModal">
+  <form id="modalForm" method="dialog">
+    <h2>User Information</h2>
+    
+    <label for="username">Name:</label>
+    <input type="text" id="username" name="username" required="">
+
+    <label for="email">Email:</label>
+    <input type="email" id="email" name="email" required="">
+
+    <div class="form-actions">
+      <!-- "cancel" value prevents submission and just closes the modal -->
+      <button type="button" id="cancelBtn">Cancel</button>
+      <!-- "submit" triggers the form's submit event -->
+      <button type="submit" id="submitBtn">Submit Info</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- Output Area to display read information -->
+<div id="output"><p><strong>Received:</strong> abc (aDEF@GMAIL.COM)</p></div>
+
+<dialog id="newOrderForm">
+  <form method="dialog">
+    <h3>Contact Us</h3>
+    
+    <label for="name">Order:</label>
+    <input type="text" id="name" required=""><br><br>
+    
+    <!-- This button automatically closes the modal because method="dialog" -->
+    <button type="submit">Submit</button>
+    <button commandfor="newOrderForm" command="close">Cancel</button>
+  </form>
+</dialog>
+
+<script>
+  const newOrder = () => {
+      console.log('hello');
+  }
+      // Select DOM Elements
+  const openModalBtn = document.getElementById('openModalBtn');
+  const formModal = document.getElementById('formModal');
+  const modalForm = document.getElementById('modalForm');
+  const cancelBtn = document.getElementById('cancelBtn');
+  const output = document.getElementById('output');
+
+  // 1. Open Modal on Button Click
+  openModalBtn.addEventListener('click', () => {
+      formModal.showModal(); // Opens the dialog natively as a modal
+  });
+
+  // 2. Read Information from the Modal Form on Submit
+  modalForm.addEventListener('submit', (event) => {
+      // Prevent page reload if you want to handle data locally via JS
+      event.preventDefault(); 
+
+      // Capture the form data instantly using FormData API
+      const formData = new FormData(modalForm);
+      const username = formData.get('username');
+      const email = formData.get('email');
+
+      // Do something with the extracted information
+      output.innerHTML = `<p><strong>Received:</strong> ${username} (${email})</p>`;
+
+      // Manually close the modal and clear the form fields
+      formModal.close();
+      modalForm.reset();
+  });
+
+  // 3. Close Modal without saving if Cancel is clicked
+  cancelBtn.addEventListener('click', () => {
+      formModal.close();
+      modalForm.reset();
+  });
+
+      
+  </script>
+
+</body>
+</html>
