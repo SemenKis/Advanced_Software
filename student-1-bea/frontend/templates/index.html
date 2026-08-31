@@ -82,14 +82,14 @@
   }
       // Select DOM Elements
   const openModalBtn = document.getElementById('openModalBtn');
-  const formModal = document.getElementById('formModal');
+  const newOrderFormModal = document.getElementById('newOrderFormModal');
   const modalForm = document.getElementById('modalForm');
   const cancelBtn = document.getElementById('cancelBtn');
   const output = document.getElementById('output');
 
   // 1. Open Modal on Button Click
   openModalBtn.addEventListener('click', () => {
-      formModal.showModal(); // Opens the dialog natively as a modal
+      newOrderFormModal.showModal(); // Opens the dialog natively as a modal
   });
 
   // 2. Read Information from the Modal Form on Submit
@@ -106,13 +106,13 @@
       output.innerHTML = `<p><strong>Received:</strong> ${username} (${email})</p>`;
 
       // Manually close the modal and clear the form fields
-      formModal.close();
+      newOrderFormModal.close();
       modalForm.reset();
   });
 
   // 3. Close Modal without saving if Cancel is clicked
   cancelBtn.addEventListener('click', () => {
-      formModal.close();
+      newOrderFormModal.close();
       modalForm.reset();
   });
 
