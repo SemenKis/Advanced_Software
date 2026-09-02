@@ -1,6 +1,9 @@
 name: student-1-bea
 
 on:
+  push:
+    branches: [main]
+  pull_request:
   workflow_dispatch:
 
 jobs:
@@ -86,7 +89,7 @@ jobs:
         
       - name: Generate report.md
         run: |
-          cat > reports/report.md << EOF
+          cat > reports/student-1-report.md << EOF
           ## Lab 05 Workflow Report
 
           - Workflow: student-1-bea
