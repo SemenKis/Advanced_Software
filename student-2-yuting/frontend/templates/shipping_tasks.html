@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Shipping Tasks</h2>
+<form hx-post="/shipping-tasks/add" hx-target="#shipping-rows" hx-swap="innerHTML">
+    <input name="order_id" type="number" placeholder="Order ID" required>
+    <input name="packing_list_id" type="number" placeholder="Packing List ID">
+    <select name="task_type"><option>pick</option><option>pack</option><option>load</option></select>
+    <input name="assigned_to" placeholder="Assigned to">
+    <input name="priority" type="number" placeholder="Priority 1-10" value="5">
+    <select name="status"><option>pending</option><option>in_progress</option><option>completed</option></select>
+    <input name="bottleneck_risk" placeholder="low/medium/high" value="low">
+    <button type="submit">Add</button>
+</form>
+<p>
+    <button hx-post="/shipping-tasks/prioritise" hx-target="#shipping-rows" hx-swap="innerHTML">
+        Run AI Task Prioritisation (Qwen via Ollama)
+    </button>
+</p>
+<table>
+    <thead>
+        <tr><th>ID</th><th>Order</th><th>Packing List</th><th>Type</th><th>Assigned</th>
+            <th>Priority</th><th>Update</th><th>Bottleneck Risk</th><th>Delete</th></tr>
+    </thead>
+    <tbody id="shipping-rows" hx-get="/shipping-tasks/table" hx-trigger="load"></tbody>
+</table>
+{% endblock %}

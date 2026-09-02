@@ -1,0 +1,24 @@
+{% for it in items %}
+<tr>
+    <td>{{ it.id }}</td>
+    <td>{{ it.order_id }}</td>
+    <td>{{ it.items_json }}</td>
+    <td>
+        <form class="inline" hx-post="/packing-lists/{{ it.id }}/update" hx-target="#packing-rows" hx-swap="innerHTML">
+             <input type="hidden" name="order_id" value="{{ it.order_id }}">
+             <input type="hidden" name="items_json" value='{{ it.items_json }}'>
+             <select name="status">
+                <option {% if it.status == 'pending' %}selected{% endif %}>pending</option>
+                <option {% if it.status == 'packed' %}selected{% endif %}>packed</option>
+                <option {% if it.status == 'shipped' %}selected{% endif %}>shipped</option>
+             </select>
+             <button type="submit">Update</button>
+        </form>
+    </td>
+    <td>
+        <form class="inline" hx-delete="/packing-lists/{{ it.id }}/delete" hx-target="#packing-rows" hx-swap="innerHTML" hx-confirm="Delete?">
+            <button type="submit">Delete</button>
+        </form>
+    </td>
+</tr>
+{% endfor %}
