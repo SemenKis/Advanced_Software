@@ -1,122 +1,335 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Warehouse - Order Management</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;family=IBM+Plex+Mono:wght@500&amp;display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../css/styles.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Warehouse - Order Management</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;family=IBM+Plex+Mono:wght@500&amp;display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../css/styles.css">
 </head>
 <body>
-
-<header class="topbar">
-  <div class="brand">
-    <div class="mark">W</div>
-    <div class="name">Warehouse</div>
-    <div class="sub">Order Management</div>
-  </div>
-</header>
-
-<div class="shell">
-  <div class="toolbar">
-    <h1>Orders <span class="count" id="orderCount"></span></h1>
-    <div class="toolbar-actions">
-      <input type="text" id="searchInput" class="search" placeholder="Search ID, consignee, route…">
-      <select id="statusFilter">
-        <option value="">All statuses</option>
-        <option value="Pending">Pending</option>
-        <option value="PickedUp">Picked up</option>
-        <option value="InTransit">In transit</option>
-        <option value="OutForDelivery">Out for delivery</option>
-        <option value="Delivered">Delivered</option>
-        <option value="Cancelled">Cancelled</option>
-      </select>
-      <button class="btn primary" id="newOrderBtn" commandfor="newOrderForm" command="show-modal">+ New order</button>
-    </div>
-  </div>
-</div>
-<!-- Trigger Button -->
-<button id="openModalBtn">Open Form Modal</button>
-
-<!-- Modal Dialog -->
-<dialog id="formModal">
-  <form id="modalForm" method="dialog">
-    <h2>User Information</h2>
-    
-    <label for="username">Name:</label>
-    <input type="text" id="username" name="username" required="">
-
-    <label for="email">Email:</label>
-    <input type="email" id="email" name="email" required="">
-
-    <div class="form-actions">
-      <!-- "cancel" value prevents submission and just closes the modal -->
-      <button type="button" id="cancelBtn">Cancel</button>
-      <!-- "submit" triggers the form's submit event -->
-      <button type="submit" id="submitBtn">Submit Info</button>
-    </div>
-  </form>
-</dialog>
-
-<!-- Output Area to display read information -->
-<div id="output"><p><strong>Received:</strong> abc (aDEF@GMAIL.COM)</p></div>
-
-<dialog id="newOrderForm">
-  <form method="dialog">
-    <h3>Contact Us</h3>
-    
-    <label for="name">Order:</label>
-    <input type="text" id="name" required=""><br><br>
-    
-    <!-- This button automatically closes the modal because method="dialog" -->
-    <button type="submit">Submit</button>
-    <button commandfor="newOrderForm" command="close">Cancel</button>
-  </form>
-</dialog>
-
-<script>
-  const newOrder = () => {
-      console.log('hello');
-  }
-      // Select DOM Elements
-  const openModalBtn = document.getElementById('openModalBtn');
-  const newOrderFormModal = document.getElementById('newOrderFormModal');
-  const modalForm = document.getElementById('modalForm');
-  const cancelBtn = document.getElementById('cancelBtn');
-  const output = document.getElementById('output');
-
-  // 1. Open Modal on Button Click
-  openModalBtn.addEventListener('click', () => {
-      newOrderFormModal.showModal(); // Opens the dialog natively as a modal
-  });
-
-  // 2. Read Information from the Modal Form on Submit
-  modalForm.addEventListener('submit', (event) => {
-      // Prevent page reload if you want to handle data locally via JS
-      event.preventDefault(); 
-
-      // Capture the form data instantly using FormData API
-      const formData = new FormData(modalForm);
-      const username = formData.get('username');
-      const email = formData.get('email');
-
-      // Do something with the extracted information
-      output.innerHTML = `<p><strong>Received:</strong> ${username} (${email})</p>`;
-
-      // Manually close the modal and clear the form fields
-      newOrderFormModal.close();
-      modalForm.reset();
-  });
-
-  // 3. Close Modal without saving if Cancel is clicked
-  cancelBtn.addEventListener('click', () => {
-      newOrderFormModal.close();
-      modalForm.reset();
-  });
-
+  <header><h1>Order Management</h1></header>
+  <main>
+    <div class="menu">
+      <h2>Menu</h2>
       
+      <button class="btn primary" id="create-order-btn" commandfor="create-order-modal" command="show-modal">+ New order</button>
+      
+      <div class="search-order">
+        <input type="number" id="search-order" placeholder="Search order by Id" required />
+        <button type="submit" id="submit-search-order-btn">Search Order</button>
+      </div>
+      <div class="ai-analysis">
+        <input type="text" id="ai-textbox" placeholder="Analyse orders with AI" required />
+        <button type="submit" id="ai-textbox-submit">Analyse Orders</button>
+      </div>
+    </div>
+    <dialog id="create-order-modal">
+      <form id="create-order-form">
+        <h2>Create New Order</h2>
+        <input type="text" id="order-name" placeholder="Order name" required />
+        <input type="text" id="order-address" placeholder="Order address" required />
+        <input type="text" id="product-name" placeholder="Product name" required />
+        <input type="number" id="quantity" placeholder="Quantity" required />
+        <input type="number" id="total-amount" placeholder="Amount" min="0" step="0.01" required />
+        <div class="form-actions">
+            <button type="button" id="cancel-order-btn">Cancel</button>
+            <button type="submit" id="submit-order-btn">Create Order</button>
+        </div>
+      </form>
+    </dialog>
+  </main>
+   
+  <button id="show-orders-btn">Show All Orders</button>
+ 
+  
+  <div id="ai-analysis-result"></div>
+  <div id="orders-result"></div>
+
+  <script>
+    
+    const createOrderBtn = document.getElementById('create-order-btn');
+    const cancelOrderBtn = document.getElementById('cancel-order-btn');
+    const createOrderModal = document.getElementById('create-order-modal');
+    const searchOrderBtn = document.getElementById('submit-search-order-btn');
+    const aiAnalysisBtn = document.getElementById('ai-textbox-submit')
+    createOrderBtn.addEventListener('click', () => {
+        createOrderModal.showModal();
+    });
+    cancelOrderBtn.addEventListener('click', () => {
+      document.getElementById("create-order-form").reset();  
+      createOrderModal.close();
+    });
+
+    searchOrderBtn.addEventListener('click', () => {
+      const orderId = document.getElementById("search-order").value.trim();
+      getOrderById(parseInt(orderId, 10));
+    })
+
+    aiAnalysisBtn.addEventListener('click', () => {
+      const text = document.getElementById("ai-textbox");
+      analyseOrders(text);
+    })
+
+
+    let currentOrders = [];
+    document.getElementById("create-order-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const order_name = document.getElementById("order-name").value.trim();
+      const order_address = document.getElementById("order-address").value.trim();
+      const product_name = document.getElementById("product-name").value.trim();
+      const quantity = document.getElementById("quantity").value.trim();
+      const total_amount = document.getElementById("total-amount").value.trim();
+ 
+      const res = await fetch("/api/orders", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ 
+            order_name,
+            order_address,
+            product_name,
+            quantity,
+            total_amount,
+          }),
+      });
+ 
+      const result = await res.json();
+      e.target.reset();
+      document.getElementById("quantity").value = 1;
+      loadOrders();
+    });
+ 
+    document.getElementById("show-orders-btn").addEventListener("click", loadOrders);
+ 
+    
+    async function loadOrders() {
+      const resultEl = document.getElementById("orders-result");
+      resultEl.textContent = "Loading...";
+
+      try {
+        const res = await fetch("/api/orders");
+        if (!res.ok) {
+          throw new Error(`Request failed: ${res.status}`);
+        }
+        currentOrders = await res.json();
+        renderOrders();
+      } catch (err) {
+        resultEl.textContent = "Failed to load orders.";
+      }
+    }
+
+    async function getOrderById(id) {
+      const resultEl = document.getElementById("orders-result");
+      resultEl.textContent = "Loading...";
+
+      try {
+        const res = await fetch(`/api/orders/${id}`);
+        if (!res.ok) {
+          throw new Error(`Request failed: ${res.status}`);
+        }
+        currentOrder = await res.json();
+
+        if (!currentOrder) {
+          resultEl.textContent = `No order with ${id} available`;
+        } else {
+          renderOneOrder(currentOrder);
+        }
+      } catch (err) {
+        resultEl.textContent = "Failed to load orders.";
+      }
+    }
+
+    function renderOneOrder(order) {
+      const resultEl = document.getElementById("orders-result");
+
+      if (!order) {
+        resultEl.textContent = "No order found with order id: " + order;
+        return;
+      }
+
+      const container = document.createElement("div");
+      container.appendChild(buildOrderRow(order));
+
+      resultEl.replaceChildren(container);
+    }
+
+    function renderOrders() {
+      const resultEl = document.getElementById("orders-result");
+
+      if (!currentOrders.length) {
+        resultEl.textContent = "No orders found.";
+        return;
+      }
+
+      const container = document.createElement("div");
+
+      currentOrders.forEach((order) => {
+        container.appendChild(buildOrderRow(order));
+      });
+
+      resultEl.replaceChildren(container);
+    }
+
+    function buildOrderRow(order) {
+      const row = document.createElement("div");
+      row.className = "order-row";
+      row.dataset.orderId = order.order_id;
+
+      const label = order.order_ref || `#${order.order_id}`;
+      const summary = document.createElement("div");
+      summary.className = "order-field";
+      summary.textContent =
+        `${label} - ${order.order_name} - [${order.order_status}]`;
+      row.appendChild(summary);
+
+      const actions = document.createElement("div");
+      actions.className = "order-actions";
+
+      const viewBtn = document.createElement("button");
+      viewBtn.textContent = "View";
+      viewBtn.addEventListener("click", () => toggleView(row, order));
+
+      const editBtn = document.createElement("button");
+      editBtn.textContent = "Edit";
+      editBtn.addEventListener("click", () => enterEditMode(row, order));
+
+      const deleteBtn = document.createElement("button");
+      deleteBtn.textContent = "Delete";
+      deleteBtn.addEventListener("click", () => deleteOrder(order.order_id));
+
+      actions.appendChild(viewBtn);
+      actions.appendChild(editBtn);
+      actions.appendChild(deleteBtn);
+      row.appendChild(actions);
+
+      return row;
+    }
+
+    function toggleView(row, order) {
+      const existing = row.nextElementSibling;
+      if (existing && existing.classList.contains("order-detail")) {
+        existing.remove();
+        return;
+      }
+
+      const detail = document.createElement("div");
+      detail.className = "order-detail";
+      detail.innerHTML = `
+        <div><strong>Order ID:</strong> ${order.order_id}</div>
+        <div><strong>Reference:</strong> ${order.order_ref || "n/a"}</div>
+        <div><strong>Name:</strong> ${order.order_name}</div>
+        <div><strong>Address:</strong> ${order.order_address}</div>
+        <div><strong>Status:</strong> ${order.order_status}</div>
+        <div><strong>Product:</strong> ${order.product_name}</div>
+        <div><strong>Quantity:</strong> ${order.quantity}</div>
+        <div><strong>Total:</strong> $${order.total_amount}</div>
+      `;
+      row.after(detail);
+    }
+
+    function enterEditMode(row, order) {
+      row.classList.add("editing");
+      row.innerHTML = "";
+
+      const fields = {
+        order_name: order.order_name,
+        order_address: order.order_address,
+        order_status: order.order_status,
+        product_name: order.product_name,
+        quantity: order.quantity,
+        total_amount: order.total_amount,
+      };
+
+      const inputs = {};
+      Object.entries(fields).forEach(([key, value]) => {
+        const input = document.createElement("input");
+        input.value = value;
+        input.dataset.field = key;
+        inputs[key] = input;
+        row.appendChild(input);
+      });
+
+      const actions = document.createElement("div");
+      actions.className = "order-actions";
+
+      const saveBtn = document.createElement("button");
+      saveBtn.textContent = "Save";
+      saveBtn.addEventListener("click", () => saveOrder(order.order_id, inputs));
+
+      const cancelBtn = document.createElement("button");
+      cancelBtn.textContent = "Cancel";
+      cancelBtn.addEventListener("click", renderOrders);
+
+      actions.appendChild(saveBtn);
+      actions.appendChild(cancelBtn);
+      row.appendChild(actions);
+    }
+
+    async function saveOrder(orderId, inputs) {
+      const updated = {
+        order_name: inputs.order_name.value.trim(),
+        order_address: inputs.order_address.value.trim(),
+        order_status: inputs.order_status.value.trim() || "pending",
+        product_name: inputs.product_name.value.trim(),
+        quantity: inputs.quantity.value.trim(),
+        total_amount: inputs.total_amount.value.trim(),
+      };
+
+      try {
+        const res = await fetch(`/api/orders/${orderId}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(updated),
+        });
+        if (!res.ok) {
+          throw new Error(`Request failed: ${res.status}`);
+        }
+        loadOrders();
+      } catch (err) {
+        alert("Failed to update order.");
+      }
+    }
+
+    async function deleteOrder(orderId) {
+      if (!confirm(`Delete order ${orderId}?`)) {
+        return;
+      }
+
+      try {
+        const res = await fetch(`/api/orders/${orderId}`, { method: "DELETE" });
+        if (!res.ok) {
+          throw new Error(`Delete order request failed: ${res.status}`);
+        }
+        loadOrders();
+      } catch (err) {
+        alert("Failed to delete order.");
+      }
+    }
+
+    async function analyseOrders(text) {
+      const resultEl = document.getElementById('ai-analysis-result');
+      resultEl.textContent = 'Analysing...'
+      try {
+        const res = await fetch("/api/orders/analyse", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ question: text }),
+        });
+
+        const result = await res.json();
+
+        if (!res.ok) {
+          console.log(res);
+          throw new Error(`AI analysis request failed: ${res.status}`)
+        }
+
+        resultEl.textContent = result.analysis;
+
+      } catch (err) {
+        resultEl.textContent = "Failed to connect with AI server"
+      }
+    }
   </script>
 
 </body>

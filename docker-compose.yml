@@ -1,4 +1,5 @@
 name: warehouse-app
 include: 
+  - student-1-bea/docker-compose.yml
   - student-3-lois/docker-compose.yml
   - student-4-sam/docker-compose.yml
