@@ -1,0 +1,28 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+
+    container_name: transportation-backend
+
+    network_mode: host
+
+    environment:
+      DATABASE_PATH: /app/database/transportation.db
+      OLLAMA_URL: http://127.0.0.1:11434
+      OLLAMA_MODEL: qwen2.5:0.5b
+
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+
+    container_name: transportation-frontend
+
+    ports:
+      - "3004:80"
+
+    depends_on:
+      - backend
