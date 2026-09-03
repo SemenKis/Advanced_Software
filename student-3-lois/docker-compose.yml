@@ -4,7 +4,7 @@ services:
       context: ./frontend-service
     container_name: inventory-frontend-service
     ports:
-      - "8080:80"
+      - "8081:80"
     depends_on:
       - inventory-service
     networks:
