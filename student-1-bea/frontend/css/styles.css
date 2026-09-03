@@ -35,6 +35,33 @@
   }
   button{font-family:inherit;}
 
+  .order-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    padding: 8px 12px;
+    margin-bottom: 6px;
+  }
+  .order-row .order-field {
+    flex: 1;
+  }
+  .order-row .order-actions {
+    display: flex;
+    gap: 6px;
+  }
+  .order-detail {
+    border: 1px dashed #999;
+    border-radius: 4px;
+    padding: 8px 12px;
+    margin: -4px 0 6px 0;
+    background: #fafafa;
+  }
+  .order-row.editing input {
+    width: 100px;
+  }
+
   /* ---------- Header ---------- */
   header.topbar{
     background:var(--ink);

@@ -12,10 +12,25 @@ def get_orders():
 def get_order_by_id_response(order_id):
     return requests.get(f"{DATABASE_SERVICE_URL}/orders/{order_id}", timeout=5)
 
-def create_order(order_name):
+def create_order(order_data):
     response = requests.post(
         f"{DATABASE_SERVICE_URL}/orders",
-        json={"order_name": order_name},
+        json=order_data,
+        timeout=5,
+    )
+    return response
+
+def update_order(order_id, order_data):
+    response = requests.put(
+        f"{DATABASE_SERVICE_URL}/orders/{order_id}",
+        json=order_data,
+        timeout=5,
+    )
+    return response
+ 
+def delete_order(order_id):
+    response = requests.delete(
+        f"{DATABASE_SERVICE_URL}/orders/{order_id}",
         timeout=5,
     )
     return response
