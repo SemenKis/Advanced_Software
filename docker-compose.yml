@@ -18,11 +18,11 @@ services:
 
     order-database:
         build: ./student-1-bea/database
-        volumes: [database_data:/app/data]
+        volumes: [order-database-data:/app/data]
         networks: [order-network]
 
 volumes:
-    database_data:
+    order-database-data:
 networks:
     order-network:
         driver: bridge
