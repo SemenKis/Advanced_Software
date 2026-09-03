@@ -56,26 +56,23 @@ cursor.execute("DELETE FROM supplier")
 cursor.execute("DELETE FROM category")
 
 categories = [
-    (1, "Beverages"),
-    (2, "Snacks"),
-    (3, "Dairy"),
-    (4, "Frozen Foods"),
-    (5, "Cleaning Supplies"),
-    (6, "Electronics"),
-    (7, "Stationery"),
-    (8, "Personal Care"),
+    (1, "Organisation Tools"),
+    (2, "Loading Equipment"),
+    (3, "Cleaning Supplies"),
+    (4, "Perishables"),
+    (5, "Safety Gear"),
+
 ]
+
 cursor.executemany("INSERT INTO category (category_id, name) VALUES (?, ?)", categories)
 
 suppliers = [
-    (1, "Fresh Farms Co.", "0400111222", "orders@freshfarms.example.com"),
-    (2, "Global Beverages Ltd.", "0400222333", "sales@globalbev.example.com"),
-    (3, "SnackWorld Distribution", "0400333444", "contact@snackworld.example.com"),
+    (1, "TrackTools Co.", "0400111222", "orders@tracktools.example.com"),
+    (2, "Global Machinery Ltd.", "0400222333", "sales@globalmachinery.example.com"),
+    (3, "Protection Company", "0400333444", "contact@protectcompany.example.com"),
     (4, "CleanPro Supplies", "0400444555", "info@cleanpro.example.com"),
-    (5, "TechStock Wholesale", "0400555666", "orders@techstock.example.com"),
-    (6, "OfficeMart Supplies", "0400666777", "sales@officemart.example.com"),
-    (7, "PureCare Distributors", "0400777888", "hello@purecare.example.com"),
-    (8, "FrostLine Foods", "0400888999", "support@frostline.example.com"),
+    (5, "SnackWorld Distribution", "0400555666", "orders@snackworld.example.com"),
+
 ]
 cursor.executemany(
     "INSERT INTO supplier (supplier_id, name, phone_number, email) VALUES (?, ?, ?, ?)",
@@ -83,18 +80,12 @@ cursor.executemany(
 )
 
 products = [
-    (1, 1, 2, "Sparkling Water 12-Pack", "AquaFizz", "Carbonated spring water, 12x330ml cans", 8.99, 120, 20),
-    (2, 2, 3, "Sea Salt Potato Chips", "CrispCo", "Kettle-cooked chips, 150g bag", 3.49, 8, 15),
-    (3, 3, 1, "Full Cream Milk 2L", "DairyBest", "Pasteurised full cream milk", 4.20, 45, 10),
-    (4, 4, 8, "Frozen Mixed Vegetables 1kg", "FrostLine", "Peas, corn, carrots blend", 5.10, 60, 15),
-    (5, 5, 5, "Wireless Mouse", "ClickTech", "2.4GHz wireless optical mouse", 19.99, 35, 10),
-    (6, 6, 6, "A4 Notebook Pack (5)", "PaperPro", "5x 100-page ruled notebooks", 12.50, 5, 10),
-    (7, 7, 7, "Hand Sanitizer 500ml", "PureCare", "70% alcohol gel sanitizer", 6.75, 90, 20),
-    (8, 5, 4, "Dish Soap Concentrate", "CleanPro", "Grease-cutting dish soap, 750ml", 3.95, 3, 12),
-    (9, 1, 2, "Orange Juice 1L", "AquaFizz", "100% pure squeezed orange juice", 4.60, 55, 15),
-    (10, 2, 3, "Chocolate Cookies 300g", "CrispCo", "Double chocolate chip cookies", 4.10, 70, 15),
-    (11, 6, 5, "USB-C Charging Cable", "ClickTech", "1.5m braided USB-C cable", 9.99, 100, 20),
-    (12, 8, 7, "Moisturising Body Wash", "PureCare", "Aloe vera enriched body wash, 500ml", 5.50, 12, 15),
+    (1, 1, 1, "Barcode Scanners", "ClickTech", "Handheld scanner with Bluetooth connectivity", 35.99, 120, 20),
+    (2, 2, 2, "Pallet Jacks", "LoadMaster", "Stainless steel adjustable pallet jack", 139.49, 8, 15),
+    (3, 5, 3, "Medium Safety Gloves", "SafetyFirst", "Rubber gloves, medium-sized", 10.20, 45, 10),
+    (4, 4, 5, "Kettle Korn", "CrispCo", "Kettle-cooked chips, 150g bag", 5.10, 60, 15),
+    (5, 3, 4, "Bucket'n'Mop", "SqueakyClean", "Cleaning set with bucket and mop", 19.99, 35, 10),
+
 ]
 cursor.executemany(
     """
@@ -106,21 +97,16 @@ cursor.executemany(
 )
 
 stocktakes = [
-    (1, 1, "Alex Chen", 118),
-    (2, 2, "Alex Chen", 8,),
-    (3, 3, "Priya Nair", 45),
-    (4, 6, "Priya Nair", 5),
-    (5, 8, "Jordan Lee", 3),
-    (6, 5, "Jordan Lee", 35),
-    (7, 12, "Alex Chen", 12),
-    (8, 9, "Priya Nair", 55),
-    (9, 4, "Jordan Lee", 60),
-    (10, 11, "Alex Chen", 100),
+    (1, 1, "Alex Chen", 118, "2026-01-01 15:15:00"),
+    (2, 2, "Alex Chen", 8, "2026-02-01 10:30:00"),
+    (3, 3, "Priya Nair", 45, "2026-03-01 09:55:00"),
+    (4, 4, "Priya Nair", 60, "2026-04-01 10:00:00"),
+    (5, 5, "Jordan Lee", 35, "2026-05-01 20:30:00"),
 ]
 cursor.executemany(
     """
-    INSERT INTO stocktake (stocktake_id, product_id, member_name, counted_quantity)
-    VALUES (?, ?, ?, ?)
+    INSERT INTO stocktake (stocktake_id, product_id, member_name, counted_quantity, timestamp)
+    VALUES (?, ?, ?, ? , ?)
     """,
     stocktakes,
 )

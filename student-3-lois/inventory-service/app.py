@@ -9,7 +9,7 @@ if str(BASE_DIR) not in sys.path:
     sys.path.insert(0, str(BASE_DIR))
 
 from routes.ai_mode import ai_mode_bp
-from routes.inventory import normal_ui
+from routes.normal_ui import normal_ui
 
 
 def create_app():
