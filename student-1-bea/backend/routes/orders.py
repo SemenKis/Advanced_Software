@@ -15,9 +15,6 @@ from views.html_formatters import format_order_html, format_orders_html, format_
 
 orders_bp = Blueprint("orders", __name__)
 
-# TODO:
-# ai feature
-
 @orders_bp.post("/orders")
 def create_order_route():
     data = request.get_json()
@@ -90,7 +87,15 @@ def delete_order_route(order_id):
     response = delete_order(order_id)
     return jsonify(response.json()), response.status_code
 
+@orders_bp.get("/orders/<int:order_id>")
+def get_order_by_id_route(order_id):
+    response = get_order_by_id_response(order_id)
  
+    if response.status_code >= 400:
+        return jsonify(response.json()), response.status_code
+ 
+    return jsonify(with_order_ref(response.json())), response.status_code
+
 @orders_bp.post("/orders/analyse")
 def analyse_orders_route():
     data = request.get_json(silent=True) or {}

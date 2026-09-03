@@ -70,6 +70,24 @@ def get_orders():
     conn.close()
     return jsonify([dict(row) for row in orders])
 
+@app.get("/orders/<int:order_id>")
+def get_order_by_id(order_id):
+    conn = get_db_connection()
+    order = conn.execute(
+        """
+        SELECT order_id, order_name, order_address, order_status,
+               product_name, quantity, total_amount
+        FROM orders
+        WHERE order_id = ?
+        """,
+        (order_id,),
+    ).fetchone()
+    conn.close()
+ 
+    if order is None:
+        return jsonify({"error": "Order not found"}), 404
+ 
+    return jsonify(dict(order)), 200
 
 @app.put("/orders/<int:order_id>")
 def update_order(order_id):
