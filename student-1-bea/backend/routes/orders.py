@@ -8,14 +8,15 @@ from services.database_api import (
     update_order,
     delete_order,
 )
+
+from services.llm_client import create_chat_completion
 from views.html_formatters import format_order_html, format_orders_html, format_order_ref, with_order_ref
 
 
 orders_bp = Blueprint("orders", __name__)
 
 # TODO:
-# routes:  order/id,
-# DONE: order/list, order/create, order/id/details, order/update, order/delete
+# ai feature
 
 @orders_bp.post("/orders")
 def create_order_route():
@@ -93,7 +94,7 @@ def delete_order_route(order_id):
 @orders_bp.post("/orders/analyse")
 def analyse_orders_route():
     data = request.get_json(silent=True) or {}
-    question = data.get("question", "").strip()
+    question = data.get("question", "")
  
     orders = get_orders()
  
@@ -109,24 +110,25 @@ def analyse_orders_route():
     user_prompt = f"Here are the current orders:\n{order_lines}"
     if question:
         user_prompt += f"\n\nQuestion: {question}"
- 
+
+    system_prompt = """
+        You are a concise operations assistant reviewing an order management system. 
+        Use the order data provided to answers the question. 
+        If no questions is provided, summarise patterns and flag anything unusual with the order data (eg. stuck pending orders, repeat products, or high totals). 
+        Keep the response to a short paragraph.
+    """
+
     try:
         analysis = create_chat_completion(
             [
                 {
                     "role": "system",
-                    "content": (
-                        """
-                          You
-                        """
-                        "You are a concise operations assistant reviewing an order "
-                        "management system. Use the order data provided to answer the "
-                        "question, or if no question is given, summarise patterns and "
-                        "flag anything unusual (e.g. stuck pending orders, repeat "
-                        "products, high totals). Keep the response to a short paragraph."
-                    ),
+                    "content": system_prompt,
                 },
-                {"role": "user", "content": user_prompt},
+                {
+                    "role": "user", 
+                    "content": user_prompt
+                },
             ],
             max_tokens=250,
             temperature=0.2,

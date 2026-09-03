@@ -53,6 +53,7 @@
     const cancelOrderBtn = document.getElementById('cancel-order-btn');
     const createOrderModal = document.getElementById('create-order-modal');
     const searchOrderBtn = document.getElementById('submit-search-order-btn');
+    const aiAnalysisBtn = document.getElementById('ai-textbox-submit')
     createOrderBtn.addEventListener('click', () => {
         createOrderModal.showModal();
     });
@@ -63,8 +64,12 @@
 
     searchOrderBtn.addEventListener('click', () => {
       const orderId = document.getElementById("search-order").value.trim();
-      console.log('here', orderId, typeof orderId)
       getOrderById(parseInt(orderId, 10));
+    })
+
+    aiAnalysisBtn.addEventListener('click', () => {
+      const text = document.getElementById("ai-textbox");
+      analyseOrders(text);
     })
 
 
@@ -119,7 +124,6 @@
       resultEl.textContent = "Loading...";
 
       try {
-        // const res = await fetch("/api/orders");
         const res = await fetch(`/api/orders/${id}`);
         if (!res.ok) {
           throw new Error(`Request failed: ${res.status}`);
@@ -295,7 +299,7 @@
       try {
         const res = await fetch(`/api/orders/${orderId}`, { method: "DELETE" });
         if (!res.ok) {
-          throw new Error(`Request failed: ${res.status}`);
+          throw new Error(`Delete order request failed: ${res.status}`);
         }
         loadOrders();
       } catch (err) {
@@ -304,8 +308,23 @@
     }
 
     async function analyseOrders(text) {
-      const resultEl = document.getElementById('ai-analysis-result')
+      const resultEl = document.getElementById('ai-analysis-result');
+      resultEl.textContent = 'Analysing...'
       try {
+        const res = await fetch("/api/orders/analyse", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ question: text }),
+        });
+
+        const result = await res.json();
+
+        if (!res.ok) {
+          console.log(res);
+          throw new Error(`AI analysis request failed: ${res.status}`)
+        }
+
+        resultEl.textContent = result.analysis;
 
       } catch (err) {
         resultEl.textContent = "Failed to connect with AI server"
