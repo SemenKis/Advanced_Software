@@ -24,11 +24,11 @@
   <script>
     document.getElementById("create-order-form").addEventListener("submit", async (e) => {
       e.preventDefault();
-      const order_name = document.getElementById("order-name").value;
-      const order_address = document.getElementById("order-address").value;
-      const product_name = document.getElementById("product-name").value;
-      const quantity = document.getElementById("quantity").value;
-      const total_amount = document.getElementById("total-amount").value;
+      const order_name = document.getElementById("order-name").value.trim();
+      const order_address = document.getElementById("order-address").value.trim();
+      const product_name = document.getElementById("product-name").value.trim();
+      const quantity = document.getElementById("quantity").value.trim();
+      const total_amount = document.getElementById("total-amount").value.trim();
  
       const res = await fetch("/api/orders", {
           method: "POST",
@@ -57,6 +57,7 @@
  
       try {
         const res = await fetch("/api/orders");
+        console.log('here', res.ok)
         if (!res.ok) {
           throw new Error(`Request failed: ${res.status}`);
         }
@@ -73,8 +74,8 @@
           item.textContent =
             `${order.order_ref} - ${order.order_name} - ${order.order_address} - ` +
             `[${order.order_status}] - ${order.product_name} x${order.quantity} - $${order.total_amount}`;
+          list.appendChild(item);
         });
-        list.appendChild(item);
         
         resultEl.replaceChildren(list);
       } catch (err) {

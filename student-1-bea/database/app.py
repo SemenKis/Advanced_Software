@@ -17,10 +17,11 @@ def health():
 @app.post("/orders")
 def create_order():
     data = request.get_json()
-    order_name = data.get("order_name", "").strip()
-    order_address = data.get("order_address", "").strip()
-    order_status = data.get("order_status", "pending").strip() or "pending"
-    product_name = data.get("product_name", "").strip()
+    order_name = data["order_name"]
+    # order_name = data.get("order_name", "")
+    order_address = data.get("order_address", "")
+    order_status = data.get("order_status", "pending") or "pending"
+    product_name = data.get("product_name", "")
     quantity = data.get("quantity", 1)
     total_amount = data.get("total_amount")
 

@@ -18,3 +18,10 @@ def format_order_html(order):
         f"Name: {order['order_name']}<br>"
         f"Subject: {order['subject_code']}</p>"
     )
+# Format 'ORD-00000'
+def format_order_ref(order_id):
+    return f"ORD-{int(order_id):05d}"
+
+# return dictionary with order_ref formatting
+def with_order_ref(order):
+    return {**order, "order_ref": format_order_ref(order["order_id"])}

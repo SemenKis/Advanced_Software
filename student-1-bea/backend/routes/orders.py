@@ -2,14 +2,14 @@ from flask import Blueprint, jsonify, request
 import requests
 
 from services.database_api import get_order_by_id_response, get_orders, create_order
-from views.html_formatters import format_order_html, format_orders_html
+from views.html_formatters import format_order_html, format_orders_html, format_order_ref, with_order_ref
 
 
 orders_bp = Blueprint("orders", __name__)
 
 # TODO:
 # routes: order/list, order/id, order/id/details, order/create, order/update, order/delete, 
-
+# DONE: order/list
 
 # routes/orders.py
 @orders_bp.post("/orders")
@@ -40,10 +40,9 @@ def create_order_route():
         "quantity": quantity,
         "total_amount": total_amount,
     })
-    return jsonify(response.json()), response.status_code
-
+    return jsonify(with_order_ref(response.json())), response.status_code
 
 @orders_bp.get("/orders")
 def get_orders_route():
     orders = get_orders()
-    return jsonify(orders)
+    return jsonify([with_order_ref(order) for order in orders])
