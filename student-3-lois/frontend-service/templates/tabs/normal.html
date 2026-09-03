@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Normal UI</title>
+<link rel="stylesheet" href="/css/styles.css">
+<style>
+  body { margin: 0; min-height: auto; background: transparent; }
+  .app-shell { max-width: none; padding: 0; }
+</style>
+</head>
+<body>
+<main class="app-shell">
+
+  <section class="card">
+    <h2>Inventory Dashboard</h2>
+    <div class="toolbar">
+      <div>
+        <label for="search-input">Search</label>
+        <input id="search-input" type="text" placeholder="Name, brand, description">
+      </div>
+      <div>
+        <label for="category-filter">Category</label>
+        <select id="category-filter"><option value="">All categories</option></select>
+      </div>
+      <div>
+        <label for="supplier-filter">Supplier</label>
+        <select id="supplier-filter"><option value="">All suppliers</option></select>
+      </div>
+      <div>
+        <label for="sort-by">Sort by</label>
+        <select id="sort-by">
+          <option value="name">Name</option>
+          <option value="price">Price</option>
+          <option value="quantity">Quantity</option>
+          <option value="category_name">Category</option>
+          <option value="supplier_name">Supplier</option>
+        </select>
+      </div>
+      <div>
+        <label for="sort-dir">Direction</label>
+        <select id="sort-dir">
+          <option value="asc">Ascending</option>
+          <option value="desc">Descending</option>
+        </select>
+      </div>
+      <button id="apply-filters-btn" type="button">Apply</button>
+      <button id="low-stock-btn" type="button" class="secondary">Show Low Stock Only</button>
+    </div>
+    <div id="products-result" class="panel"></div>
+  </section>
+
+  <section class="card">
+    <h2>Add New Product</h2>
+    <form id="add-product-form" class="form-row">
+      <div>
+        <label for="add_name">Name</label>
+        <input id="add_name" name="name" type="text" required>
+      </div>
+      <div>
+        <label for="add_brand">Brand</label>
+        <input id="add_brand" name="brand" type="text">
+      </div>
+      <div style="grid-column: 1 / -1;">
+        <label for="add_description">Description</label>
+        <textarea id="add_description" name="description" rows="2"></textarea>
+      </div>
+      <div>
+        <label for="add_category_id">Category</label>
+        <select id="add_category_id" name="category_id" required></select>
+      </div>
+      <div>
+        <label for="add_supplier_id">Supplier</label>
+        <select id="add_supplier_id" name="supplier_id" required></select>
+      </div>
+      <div>
+        <label for="add_price">Price ($)</label>
+        <input id="add_price" name="price" type="number" step="0.01" min="0" required>
+      </div>
+      <div>
+        <label for="add_quantity">Starting Quantity</label>
+        <input id="add_quantity" name="quantity" type="number" min="0" value="0">
+      </div>
+      <div>
+        <label for="add_reorder_level">Reorder Level</label>
+        <input id="add_reorder_level" name="reorder_level" type="number" min="0" value="10">
+      </div>
+      <div style="grid-column: 1 / -1;">
+        <button type="submit">Add Product</button>
+      </div>
+    </form>
+    <div id="add-product-result" class="panel"></div>
+  </section>
+
+  <section class="card">
+    <h2>Update / Delete Product</h2>
+    <form id="find-product-form" class="form-row">
+      <div>
+        <label for="edit_product_id">Product ID</label>
+        <input id="edit_product_id" name="product_id" type="number" min="1" required>
+      </div>
+      <div style="align-self: flex-end;">
+        <button type="submit">Load Product</button>
+      </div>
+    </form>
+    <div id="product-lookup-result" class="panel"></div>
+
+    <form id="update-product-form" class="form-row is-hidden">
+      <div>
+        <label for="upd_name">Name</label>
+        <input id="upd_name" name="name" type="text">
+      </div>
+      <div>
+        <label for="upd_brand">Brand</label>
+        <input id="upd_brand" name="brand" type="text">
+      </div>
+      <div style="grid-column: 1 / -1;">
+        <label for="upd_description">Description</label>
+        <textarea id="upd_description" name="description" rows="2"></textarea>
+      </div>
+      <div>
+        <label for="upd_category_id">Category</label>
+        <select id="upd_category_id" name="category_id"></select>
+      </div>
+      <div>
+        <label for="upd_supplier_id">Supplier</label>
+        <select id="upd_supplier_id" name="supplier_id"></select>
+      </div>
+      <div>
+        <label for="upd_price">Price ($)</label>
+        <input id="upd_price" name="price" type="number" step="0.01" min="0">
+      </div>
+      <div>
+        <label for="upd_quantity">Quantity</label>
+        <input id="upd_quantity" name="quantity" type="number" min="0">
+      </div>
+      <div>
+        <label for="upd_reorder_level">Reorder Level</label>
+        <input id="upd_reorder_level" name="reorder_level" type="number" min="0">
+      </div>
+      <div style="grid-column: 1 / -1; display:flex; gap:0.5rem;">
+        <button type="submit">Save Changes</button>
+        <button type="button" id="delete-product-btn" class="danger">Delete Product</button>
+      </div>
+    </form>
+    <div id="update-product-result" class="panel"></div>
+  </section>
+
+  <section class="card">
+    <h2>Stocktake</h2>
+    <p style="color: var(--muted); margin-top: -0.3rem;">Record a physical count. This updates the live quantity for the product.</p>
+    <form id="stocktake-form" class="form-row">
+      <div>
+        <label for="st_product_id">Product ID</label>
+        <input id="st_product_id" name="product_id" type="number" min="1" required>
+      </div>
+      <div>
+        <label for="st_member_name">Team Member</label>
+        <input id="st_member_name" name="member_name" type="text" required>
+      </div>
+      <div>
+        <label for="st_counted_quantity">Counted Quantity</label>
+        <input id="st_counted_quantity" name="counted_quantity" type="number" min="0" required>
+      </div>
+      <div style="align-self: flex-end;">
+        <button type="submit">Record Stocktake</button>
+      </div>
+    </form>
+    <div id="stocktake-add-result" class="panel"></div>
+    <h3>Recent Stocktake Activity</h3>
+    <button id="load-stocktakes-btn" type="button" class="secondary">Load Stocktake History</button>
+    <div id="stocktake-history-result" class="panel"></div>
+  </section>
+
+</main>
+
+<script>
+const BACKEND = "http://localhost:5001";
+
+async function renderIntoPanel(panelId, url, options = {}) {
+  const panel = document.getElementById(panelId);
+  try {
+    const response = await fetch(url, options);
+    const body = await response.text();
+    panel.innerHTML = body;
+    return response;
+  } catch (error) {
+    panel.innerHTML = `<p>Request failed.</p><pre>${error}</pre>`;
+  }
+}
+
+async function populateSelect(selectEl, url, placeholder) {
+  try {
+    const response = await fetch(url);
+    const html = await response.text();
+    selectEl.innerHTML = (placeholder ? `<option value="">${placeholder}</option>` : "") + html;
+  } catch (error) {
+    selectEl.innerHTML = `<option value="">Failed to load</option>`;
+  }
+}
+
+function initDropdowns() {
+  populateSelect(document.getElementById("category-filter"), `${BACKEND}/categories/options`, "All categories");
+  populateSelect(document.getElementById("supplier-filter"), `${BACKEND}/suppliers/options`, "All suppliers");
+  populateSelect(document.getElementById("add_category_id"), `${BACKEND}/categories/options`, "");
+  populateSelect(document.getElementById("add_supplier_id"), `${BACKEND}/suppliers/options`, "");
+  populateSelect(document.getElementById("upd_category_id"), `${BACKEND}/categories/options`, "");
+  populateSelect(document.getElementById("upd_supplier_id"), `${BACKEND}/suppliers/options`, "");
+}
+initDropdowns();
+
+function loadProducts() {
+  const params = new URLSearchParams();
+  const search = document.getElementById("search-input").value.trim();
+  const category = document.getElementById("category-filter").value;
+  const supplier = document.getElementById("supplier-filter").value;
+  const sortBy = document.getElementById("sort-by").value;
+  const sortDir = document.getElementById("sort-dir").value;
+  if (search) params.set("search", search);
+  if (category) params.set("category_id", category);
+  if (supplier) params.set("supplier_id", supplier);
+  params.set("sort_by", sortBy);
+  params.set("sort_dir", sortDir);
+  renderIntoPanel("products-result", `${BACKEND}/products?${params.toString()}`);
+}
+loadProducts();
+
+document.getElementById("apply-filters-btn").addEventListener("click", loadProducts);
+document.getElementById("low-stock-btn").addEventListener("click", () => {
+  renderIntoPanel("products-result", `${BACKEND}/products/low-stock`);
+});
+
+// Add product
+document.getElementById("add-product-form").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const formData = new URLSearchParams(new FormData(event.target));
+  await renderIntoPanel("add-product-result", `${BACKEND}/products`, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: formData,
+  });
+  event.target.reset();
+  loadProducts();
+});
+
+// Find product to edit
+let currentEditId = null;
+document.getElementById("find-product-form").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const id = document.getElementById("edit_product_id").value;
+  const response = await fetch(`${BACKEND}/products/${id}`);
+  const body = await response.text();
+  document.getElementById("product-lookup-result").innerHTML = body;
+  const updateForm = document.getElementById("update-product-form");
+  if (response.ok) {
+    currentEditId = id;
+    updateForm.classList.remove("is-hidden");
+  } else {
+    currentEditId = null;
+    updateForm.classList.add("is-hidden");
+  }
+});
+
+// Update product
+document.getElementById("update-product-form").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  if (!currentEditId) return;
+  const formData = new URLSearchParams(new FormData(event.target));
+  await renderIntoPanel("update-product-result", `${BACKEND}/products/${currentEditId}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: formData,
+  });
+  loadProducts();
+});
+
+// Delete product
+document.getElementById("delete-product-btn").addEventListener("click", async () => {
+  if (!currentEditId) return;
+  if (!confirm(`Delete product ${currentEditId}? This cannot be undone.`)) return;
+  await renderIntoPanel("update-product-result", `${BACKEND}/products/${currentEditId}`, {
+    method: "DELETE",
+  });
+  document.getElementById("update-product-form").classList.add("is-hidden");
+  currentEditId = null;
+  loadProducts();
+});
+
+// Stocktake
+document.getElementById("stocktake-form").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const formData = new URLSearchParams(new FormData(event.target));
+  await renderIntoPanel("stocktake-add-result", `${BACKEND}/stocktakes`, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: formData,
+  });
+  event.target.reset();
+  loadProducts();
+});
+
+document.getElementById("load-stocktakes-btn").addEventListener("click", () => {
+  renderIntoPanel("stocktake-history-result", `${BACKEND}/stocktakes`);
+});
+</script>
+</body>
+</html>

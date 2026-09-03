@@ -1,0 +1,14 @@
+Task:
+You are given a snapshot of current product stock levels, reorder levels, and suppliers.
+
+Plan: identify products that are at or below their reorder level (low stock), and consider
+which supplier they should be reordered from.
+Act: produce a short, prioritised reorder recommendation list.
+Observe: base every recommendation strictly on the supplied evidence below.
+Adapt: if there are no low-stock products, recommend which product(s) are selling fastest
+based on quantity relative to other items, or state that stock levels look healthy.
+
+Output format:
+- A short bullet list (max 5 bullets).
+- Each bullet: product name, current quantity, reorder level, supplier to reorder from.
+- Maximum 100 words total.
