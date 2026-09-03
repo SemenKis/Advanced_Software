@@ -1,0 +1,31 @@
+{% for it in items %}
+<tr>
+    <td>{{ it.id }}</td>
+    <td>{{ it.order_id }}</td>
+    <td>{{ it.packing_list_id }}</td>
+    <td>{{ it.task_type }}</td>
+    <td>{{ it.assigned_to }}</td>
+    <td><strong>{{ it.priority }}</strong></td>
+    <td>
+        <form class="inline" hx-post="/shipping-tasks/{{ it.id }}/update" hx-target="#shipping-rows" hx-swap="innerHTML">
+            <input type="hidden" name="order_id" value="{{ it.order_id }}">
+            <input type="hidden" name="packing_list_id" value="{{ it.packing_list_id }}">
+            <input type="hidden" name="task_type" value="{{ it.task_type }}">
+            <input type="hidden" name="assigned_to" value="{{ it.assigned_to }}">
+            <input name="priority" value="{{ it.priority }}" size="3">
+            <select name="status">
+                <option {% if it.status == 'pending' %}selected{% endif %}>pending</option>
+                <option {% if it.status == 'in_progress' %}selected{% endif %}>in_progress</option>
+                <option {% if it.status == 'completed' %}selected{% endif %}>completed</option>
+            </select>
+            <button type="submit">Update</button>
+        </form>
+    </td>
+    <td>{{ it.bottleneck_risk }}</td>
+    <td>
+        <form class="inline" hx-delete="/shipping-tasks/{{ it.id }}/delete" hx-target="#shipping-rows" hx-swap="innerHTML" hx-confirm="Delete?">
+            <button type="submit">Delete</button>
+        </form>
+    </td>
+</tr>
+{% endfor %}

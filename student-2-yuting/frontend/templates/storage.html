@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Storage Locations</h2>
+<form hx-post="/storage/add" hx-target="#storage-rows" hx-swap="innerHTML">
+    <input name="zone_name" placeholder="Zone name" required>
+    <input name="aisle" placeholder="Aisle">
+    <input name="shelf" placeholder="Shelf">
+    <input name="bin_code" placeholder="Bin code">
+    <input name="capacity" type="number" placeholder="Capacity" value="100">
+    <input name="current_load" type="number" placeholder="Current load" value="0">
+    <select name="status"><option>active</option><option>inactive</option></select>
+    <button type="submit">Add</button>
+</form>
+<table>
+    <thead>
+        <tr><th>ID</th><th>Zone</th><th>Aisle</th><th>Shelf</th><th>Bin</th><th>Capacity</th>
+        <th>Load</th><th>Status</th><th>Update</th><th>Delete</th></tr>
+    </thead>
+    <tbody id="storage-rows" hx-get="/storage/table" hx-trigger="load"></tbody>
+</table>
+{% endblock %}

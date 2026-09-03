@@ -1,0 +1,33 @@
+{% for it in items %}
+<tr>
+    <td>{{ it.id }}</td>
+    <td>{{ it.zone_name }}</td>
+    <td>{{ it.aisle }}</td>
+    <td>{{ it.shelf }}</td>
+    <td>{{ it.bin_code }}</td>
+    <td>{{ it.capacity }}</td>
+    <td>{{ it.current_load }}</td>
+    <td>{{ it.status }}</td>
+    <td>
+        <form class="inline" hx-post="/storage/{{ it.id }}/update" hx-target="#storage-rows" hx-swap="innerHTML">
+            <input type="hidden" name="zone_name" value="{{ it.zone_name }}">
+            <input type="hidden" name="aisle" value="{{ it.aisle }}">
+            <input type="hidden" name="shelf" value="{{ it.shelf }}">
+            <input type="hidden" name="bin_code" value="{{ it.bin_code }}">
+            <input type="hidden" name="capacity" value="{{ it.capacity }}">
+            <input name="current_load" value="{{ it.current_load }}" size="4">
+            <select name="status">
+                <option {% if it.status =='active' %}selected{% endif %}>active</option>
+                <option {% if it.status == 'inactive' %}selected{% endif %}>inactive</option>
+            </select>
+            <button type="submit">Update</button>
+        </form>
+        
+    </td>
+    <td>
+        <form class="inline" hx-delete="/storage/{{ it.id }}/delete" hx-target="#storage-rows" hx-swap="innerHTML" hx-confirm="Delete this location?">
+            <button type="submit">Delete</button>
+        </form>
+    </td>
+</tr>
+{% endfor %}

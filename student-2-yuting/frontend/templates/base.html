@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Warehouse Management - Student 2 Yuting</title>
+    <script src="/static/htmx.min.js"></script>
+    <style>
+        body { font-family: sans-serif; margin: 2rem; color: #222; }
+        table { border-collapse: collapse; width: 100%; margin-top: 1rem; }
+        th, td { border : 1px solid #ccc; padding: 10px 14px; text-align: left; font-size: 0.9rem;}
+        th { background-color: #f4f4f4; }
+        nav a { margin-right: 1rem; text-decoration: none; font-weight: bold; }
+
+        form:not(.inline) input,
+        form:not(.inline) select {
+            padding: 8px 10px;
+            margin-right: 16px;
+            margin-bottom: 10px;
+        }
+        form:not(.inline) button {
+            padding: 8px 18px;
+        }
+
+        td form.inline { 
+            display: inline-block; 
+            margin-right: 16px;
+        }
+
+        td form.inline:last-child {
+            margin-right: 0;
+        }
+
+        td form.inline input,
+        td form.inline select {
+            margin-right: 8px;
+            padding: 5px 7px;
+        }
+        td form.inline button {
+            padding: 5px 14px; 
+        }
+
+    </style>
+</head>
+<body>
+    <nav>
+        <a href="/">Home</a>
+        <a href="/storage">Storage</a>
+        <a href="/packing-lists">Packing Lists</a>
+        <a href="/shipping-tasks">Shipping Tasks</a>
+    </nav>
+    <hr>
+    {% block content %}{% endblock %}
+</body>
+</html>
