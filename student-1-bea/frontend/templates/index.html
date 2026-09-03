@@ -15,6 +15,15 @@
       <h2>Menu</h2>
       
       <button class="btn primary" id="create-order-btn" commandfor="create-order-modal" command="show-modal">+ New order</button>
+      
+      <div class="search-order">
+        <input type="number" id="search-order" placeholder="Search order by Id" required />
+        <button type="submit" id="submit-search-order-btn">Search Order</button>
+      </div>
+      <div class="ai-analysis">
+        <input type="text" id="ai-textbox" placeholder="Analyse orders with AI" required />
+        <button type="submit" id="ai-textbox-submit">Analyse Orders</button>
+      </div>
     </div>
     <dialog id="create-order-modal">
       <form id="create-order-form">
@@ -34,6 +43,8 @@
    
   <button id="show-orders-btn">Show All Orders</button>
  
+  
+  <div id="ai-analysis-result"></div>
   <div id="orders-result"></div>
 
   <script>
@@ -41,6 +52,7 @@
     const createOrderBtn = document.getElementById('create-order-btn');
     const cancelOrderBtn = document.getElementById('cancel-order-btn');
     const createOrderModal = document.getElementById('create-order-modal');
+    const searchOrderBtn = document.getElementById('submit-search-order-btn');
     createOrderBtn.addEventListener('click', () => {
         createOrderModal.showModal();
     });
@@ -49,29 +61,35 @@
       createOrderModal.close();
     });
 
+    searchOrderBtn.addEventListener('click', () => {
+      const orderId = document.getElementById("search-order").value.trim();
+      console.log('here', orderId, typeof orderId)
+      getOrderById(parseInt(orderId, 10));
+    })
+
+
     let currentOrders = [];
     document.getElementById("create-order-form").addEventListener("submit", async (e) => {
       e.preventDefault();
-      const orderName = document.getElementById("order-name").value.trim();
-      const orderAddress = document.getElementById("order-address").value.trim();
-      const productName = document.getElementById("product-name").value.trim();
+      const order_name = document.getElementById("order-name").value.trim();
+      const order_address = document.getElementById("order-address").value.trim();
+      const product_name = document.getElementById("product-name").value.trim();
       const quantity = document.getElementById("quantity").value.trim();
-      const totalAmount = document.getElementById("total-amount").value.trim();
+      const total_amount = document.getElementById("total-amount").value.trim();
  
       const res = await fetch("/api/orders", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ 
-            orderName,
-            orderAddress,
-            productName,
+            order_name,
+            order_address,
+            product_name,
             quantity,
-            totalAmount,
+            total_amount,
           }),
       });
  
       const result = await res.json();
-      // refresh the list after a successful create
       e.target.reset();
       document.getElementById("quantity").value = 1;
       loadOrders();
@@ -94,6 +112,42 @@
       } catch (err) {
         resultEl.textContent = "Failed to load orders.";
       }
+    }
+
+    async function getOrderById(id) {
+      const resultEl = document.getElementById("orders-result");
+      resultEl.textContent = "Loading...";
+
+      try {
+        // const res = await fetch("/api/orders");
+        const res = await fetch(`/api/orders/${id}`);
+        if (!res.ok) {
+          throw new Error(`Request failed: ${res.status}`);
+        }
+        currentOrder = await res.json();
+
+        if (!currentOrder) {
+          resultEl.textContent = `No order with ${id} available`;
+        } else {
+          renderOneOrder(currentOrder);
+        }
+      } catch (err) {
+        resultEl.textContent = "Failed to load orders.";
+      }
+    }
+
+    function renderOneOrder(order) {
+      const resultEl = document.getElementById("orders-result");
+
+      if (!order) {
+        resultEl.textContent = "No order found with order id: " + order;
+        return;
+      }
+
+      const container = document.createElement("div");
+      container.appendChild(buildOrderRow(order));
+
+      resultEl.replaceChildren(container);
     }
 
     function renderOrders() {
@@ -248,38 +302,15 @@
         alert("Failed to delete order.");
       }
     }
-    // async function loadOrders() {
-    //   const resultEl = document.getElementById("orders-result");
-    //   resultEl.textContent = "Loading...";
- 
-    //   try {
-    //     const res = await fetch("/api/orders");
-    //     console.log('here', res.ok)
-    //     if (!res.ok) {
-    //       throw new Error(`Request failed: ${res.status}`);
-    //     }
-    //     const orders = await res.json();
- 
-    //     if (!orders.length) {
-    //       resultEl.textContent = "No orders found.";
-    //       return;
-    //     }
- 
-    //     const list = document.createElement("ul");
-    //     orders.forEach((order) => {
-    //       const item = document.createElement("li");
-    //       item.textContent =
-    //         `${order.order_ref} - ${order.order_name} - ${order.order_address} - ` +
-    //         `[${order.order_status}] - ${order.product_name} x${order.quantity} - $${order.total_amount}`;
-    //       list.appendChild(item);
-    //     });
-        
-    //     resultEl.replaceChildren(list);
-    //   } catch (err) {
-    //     resultEl.textContent = "Failed to load orders.";
-    //   }
-    // }
-  
+
+    async function analyseOrders(text) {
+      const resultEl = document.getElementById('ai-analysis-result')
+      try {
+
+      } catch (err) {
+        resultEl.textContent = "Failed to connect with AI server"
+      }
+    }
   </script>
 
 </body>

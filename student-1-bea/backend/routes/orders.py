@@ -88,3 +88,53 @@ def update_order_route(order_id):
 def delete_order_route(order_id):
     response = delete_order(order_id)
     return jsonify(response.json()), response.status_code
+
+ 
+@orders_bp.post("/orders/analyse")
+def analyse_orders_route():
+    data = request.get_json(silent=True) or {}
+    question = data.get("question", "").strip()
+ 
+    orders = get_orders()
+ 
+    if not orders:
+        return jsonify({"analysis": "No orders to analyse."}), 200
+ 
+    order_lines = "\n".join(
+        f"- {o['order_name']}, {o['order_address']}, status={o['order_status']}, "
+        f"product={o['product_name']}, qty={o['quantity']}, total=${o['total_amount']}"
+        for o in orders
+    )
+ 
+    user_prompt = f"Here are the current orders:\n{order_lines}"
+    if question:
+        user_prompt += f"\n\nQuestion: {question}"
+ 
+    try:
+        analysis = create_chat_completion(
+            [
+                {
+                    "role": "system",
+                    "content": (
+                        """
+                          You
+                        """
+                        "You are a concise operations assistant reviewing an order "
+                        "management system. Use the order data provided to answer the "
+                        "question, or if no question is given, summarise patterns and "
+                        "flag anything unusual (e.g. stuck pending orders, repeat "
+                        "products, high totals). Keep the response to a short paragraph."
+                    ),
+                },
+                {"role": "user", "content": user_prompt},
+            ],
+            max_tokens=250,
+            temperature=0.2,
+        )
+        return jsonify({"analysis": analysis.strip()}), 200
+    except Exception as exc:
+        return jsonify({
+            "error": "Local AI agent request failed. "
+                     "Check that Ollama is running and the model is installed.",
+            "details": str(exc),
+        }), 503
