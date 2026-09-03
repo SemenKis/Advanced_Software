@@ -1,28 +1,4 @@
-services:
-    order-frontend:
-        build: ./student-1-bea/frontend
-        ports: ["8080:80"]
-        depends_on: [order-backend]
-        networks: [order-network]
-
-    order-backend:
-        build: ./student-1-bea/backend
-        environment:
-            DATABASE_SERVICE_URL: http://order-database:5002
-            OLLAMA_BASE_URL: http://host.docker.internal:11434/v1
-            OLLAMA_MODEL: qwen2.5:0.5b
-        extra_hosts:
-            - "host.docker.internal:host-gateway"
-        depends_on: [order-database]
-        networks: [order-network]
-
-    order-database:
-        build: ./student-1-bea/database
-        volumes: [order-database-data:/app/data]
-        networks: [order-network]
-
-volumes:
-    order-database-data:
-networks:
-    order-network:
-        driver: bridge
+name: warehouse-app
+include: 
+  - student-1-bea/docker-compose.yml
+  - student-3-lois/docker-compose.yml

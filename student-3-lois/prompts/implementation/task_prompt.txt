@@ -1,0 +1,4 @@
+Task:
+Using the inventory evidence provided below, answer the user's question.
+If the evidence does not support an answer, say "Information unavailable in supplied evidence."
+Keep the answer under 120 words.

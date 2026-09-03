@@ -1,12 +1,10 @@
 
-# Logistics WMS Demo (Frontend-only)
+# Logistics Warehouse Management System
 
-License: Demo prototype.
-Logistics & Supply Chain Management System
 Overview
 
 The Logistics & Supply Chain Management System is an application designed to manage and monitor the movement of products from suppliers through warehouses to customers.
 
 The system provides a central platform for managing inventory, suppliers, warehouses, orders, shipments, and deliveries. Its main goal is to improve supply chain visibility, reduce manual work, prevent inventory shortages, and make logistics operations easier to manage.
 
-Note: created project specification directories
+
