@@ -1,0 +1,50 @@
+services:
+  frontend-service:
+    build:
+      context: ./frontend-service
+    container_name: inventory-frontend-service
+    ports:
+      - "8080:80"
+    depends_on:
+      - inventory-service
+    networks:
+      - inventory-network
+    restart: unless-stopped
+
+  inventory-service:
+    build:
+      context: .
+      dockerfile: inventory-service/Dockerfile
+    container_name: inventory-service
+    ports:
+      - "5001:5001"
+    environment:
+      DATABASE_SERVICE_URL: http://database-service:5002
+      OLLAMA_BASE_URL: http://host.docker.internal:11434/v1
+      OLLAMA_MODEL: qwen2.5:0.5b
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      - database-service
+    networks:
+      - inventory-network
+    restart: unless-stopped
+
+  database-service:
+    build:
+      context: ./database-service
+    container_name: inventory-database-service
+    ports:
+      - "5002:5002"
+    volumes:
+      - inventory_database_data:/app/data
+    networks:
+      - inventory-network
+    restart: unless-stopped
+
+networks:
+  inventory-network:
+    driver: bridge
+
+volumes:
+  inventory_database_data:

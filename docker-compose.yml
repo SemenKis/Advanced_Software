@@ -1,0 +1,3 @@
+name: warehouse-app
+include: 
+  - student-3-lois/docker-compose.yml

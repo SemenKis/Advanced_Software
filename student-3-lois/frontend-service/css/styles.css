@@ -59,6 +59,7 @@ button {
   background: var(--accent);
   cursor: pointer;
 }
+
 button:hover { background: var(--accent-strong); }
 button.danger { background: #e5566f; color: #2a0a10; }
 button.danger:hover { background: #cf3f58; }
