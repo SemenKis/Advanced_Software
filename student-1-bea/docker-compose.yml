@@ -1,12 +1,12 @@
 services:
     order-frontend:
-        build: ./student-1-bea/frontend
-        ports: ["8080:80"]
+        build: ./frontend
+        ports: ["8082:80"]
         depends_on: [order-backend]
-        networks: [order-network]
+        networks: [team-network]
 
     order-backend:
-        build: ./student-1-bea/backend
+        build: ./backend
         environment:
             DATABASE_SERVICE_URL: http://order-database:5002
             OLLAMA_BASE_URL: http://host.docker.internal:11434/v1
@@ -14,15 +14,16 @@ services:
         extra_hosts:
             - "host.docker.internal:host-gateway"
         depends_on: [order-database]
-        networks: [order-network]
+        networks: [team-network]
 
     order-database:
-        build: ./student-1-bea/database
+        build: ./database
         volumes: [order-database-data:/app/data]
-        networks: [order-network]
+        networks: [team-network]
 
 volumes:
     order-database-data:
+
 networks:
-    order-network:
-        driver: bridge
+  team-network:
+    external: true

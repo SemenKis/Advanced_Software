@@ -29,3 +29,7 @@ services:
 
 volumes:
   student2-db-data:
+
+networks:
+  team-network:
+    external: true

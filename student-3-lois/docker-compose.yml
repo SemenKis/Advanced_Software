@@ -8,7 +8,7 @@ services:
     depends_on:
       - inventory-service
     networks:
-      - inventory-network
+      - team-network
     restart: unless-stopped
 
   inventory-service:
@@ -27,7 +27,7 @@ services:
     depends_on:
       - database-service
     networks:
-      - inventory-network
+      - team-network
     restart: unless-stopped
 
   database-service:
@@ -39,12 +39,12 @@ services:
     volumes:
       - inventory_database_data:/app/data
     networks:
-      - inventory-network
+      - team-network
     restart: unless-stopped
 
 networks:
-  inventory-network:
-    driver: bridge
+  team-network:
+    external: true
 
 volumes:
   inventory_database_data:
