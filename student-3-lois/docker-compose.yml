@@ -44,7 +44,7 @@ services:
 
 networks:
   team-network:
-    external: true
+    driver: bridge
 
 volumes:
   inventory_database_data:

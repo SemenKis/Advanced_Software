@@ -1,11 +1,10 @@
 services:
-  backend:
+  transportation-backend:
     build:
       context: .
       dockerfile: Dockerfile
 
     container_name: transportation-backend
-
     networks:
       - team-network
 
@@ -14,20 +13,19 @@ services:
       OLLAMA_URL: http://127.0.0.1:11434
       OLLAMA_MODEL: qwen2.5:0.5b
 
-
-  frontend:
+  transportation-frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
 
     container_name: transportation-frontend
-
     ports:
       - "3004:80"
-
     depends_on:
-      - backend
+      - transportation-backend
+    networks:
+      - team-network
 
 networks:
   team-network:
-    external: true
+    driver: bridge

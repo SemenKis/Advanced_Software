@@ -20,4 +20,4 @@ include:
 
 networks:
   team-network:
-    external: true
+    driver: bridge
