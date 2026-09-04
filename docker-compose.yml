@@ -1,5 +1,23 @@
 name: warehouse-app
+
+services:
+  shared-frontend:
+    build:
+      context: .
+      dockerfile: shared/Dockerfile
+    container_name: shared-frontend
+    ports:
+      - "8080:80"
+    networks:
+      - team-network
+    restart: unless-stopped
+
 include: 
   - student-1-bea/docker-compose.yml
+  - student-2-yuting/docker-compose.local.yml
   - student-3-lois/docker-compose.yml
   - student-4-sam/docker-compose.yml
+
+networks:
+  team-network:
+    external: true

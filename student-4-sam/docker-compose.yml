@@ -6,7 +6,8 @@ services:
 
     container_name: transportation-backend
 
-    network_mode: host
+    networks:
+      - team-network
 
     environment:
       DATABASE_PATH: /app/database/transportation.db
@@ -26,3 +27,7 @@ services:
 
     depends_on:
       - backend
+
+networks:
+  team-network:
+    external: true
