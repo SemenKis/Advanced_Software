@@ -28,6 +28,9 @@ jobs:
       - name: Verify docker-compose
         run: |
           docker compose version
+      
+      - name: Create external network
+        run: docker network create team-network || true 
 
       - name: Start services
         run: docker compose up -d
