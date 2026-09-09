@@ -1,10 +1,14 @@
 services:
     order-frontend:
         build: ./frontend
+<<<<<<< HEAD
+        ports: ["8082:80"]
+=======
 
 
         ports: ["8082:80"]
 
+>>>>>>> b54d4709e04f96291315f81948875d6cb96fa9ce
         depends_on: [order-backend]
         networks: [team-network]
 
