@@ -59,8 +59,7 @@ jobs:
           }
 
           check_url "http://localhost:8082/"
-          check_url "http://localhost:5001/"
-          check_url "http://localhost:5002/"
+          check_url "http://localhost:8082/api/orders"
 
       - name: Stop services
         if: always()
