@@ -36,31 +36,41 @@ def log_review(student, evidence_preview, review):
     return entry
 
 
-def collect_database_evidence():
+def collect_database_evidence(student_folder):
     schemas = []
-    for path in REPO_ROOT.glob("student-*/*/schema.sql"):
+    for path in (REPO_ROOT / student_folder).glob("*/schema.sql"):
         schemas.append(f"--- {path.relative_to(REPO_ROOT)} ---\n{path.read_text()}")
-    return "\n\n".join(schemas) if schemas else "No schema.sql files found."
+    return "\n\n".join(schemas) if schemas else f"No schema.sql found for {student_folder}."
 
 
-def collect_architecture_evidence():
-    compose_path = REPO_ROOT / "docker-compose.yml"
-    return compose_path.read_text() if compose_path.exists() else "docker-compose.yml not found."
+def collect_architecture_evidence(student_folder):
+    compose_path = REPO_ROOT / student_folder / "docker-compose.yml"
+    if compose_path.exists():
+        return compose_path.read_text()
+    return f"docker-compose.yml not found for {student_folder}."
 
 
-def collect_devops_evidence():
-    workflows = []
-    for path in (REPO_ROOT / ".github" / "workflows").glob("*.yml"):
-        workflows.append(f"--- {path.name} ---\n{path.read_text()}")
-    return "\n\n".join(workflows) if workflows else "No workflow files found."
+def collect_devops_evidence(student_folder):
+    workflow_name = f"{student_folder.split('-')[0]}-{student_folder.split('-')[1]}-ci.yml"
+    matches = list((REPO_ROOT / ".github" / "workflows").glob(f"*{student_folder.split('-')[1]}*.yml"))
+    if matches:
+        return "\n\n".join(f"--- {p.name} ---\n{p.read_text()}" for p in matches)
+    return f"No workflow file found for {student_folder}."
 
 
-def collect_implementation_evidence():
-    lines = []
-    for student_dir in sorted(REPO_ROOT.glob("student-*-*")):
-        files = [str(p.relative_to(student_dir)) for p in student_dir.rglob("*.py")]
-        lines.append(f"{student_dir.name}: {files}")
-    return "\n".join(lines)
+def collect_implementation_evidence(student_folder):
+    student_dir = REPO_ROOT / student_folder
+    if not student_dir.exists():
+        return f"Folder not found: {student_folder}"
+    contents = []
+    for py_file in student_dir.rglob("*.py"):
+        try:
+            text = py_file.read_text()
+            contents.append(f"--- {py_file.relative_to(student_dir)} ---\n{text[:500]}")
+        except Exception: 
+            continue
+    return "\n\n".join(contents) if contents else f"No Python files found for {student_folder}."
+   
 
 
 COLLECTORS = {
@@ -79,8 +89,8 @@ def load_prompt(student_folder):
 
 
 def run_review(student_folder, evidence_category):
-    print(f"[PLAN] Collecting {evidence_category} evidence for {student_folder}...")
-    evidence = COLLECTORS[evidence_category]()
+    print(f"[PLAN] Collecting {evidence_category} evidence for {student_folder} only...")
+    evidence = COLLECTORS[evidence_category](student_folder)
 
     print(f"[ACT] Loading prompt and sending to {OLLAMA_MODEL}...")
     system_prompt = load_prompt(student_folder)
