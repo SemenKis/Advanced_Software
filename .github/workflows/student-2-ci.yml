@@ -1,6 +1,6 @@
-name: student-1-bea
+name: student-2-yuting
 
-on:
+on: 
   workflow_dispatch:
 
 jobs:
@@ -16,7 +16,6 @@ jobs:
           docker compose version
 
       - name: Build services
-        working-directory: ./student-1-bea
         run: docker compose build
 
   smoke-check:
@@ -29,12 +28,11 @@ jobs:
       - name: Verify docker-compose
         run: |
           docker compose version
-
+      
       - name: Create external network
-        run: docker network create team-network || true
+        run: docker network create team-network || true 
 
       - name: Start services
-        working-directory: ./student-1-bea
         run: docker compose up -d
 
       - name: Smoke checks
@@ -43,6 +41,7 @@ jobs:
             local url="$1"
             local attempts=8
             local code=""
+
 
             for i in $(seq 1 "$attempts"); do
               code=$(curl -sS -o /dev/null -w "%{http_code}" --connect-timeout 5 --max-time 20 "$url" || true)
@@ -58,12 +57,10 @@ jobs:
             return 1
           }
 
-          check_url "http://localhost:8082/"
-          check_url "http://localhost:8082/api/orders"
+          check_url "http://localhost:5000/"
 
       - name: Stop services
         if: always()
-        working-directory: ./student-1-bea
         run: docker compose down -v
 
   evidence-pack:
@@ -80,7 +77,7 @@ jobs:
         run: |
           cat > reports/report.json << 'EOF'
           {
-            "workflow_name": "student-1-bea",
+            "workflow_name": "student-2-yuting",
             "run_id": "${{ github.run_id }}",
             "commit_sha": "${{ github.sha }}",
             "branch": "${{ github.ref_name }}",
@@ -93,7 +90,7 @@ jobs:
           cat > reports/report.md << EOF
           ## Workflow Report
 
-          - Workflow: student-1-bea
+          - Workflow: student-2-yuting
           - Run ID: ${{ github.run_id }}
           - Commit SHA: ${{ github.sha }}
           - Branch: ${{ github.ref_name }}
@@ -108,5 +105,5 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: student-1-bea-report
+          name: student-2-yuting-report
           path: reports

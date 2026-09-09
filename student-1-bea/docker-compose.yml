@@ -1,9 +1,16 @@
 services:
     order-frontend:
         build: ./frontend
+<<<<<<< HEAD
         ports: ["8082:80"]
+=======
+
+
+        ports: ["8082:80"]
+
+>>>>>>> b54d4709e04f96291315f81948875d6cb96fa9ce
         depends_on: [order-backend]
-        networks: [order-network]
+        networks: [team-network]
 
     order-backend:
         build: ./backend
@@ -14,15 +21,16 @@ services:
         extra_hosts:
             - "host.docker.internal:host-gateway"
         depends_on: [order-database]
-        networks: [order-network]
+        networks: [team-network]
 
     order-database:
         build: ./database
         volumes: [order-database-data:/app/data]
-        networks: [order-network]
+        networks: [team-network]
 
 volumes:
     order-database-data:
+
 networks:
-    order-network:
-        driver: bridge
+  team-network:
+    external: true

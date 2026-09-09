@@ -1,4 +1,4 @@
-name: student-1-bea
+name: student-3-lois
 
 on:
   workflow_dispatch:
@@ -16,7 +16,7 @@ jobs:
           docker compose version
 
       - name: Build services
-        working-directory: ./student-1-bea
+        working-directory: ./student-3-lois
         run: docker compose build
 
   smoke-check:
@@ -34,7 +34,7 @@ jobs:
         run: docker network create team-network || true
 
       - name: Start services
-        working-directory: ./student-1-bea
+        working-directory: ./student-3-lois
         run: docker compose up -d
 
       - name: Smoke checks
@@ -58,12 +58,13 @@ jobs:
             return 1
           }
 
-          check_url "http://localhost:8082/"
-          check_url "http://localhost:8082/api/orders"
+          check_url "http://localhost:8081/"
+          check_url "http://localhost:5001/"
+          check_url "http://localhost:5002/"
 
       - name: Stop services
         if: always()
-        working-directory: ./student-1-bea
+        working-directory: ./student-3-lois
         run: docker compose down -v
 
   evidence-pack:
@@ -80,7 +81,7 @@ jobs:
         run: |
           cat > reports/report.json << 'EOF'
           {
-            "workflow_name": "student-1-bea",
+            "workflow_name": "student-3-lois",
             "run_id": "${{ github.run_id }}",
             "commit_sha": "${{ github.sha }}",
             "branch": "${{ github.ref_name }}",
@@ -93,7 +94,7 @@ jobs:
           cat > reports/report.md << EOF
           ## Workflow Report
 
-          - Workflow: student-1-bea
+          - Workflow: student-3-lois
           - Run ID: ${{ github.run_id }}
           - Commit SHA: ${{ github.sha }}
           - Branch: ${{ github.ref_name }}
@@ -108,5 +109,5 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: student-1-bea-report
+          name: student-3-lois-report
           path: reports
