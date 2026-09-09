@@ -13,11 +13,12 @@ jobs:
 
       - name: Verify docker-compose
         run: |
-          docker-compose --version || (sudo apt-get update && sudo apt-get install -y docker-compose)
+          docker compose version
 
       - name: Build services
-        run: docker-compose build
-        
+        working-directory: ./student-1-bea
+        run: docker compose build
+
   smoke-check:
     runs-on: ubuntu-latest
     needs: [build-images]
@@ -27,11 +28,15 @@ jobs:
 
       - name: Verify docker-compose
         run: |
-          docker-compose --version || (sudo apt-get update && sudo apt-get install -y docker-compose)
+          docker compose version
+
+      - name: Create external network
+        run: docker network create team-network || true
 
       - name: Start services
-        run: docker-compose up -d
-        
+        working-directory: ./student-1-bea
+        run: docker compose up -d
+
       - name: Smoke checks
         run: |
           check_url() {
@@ -53,14 +58,15 @@ jobs:
             return 1
           }
 
-          check_url "http://localhost:8080/"
+          check_url "http://localhost:8082/"
           check_url "http://localhost:5001/"
           check_url "http://localhost:5002/"
 
       - name: Stop services
         if: always()
-        run: docker-compose down -v
-       
+        working-directory: ./student-1-bea
+        run: docker compose down -v
+
   evidence-pack:
     runs-on: ubuntu-latest
     needs: [smoke-check]
@@ -70,7 +76,6 @@ jobs:
 
       - name: Create reports directory
         run: mkdir -p reports
-        working-directory: ./docs
 
       - name: Generate report.json
         run: |
@@ -83,25 +88,25 @@ jobs:
             "generated_timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
           }
           EOF
-        
+
       - name: Generate report.md
         run: |
           cat > reports/report.md << EOF
-          ## Lab 05 Workflow Report
+          ## Workflow Report
 
           - Workflow: student-1-bea
           - Run ID: ${{ github.run_id }}
           - Commit SHA: ${{ github.sha }}
           - Branch: ${{ github.ref_name }}
           EOF
-       
+
       - name: Generate run-view.md
         run: |
           cat > reports/run-view.md << EOF
           Run URL:
           https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
           EOF
-        
+
       - uses: actions/upload-artifact@v4
         with:
           name: student-1-bea-report
