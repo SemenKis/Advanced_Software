@@ -18,4 +18,4 @@ coverage/
 vscode
 __pycache__/
 *.db
-scripts.md
+scripts.mdagentic-review/agentic_review_log.jsonl
