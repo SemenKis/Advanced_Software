@@ -6,14 +6,12 @@ services:
 
     container_name: transportation-backend
 
-    networks:
-      - team-network
+    network_mode: host
 
     environment:
       DATABASE_PATH: /app/database/transportation.db
       OLLAMA_URL: http://127.0.0.1:11434
       OLLAMA_MODEL: qwen2.5:0.5b
-
 
   frontend:
     build:
@@ -27,7 +25,3 @@ services:
 
     depends_on:
       - backend
-
-networks:
-  team-network:
-    external: true
