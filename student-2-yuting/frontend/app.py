@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, redirect
 import requests
 import os
 
@@ -43,7 +43,7 @@ def build_payload(cfg, form):
 
 @app.route("/")
 def home():
-    return render_template("index.html")
+    return redirect("/storage")
 
 
 @app.route("/<resource>")
@@ -99,6 +99,13 @@ def shipping_prioritise():
     requests.post(f"{BACKEND_URL}/api/ai/prioritise-shipping-tasks")
     cfg = RESOURCE_CONFIG["shipping-tasks"]
     return render_template(cfg["rows_template"], items=fetch_items(cfg))
+
+
+
+
+@app.route("/mcp-rag")
+def mcp_rag_page():
+    return render_template("mcp_rag.html")
 
 
 if __name__ =="__main__":

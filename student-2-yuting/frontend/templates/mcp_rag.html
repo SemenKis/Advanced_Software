@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>MCP &amp; RAG Tools</h2>
+
+<section style="margin-bottom: 2rem;">
+    <h3>MCP: Check Storage Capacity</h3>
+    <form hx-post="/mcp/check-storage-capacity" hx-target="#mcp-result" hx-swap="innerHTML">
+        <input name="zone_name" placeholder="Zone name (e.g. Zone-C)" size="20">
+        <button type="submit">Run Tool</button>
+    </form>
+    <div id="mcp-result" style="margin-top: 10px; padding: 12px; background: #f4f4f4; border-radius: 6px;">
+        MCP tool results will appear here.
+    </div>
+</section>
+
+<section>
+    <h3>RAG: Ask a Question</h3>
+    <form hx-post="/rag/answer" hx-target="#rag-result" hx-swap="innerHTML">
+        <input name="query" placeholder="e.g. Why did this task fall back to rule-based priority?" size="50">
+        <button type="submit">Ask</button>
+    </form>
+    <div id="rag-result" style="margin-top: 10px; padding: 12px; background: #f4f4f4; border-radius: 6px;">
+        RAG answers will appear here.
+    </div>
+</section>
+{% endblock %}
