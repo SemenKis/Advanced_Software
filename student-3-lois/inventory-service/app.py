@@ -9,18 +9,22 @@ if str(BASE_DIR) not in sys.path:
     sys.path.insert(0, str(BASE_DIR))
 
 from routes.ai_mode import ai_mode_bp
-from routes.normal_ui import normal_ui
+from routes.inventory import inventory_bp
+from routes.mcp_mode import mcp_bp
+#from routes.rag_mode import rag_bp
 
 
 def create_app():
     app = Flask(__name__)
     CORS(app)
-    app.register_blueprint(normal_ui)
+    app.register_blueprint(inventory_bp)
     app.register_blueprint(ai_mode_bp)
+    app.register_blueprint(mcp_bp)
+#    app.register_blueprint(rag_bp)
     return app
 
 
 app = create_app()
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5001, debug=True)
+    app.run(host="0.0.0.0", port=5013, debug=True)
