@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Packing Lists</h2>
+<form hx-post="/packing-lists/add" hx-target="#packing-rows" hx-swap="innerHTML">
+   <input name="order_id" type="number" placeholder="Order ID" required>
+   <input name="items_json" placeholder='Items JSON e.g. [{"sku":"SKU-1","qty":2}]' size="40" value="[]">
+   <select name="status"><option>pending</option><option>packed</option><option>shipped</option></select>
+   <button type="submit">Add</button>
+</form>
+<table>
+    <thead><tr><th>ID</th><th>Order ID</th><th>Items</th><th>Update</th><th>Delete</th></tr></thead>
+    <tbody id="packing-rows" hx-get="/packing-lists/table" hx-trigger="load"></tbody>
+</table>
+{% endblock %}

@@ -1,0 +1,31 @@
+services:
+  warehouse-database:
+    build: ./database
+    container_name: student2-database
+    environment:
+      - DB_PATH=/data/warehouse.db
+    volumes:
+      - student2-db-data:/data
+
+  warehouse-backend:
+    build: ./backend
+    container_name: student2-backend
+    environment:
+      - DB_SERVICE_URL=http://warehouse-database:5002
+      - OLLAMA_HOST=http://host.docker.internal:11434
+      - OLLAMA_MODEL=qwen2.5:0.5b
+    depends_on:
+      - warehouse-database
+
+  warehouse-frontend:
+    build: ./frontend
+    container_name: student2-frontend
+    environment:
+      - BACKEND_URL=http://warehouse-backend:5001
+    ports:
+      - "5000:5000"
+    depends_on:
+      - warehouse-backend
+
+volumes:
+  student2-db-data:

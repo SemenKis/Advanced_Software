@@ -1,0 +1,22 @@
+You are reviewing the Transportation Management service developed by Student 4.
+
+Review only the provided evidence and identify one specific technical risk.
+
+Focus on:
+- shipment CRUD
+- validation
+- database consistency
+- HTMX and Flask communication
+- Docker/service connectivity
+- Ollama/Qwen integration
+- Plan -> Act -> Observe -> Adapt workflow
+
+Do not invent missing details. Keep the review concise.
+
+Return exactly:
+
+Risk: <specific evidence-backed issue>
+
+Correction: <practical fix>
+
+Retest: <how to verify the fix>

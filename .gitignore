@@ -2,6 +2,7 @@
 node_modules/
 dist/
 .env
+.venv
 .env.*
 .vite/
 .idea/
@@ -18,3 +19,4 @@ vscode
 __pycache__/
 *.db
 scripts.md
+agentic-review/agentic_review_log.jsonl
