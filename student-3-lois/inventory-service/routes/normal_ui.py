@@ -21,16 +21,16 @@ from views.html_formatters import (
     format_suppliers_options,
 )
 
-normal_ui = Blueprint("inventory", __name__)
+normal_ui_bp = Blueprint("normal_ui", __name__)
 
 
-@normal_ui.get("/")
+@normal_ui_bp.get("/")
 def health():
     return "<p>inventory-service running</p>", 200
 
 # READ
 
-@normal_ui.get("/products")
+@normal_ui_bp.get("/products")
 def list_products():
     params = {}
     if request.args.get("search"):
@@ -51,7 +51,7 @@ def list_products():
         return f"<p>Failed to retrieve products.</p><pre>{exc}</pre>", 503
 
 
-@normal_ui.get("/products/low-stock")
+@normal_ui_bp.get("/products/low-stock")
 def list_low_stock():
     try:
         products = get_low_stock_products()
@@ -62,7 +62,7 @@ def list_low_stock():
         return f"<p>Failed to retrieve low-stock products.</p><pre>{exc}</pre>", 503
 
 
-@normal_ui.get("/products/<int:product_id>")
+@normal_ui_bp.get("/products/<int:product_id>")
 def get_single_product(product_id):
     try:
         response = get_product_response(product_id)
@@ -75,7 +75,7 @@ def get_single_product(product_id):
 
 # CREATE
 
-@normal_ui.post("/products")
+@normal_ui_bp.post("/products")
 def add_product():
     form = request.form
     required = ["name", "category_id", "supplier_id", "price"]
@@ -103,7 +103,7 @@ def add_product():
 
 # UPDATE
 
-@normal_ui.put("/products/<int:product_id>")
+@normal_ui_bp.put("/products/<int:product_id>")
 def edit_product(product_id):
     form = request.form
     payload = {}
@@ -127,7 +127,7 @@ def edit_product(product_id):
 
 # DELETE
 
-@normal_ui.delete("/products/<int:product_id>")
+@normal_ui_bp.delete("/products/<int:product_id>")
 def remove_product(product_id):
     try:
         response = delete_product(product_id)
@@ -140,7 +140,7 @@ def remove_product(product_id):
 
 # CATEGORIES/SUPPLIERS OPTIONS
 
-@normal_ui.get("/categories/options")
+@normal_ui_bp.get("/categories/options")
 def category_options():
     try:
         categories = get_categories()
@@ -149,7 +149,7 @@ def category_options():
         return f"<p>Failed to load categories.</p><pre>{exc}</pre>", 503
 
 
-@normal_ui.get("/suppliers/options")
+@normal_ui_bp.get("/suppliers/options")
 def supplier_options():
     try:
         suppliers = get_suppliers()
@@ -159,7 +159,7 @@ def supplier_options():
 
 # STOCKTAKES
 
-@normal_ui.get("/stocktakes")
+@normal_ui_bp.get("/stocktakes")
 def list_stocktakes():
     try:
         stocktakes = get_stocktakes()
@@ -168,7 +168,7 @@ def list_stocktakes():
         return f"<p>Failed to retrieve stocktake activity.</p><pre>{exc}</pre>", 503
 
 
-@normal_ui.post("/stocktakes")
+@normal_ui_bp.post("/stocktakes")
 def add_stocktake():
     form = request.form
     product_id = form.get("product_id")
