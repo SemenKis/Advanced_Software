@@ -318,6 +318,15 @@ def deterministic_answer(query: str, results: list[dict[str, Any]]) -> str | Non
  
     q = (query or "").lower()
 
+    # Order Management: questions about orders in one status, e.g. "how many
+    # orders are pending". Must come BEFORE the generic "how many orders"
+    # check below, which would otherwise return the total count instead.
+    order_statuses = [s for s in ("pending", "shipped", "delivered") if s in q]
+    if len(order_statuses) == 1 and any(w in ("order", "orders") for w in q.replace("?", " ").split()):
+        for r in results:
+            if r.get("chunk_id") == f"order_status_{order_statuses[0]}":
+                return f"Answer:\n{r['text']}"
+
     if "how many products" in q or "product count" in q or "total products" in q:
         for r in results:
             if r.get("chunk_id") == "inventory_product_count":
