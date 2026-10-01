@@ -204,7 +204,7 @@ header{padding:16px 24px 0;}
 }
 .tool-form input[type=text] { width: 260px; max-width: 100%; }
 
-.panel-mcp {
+.result-panel {
     margin-top: 20px;
     padding: 12px;
     border: 1px solid var(--line);
@@ -213,12 +213,25 @@ header{padding:16px 24px 0;}
     background: var(--surface);
     min-height: 48px;
 }
-.panel-mcp h3 { margin: 0 0 8px; font-size: 15px; }
-.panel-mcp pre {
+.result-panel h3 { margin: 0 0 8px; font-size: 15px; }
+.result-panel pre {
     margin: 0;
     white-space: pre-wrap;
     word-break: break-word;
     font-family: 'IBM Plex Mono', monospace;
     font-size: 13px;
 }
-.panel-mcp.is-error { border-left-color: var(--red); }
+.result-panel.is-error { border-left-color: var(--red); }
+
+/* ---------- RAG tab ---------- */
+.hint {
+    flex: 0 0 100%;
+    margin: 0;
+    font-size: 13px;
+    opacity: .75;
+}
+.result-panel p { margin: 0 0 8px; }
+.result-panel ol { margin: 0; padding-left: 22px; }
+.result-panel li { margin-bottom: 10px; }
+.result-meta { margin: 4px 0; font-size: 13px; opacity: .75; }
+.result-panel .answer-text { margin-bottom: 10px; }

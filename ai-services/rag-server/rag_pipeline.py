@@ -318,11 +318,25 @@ def deterministic_answer(query: str, results: list[dict[str, Any]]) -> str | Non
  
     q = (query or "").lower()
 
-    # Order Management: questions about orders in one status, e.g. "how many
-    # orders are pending". Must come BEFORE the generic "how many orders"
-    # check below, which would otherwise return the total count instead.
+    # Order Management: plain questions about orders in one status, e.g.
+    # "how many orders are pending" or "which orders are shipped". Must come
+    # BEFORE the generic "how many orders" check below, which would otherwise
+    # return the total count instead. Only fires when every word in the
+    # question is a simple status-question word; anything more specific (e.g.
+    # "which pending orders contain Calendar") goes to the language model.
     order_statuses = [s for s in ("pending", "shipped", "delivered") if s in q]
-    if len(order_statuses) == 1 and any(w in ("order", "orders") for w in q.replace("?", " ").split()):
+    simple_words = {
+        "how", "many", "which", "what", "are", "is", "the", "there", "any", "all", "of",
+        "order", "orders", "status", "ids", "id", "list", "show", "me", "have", "been",
+        "currently", "count", "number", "total", "do", "we", "with", "that", "in",
+        "pending", "shipped", "delivered",
+    }
+    q_words = q.replace("?", " ").replace(".", " ").replace(",", " ").replace("!", " ").split()
+    if (
+        len(order_statuses) == 1
+        and any(w in ("order", "orders") for w in q_words)
+        and all(w in simple_words for w in q_words)
+    ):
         for r in results:
             if r.get("chunk_id") == f"order_status_{order_statuses[0]}":
                 return f"Answer:\n{r['text']}"
@@ -332,7 +346,7 @@ def deterministic_answer(query: str, results: list[dict[str, Any]]) -> str | Non
             if r.get("chunk_id") == "inventory_product_count":
                 return f"Answer:\n{r['text']}"
 
-    if "how many orders" in q or "order count" in q:
+    if ("how many orders" in q or "order count" in q) and all(w in simple_words for w in q_words):
         for r in results:
             if r.get("chunk_id") == "order_order_count":
                 return f"Answer:\n{r['text']}"

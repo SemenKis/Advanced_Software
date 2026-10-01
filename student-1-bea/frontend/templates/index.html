@@ -15,23 +15,21 @@
     <nav class="tab-nav" aria-label="Application tabs">
       <button class="tab-btn is-active" data-tab="orders" type="button">Orders</button>
       <button class="tab-btn" data-tab="orders-aimode" type="button">Orders AI Mode</button>
-      <!-- Add the MCP tab later: remove "disabled" and create tabs/mcp.html -->
-       <!-- TODO MCP TAB -->
-      <button class="tab-btn" data-tab="orders-mcp" type="button" >MCP</button>
+      <button class="tab-btn" data-tab="orders-mcp" type="button">Orders MCP</button>
+      <button class="tab-btn" data-tab="orders-rag" type="button">Orders RAG</button>
     </nav>
 
     <div class="tab-content">
       <iframe id="tab-frame-orders" class="tab-frame is-active" src="tabs/orders.html" title="Orders tab"></iframe>
       <iframe id="tab-frame-orders-aimode" class="tab-frame" src="tabs/orders-aimode.html" title="Orders AI Mode tab"></iframe>
       <iframe id="tab-frame-orders-mcp" class="tab-frame" src="tabs/orders-mcp.html" title="Orders MCP tab"></iframe>
-      
+      <iframe id="tab-frame-orders-rag" class="tab-frame" src="tabs/orders-rag.html" title="Orders RAG tab"></iframe>
     </div>
   </section>
 
   <script>
     const tabButtons = Array.from(document.querySelectorAll(".tab-btn"));
 
-    // Frames are looked up by id: tab-frame-<tab name>
     const tabFrames = {};
     document.querySelectorAll(".tab-frame").forEach((frame) => {
       tabFrames[frame.id.replace("tab-frame-", "")] = frame;
