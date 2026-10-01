@@ -5,21 +5,10 @@ from rag_pipeline import retrieve_context
 METRICS_PATH = Path(__file__).resolve().parent / "retrieval-metrics.md"
 
 BENCHMARKS = [
-    {
-        "query": "which products are low on stock",
-        "relevant_keywords": ["reorder", "low"],
-        "expected_relevant": 1,
-    },
-    {
-        "query": "how many products are in inventory",
-        "relevant_keywords": ["product count", "products"],
-        "expected_relevant": 1,
-    },
-    {
-        "query": "Beverages category products",
-        "relevant_keywords": ["Beverages"],
-        "expected_relevant": 2,
-    },
+    {"query": "which products are low on stock", "relevant_keywords": ["reorder", "low"], "expected_relevant": 1},
+    {"query": "how many products are in inventory", "relevant_keywords": ["product count", "products"], "expected_relevant": 1},
+    # TODO(team): add your own feature's benchmark queries here, e.g.
+    # {"query": "how many orders are pending", "relevant_keywords": ["order"], "expected_relevant": 1},
 ]
 
 

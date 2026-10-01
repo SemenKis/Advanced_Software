@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>RAG</title>
+<link rel="stylesheet" href="/css/styles.css">
+<style>
+  body { margin: 0; min-height: auto; background: transparent; }
+  .app-shell { max-width: none; padding: 0; }
+</style>
+</head>
+<body>
+<main class="app-shell">
+  <section class="card">
+    <h2>RAG Mode</h2>
+    <p style="color: var(--muted); margin-top: -0.3rem;">Refresh the corpus, retrieve context, and generate grounded answers with citations &mdash; no invented stock figures.</p>
+
+    <div class="feature-toggle-row">
+      <label class="toggle-switch" for="rag-mode-toggle">
+        <input id="rag-mode-toggle" type="checkbox" checked>
+        <span class="toggle-label">RAG Enabled</span>
+      </label>
+      <span id="rag-mode-state" class="feature-state feature-on">ON</span>
+    </div>
+
+    <form id="rag-refresh-form" class="stack-form">
+      <button type="submit" class="rag-action">Refresh Corpus</button>
+    </form>
+
+    <form id="rag-retrieve-form" class="stack-form">
+      <label for="rag-retrieve-query">Query</label>
+      <input id="rag-retrieve-query" name="query" required placeholder="Example: which products are low on stock">
+      <p class="rag-helper">Hint: use short retrieval phrases.</p>
+      <button type="submit" class="rag-action">Retrieve Context</button>
+    </form>
+
+    <form id="rag-answer-form" class="stack-form">
+      <label for="rag-answer-query">Question</label>
+      <input id="rag-answer-query" name="query" required placeholder="Example: How many products are in inventory?">
+      <p class="rag-helper">Hint: ask a full question for a grounded answer with citations.</p>
+      <button type="submit" class="rag-action">Answer with Citations</button>
+    </form>
+
+    <div id="rag-results" class="panel panel-mcp">RAG responses will appear here.</div>
+  </section>
+</main>
+
+<script>
+const BACKEND = "http://localhost:5001";
+const output = document.getElementById("rag-results");
+const ragModeToggle = document.getElementById("rag-mode-toggle");
+const ragModeState = document.getElementById("rag-mode-state");
+const RAG_STORAGE_KEY = "rag_mode_enabled";
+
+function isRagEnabled() { return ragModeToggle.checked; }
+
+function renderRagState() {
+  ragModeState.textContent = isRagEnabled() ? "ON" : "OFF";
+  ragModeState.classList.toggle("feature-on", isRagEnabled());
+  ragModeState.classList.toggle("feature-off", !isRagEnabled());
+}
+
+function renderRagDisabledMessage() {
+  output.innerHTML = "<p>RAG Mode is OFF. Enable RAG Mode to run RAG tools.</p>";
+}
+
+function saveRagMode() { localStorage.setItem(RAG_STORAGE_KEY, String(isRagEnabled())); }
+
+function loadRagMode() {
+  const persisted = localStorage.getItem(RAG_STORAGE_KEY);
+  ragModeToggle.checked = persisted === null ? true : persisted === "true";
+  renderRagState();
+}
+
+function renderJson(title, payload) {
+  output.innerHTML = `<h3>${title}</h3><pre>${JSON.stringify(payload, null, 2)}</pre>`;
+}
+
+async function postForm(path, data) {
+  if (!isRagEnabled()) {
+    renderRagDisabledMessage();
+    return { status: "error", error: "RAG Mode is OFF" };
+  }
+  output.innerHTML = "<p>Running...</p>";
+  const res = await fetch(`${BACKEND}${path}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded", "X-RAG-Mode": "on" },
+    body: new URLSearchParams(data),
+  });
+  const text = await res.text();
+  try {
+    return JSON.parse(text);
+  } catch {
+    return { raw: text };
+  }
+}
+
+ragModeToggle.addEventListener("change", () => {
+  saveRagMode();
+  renderRagState();
+  if (!isRagEnabled()) renderRagDisabledMessage();
+});
+
+document.getElementById("rag-refresh-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const payload = await postForm("/rag/refresh", {});
+  renderJson("RAG Tool: refresh_corpus", payload);
+});
+
+document.getElementById("rag-retrieve-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const query = document.getElementById("rag-retrieve-query").value.trim();
+  const payload = await postForm("/rag/retrieve", { query, k: "5" });
+  renderJson("RAG Tool: retrieve_context", payload);
+});
+
+document.getElementById("rag-answer-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const query = document.getElementById("rag-answer-query").value.trim();
+  const payload = await postForm("/rag/answer", { query, k: "5" });
+  renderJson("RAG Tool: answer_question", payload);
+});
+
+loadRagMode();
+if (!isRagEnabled()) renderRagDisabledMessage();
+</script>
+</body>
+</html>

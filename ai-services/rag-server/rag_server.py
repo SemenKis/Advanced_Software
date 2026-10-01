@@ -4,7 +4,7 @@ from rag_pipeline import answer_question as answer_question_impl
 from rag_pipeline import refresh_corpus as refresh_corpus_impl
 from rag_pipeline import retrieve_context as retrieve_context_impl
 
-mcp = FastMCP("Inventory Management RAG MCP")
+mcp = FastMCP("Supply Chain Management - Unified RAG MCP")
 AVAILABLE_TOOLS = ["refresh_corpus", "retrieve_context", "answer_question"]
 
 
@@ -24,10 +24,10 @@ def answer_question(query: str, k: int = 5, caller: str = "student"):
 
 
 if __name__ == "__main__":
-    print("Starting Inventory Management RAG MCP Server...")
+    print("Starting Supply Chain Management Unified RAG MCP Server...")
     print("Server status: RUNNING")
-    print("Interact with RAG tools from a second terminal.")
     print("Available tools:")
     for tool in AVAILABLE_TOOLS:
         print(f"- {tool}")
     mcp.run()
+
