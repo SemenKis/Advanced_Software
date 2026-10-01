@@ -21,6 +21,9 @@ jobs:
   smoke-check:
     runs-on: ubuntu-latest
     needs: [build-images]
+    env:
+      MCP_ENABLED: "false"
+      RAG_ENABLED: "false"
 
     steps:
       - uses: actions/checkout@v4
