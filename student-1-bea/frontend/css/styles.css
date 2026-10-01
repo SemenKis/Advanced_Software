@@ -113,3 +113,44 @@ input[type=text]:focus, input[type=number]:focus, select:focus, textarea:focus{
   font-size:12.5px;
 }
 .btn:disabled{opacity:.4;cursor:not-allowed;}
+
+/* ---------- Tabs ---------- */
+header{padding:16px 24px 0;}
+.tab-shell{padding:12px 24px 24px;}
+.tab-nav{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  margin-bottom:12px;
+  border-bottom:1px solid var(--line);
+  padding-bottom:12px;
+}
+.tab-btn{
+  background:var(--surface);
+  color:var(--ink);
+  border:1px solid var(--line);
+  padding:9px 16px;
+  border-radius:var(--radius);
+  cursor:pointer;
+  font-size:14px;
+  font-weight:500;
+}
+.tab-btn:hover{border-color:var(--ink);}
+.tab-btn.is-active{
+  background:var(--accent);
+  border-color:var(--accent);
+  color:var(--accent-ink);
+}
+.tab-btn:disabled{opacity:.4;cursor:not-allowed;}
+.tab-content{position:relative;}
+.tab-frame{
+  width:100%;
+  min-height:720px;
+  border:0;
+  display:none;
+  background:transparent;
+}
+.tab-frame.is-active{display:block;}
+@media (max-width:900px){
+  .tab-frame{min-height:840px;}
+}
