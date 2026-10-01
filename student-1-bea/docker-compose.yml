@@ -7,10 +7,13 @@ services:
 
     order-backend:
         build: ./backend
+        ports: ["5011:5001"]
         environment:
             DATABASE_SERVICE_URL: http://order-database:5002
             OLLAMA_BASE_URL: http://host.docker.internal:11434/v1
             OLLAMA_MODEL: qwen2.5:0.5b
+            MCP_SERVER_URL: http://host.docker.internal:5004
+            MCP_ENABLED: "true"
         extra_hosts:
             - "host.docker.internal:host-gateway"
         depends_on: [order-database]
@@ -18,6 +21,7 @@ services:
 
     order-database:
         build: ./database
+        ports: ["5012:5002"]
         volumes: [order-database-data:/app/data]
         networks: [team-network]
 
