@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Orders MCP</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;family=IBM+Plex+Mono:wght@500&amp;display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+  <main>
+    <div class="menu">
+      <h2>MCP Mode</h2>
+
+      <div class="feature-toggle-row">
+        <label class="toggle-switch" for="mcp-mode-toggle">
+          <input id="mcp-mode-toggle" type="checkbox" checked>
+          <span class="toggle-label">MCP Enabled</span>
+        </label>
+        <span id="mcp-mode-state" class="feature-state feature-on">ON</span>
+      </div>
+
+      <h2>Order Tool</h2>
+
+      <form class="tool-form" data-tool="check-order-status" data-arg="order_id">
+        <label for="mcp_order_id">MCP: Check Order Status</label>
+        <input id="mcp_order_id" type="text" placeholder="Order id (leave empty for all orders)">
+        <button type="submit" class="btn primary small">Run Tool</button>
+      </form>
+
+    </div>
+
+    <div id="mcp-result" class="panel-mcp">MCP tool responses will appear here.</div>
+  </main>
+
+  <script>
+    const mcpModeToggle = document.getElementById("mcp-mode-toggle");
+    const mcpModeState = document.getElementById("mcp-mode-state");
+    const mcpResultPanel = document.getElementById("mcp-result");
+
+    const MCP_STORAGE_KEY = "mcp_mode_enabled";
+
+    function isMcpEnabled() {
+      return mcpModeToggle.checked;
+    }
+
+    function renderMcpState() {
+      const on = isMcpEnabled();
+      mcpModeState.textContent = on ? "ON" : "OFF";
+      mcpModeState.classList.toggle("feature-on", on);
+      mcpModeState.classList.toggle("feature-off", !on);
+    }
+
+    // Results are written with textContent so server output is never parsed as HTML
+    function showResult(title, body, isError = false) {
+      const heading = document.createElement("h3");
+      heading.textContent = title;
+
+      const pre = document.createElement("pre");
+      pre.textContent = typeof body === "string" ? body : JSON.stringify(body, null, 2);
+
+      mcpResultPanel.classList.toggle("is-error", isError);
+      mcpResultPanel.replaceChildren(heading, pre);
+    }
+
+    function showDisabledMessage() {
+      mcpResultPanel.classList.remove("is-error");
+      const p = document.createElement("p");
+      p.textContent = "MCP Mode is OFF. Enable MCP Mode to run MCP tools.";
+      mcpResultPanel.replaceChildren(p);
+    }
+
+    function saveMcpMode() {
+      try { localStorage.setItem(MCP_STORAGE_KEY, String(isMcpEnabled())); } catch (e) {}
+    }
+
+    function loadMcpMode() {
+      let persisted = null;
+      try { persisted = localStorage.getItem(MCP_STORAGE_KEY); } catch (e) {}
+      mcpModeToggle.checked = persisted === null ? true : persisted === "true";
+      renderMcpState();
+    }
+
+    mcpModeToggle.addEventListener("change", () => {
+      saveMcpMode();
+      renderMcpState();
+      if (!isMcpEnabled()) {
+        showDisabledMessage();
+      }
+    });
+
+    async function runTool(form) {
+      if (!isMcpEnabled()) {
+        showDisabledMessage();
+        return;
+      }
+
+      const tool = form.dataset.tool;
+      const argName = form.dataset.arg;
+      const value = form.querySelector("input").value.trim();
+      const payload = value ? { [argName]: value } : {};
+
+      showResult(`MCP Tool: ${tool}`, "Running...");
+
+      try {
+        const res = await fetch(`/api/mcp/${tool}`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-MCP-Mode": isMcpEnabled() ? "on" : "off",
+          },
+          body: JSON.stringify(payload),
+        });
+
+        const text = await res.text();
+        let data;
+        try { data = JSON.parse(text); } catch (e) { data = text; }
+
+        if (!res.ok) {
+          showResult(`MCP Tool: ${tool} (HTTP ${res.status})`, data, true);
+          return;
+        }
+        showResult(`MCP Tool: ${tool}`, data);
+      } catch (err) {
+        showResult(`MCP Tool: ${tool}`, "Failed to reach the MCP backend route.", true);
+      }
+    }
+
+    document.querySelectorAll(".tool-form").forEach((form) => {
+      form.addEventListener("submit", (e) => {
+        e.preventDefault();
+        runTool(form);
+      });
+    });
+
+    loadMcpMode();
+    if (!isMcpEnabled()) {
+      showDisabledMessage();
+    }
+  </script>
+</body>
+</html>
