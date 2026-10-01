@@ -108,6 +108,22 @@ def mcp_rag_page():
     return render_template("mcp_rag.html")
 
 
+
+
+@app.route("/mcp/check-storage-capacity", methods=["POST"])
+def mcp_check_storage_capacity():
+    zone_name = request.form.get("zone_name", "")
+    resp = requests.post(f"{BACKEND_URL}/mcp/check-storage-capacity", data={"zone_name": zone_name})
+    return resp.text, resp.status_code, {"Content-Type": "application/json"}
+
+
+@app.route("/rag/answer", methods=["POST"])
+def rag_answer_forward():
+    query = request.form.get("query", "")
+    resp = requests.post(f"{BACKEND_URL}/rag/answer", data={"query": query})
+    return resp.text, resp.status_code, {"Content-Type": "application/json"}
+
+
 if __name__ =="__main__":
     app.run(host="0.0.0.0", port=5000)
 
