@@ -73,11 +73,60 @@ def collect_implementation_evidence(student_folder):
    
 
 
+def collect_mcp_evidence(student_folder):
+    sections = []
+    mcp_dir = REPO_ROOT / "mcp-server"
+    if mcp_dir.exists():
+        for name in ("tools.py", "mcp_http_server.py"):
+            p = mcp_dir / name
+            if p.exists():
+                sections.append(f"--- mcp-server/{name} ---\n{p.read_text()[:1200]}")
+    else:
+        sections.append("Shared mcp-server/ directory not found at repo root.")
+
+    student_dir = REPO_ROOT / student_folder
+    for rel in ("backend/app.py", "frontend/app.py"):
+        p = student_dir / rel
+        if p.exists():
+            mcp_lines = [l for l in p.read_text().splitlines() if "mcp" in l.lower()]
+            if mcp_lines:
+                sections.append(f"--- {student_folder}/{rel} (MCP integration lines) ---\n" + "\n".join(mcp_lines))
+
+    return "\n\n".join(sections) if sections else f"No MCP evidence found for {student_folder}."
+
+
+def collect_rag_evidence(student_folder):
+    sections = []
+    rag_dir = REPO_ROOT / "ai-services" / "rag-server"
+    if rag_dir.exists():
+        pipeline_path = rag_dir / "rag_pipeline.py"
+        if pipeline_path.exists():
+            sections.append(f"--- ai-services/rag-server/rag_pipeline.py ---\n{pipeline_path.read_text()[:1200]}")
+        corpus_dir = rag_dir / "corpus_sources"
+        if corpus_dir.exists():
+            for src in corpus_dir.glob("*.py"):
+                sections.append(f"--- ai-services/rag-server/corpus_sources/{src.name} ---\n{src.read_text()[:800]}")
+    else:
+        sections.append("Shared ai-services/rag-server/ directory not found at repo root.")
+
+    student_dir = REPO_ROOT / student_folder
+    for rel in ("backend/app.py", "frontend/app.py"):
+        p = student_dir / rel
+        if p.exists():
+            rag_lines = [l for l in p.read_text().splitlines() if "rag" in l.lower()]
+            if rag_lines:
+                sections.append(f"--- {student_folder}/{rel} (RAG integration lines) ---\n" + "\n".join(rag_lines))
+
+    return "\n\n".join(sections) if sections else f"No RAG evidence found for {student_folder}."
+
+
 COLLECTORS = {
     "database": collect_database_evidence,
     "architecture": collect_architecture_evidence,
     "devops": collect_devops_evidence,
     "implementation": collect_implementation_evidence,
+    "mcp": collect_mcp_evidence,
+    "rag": collect_rag_evidence,
 }
 
 

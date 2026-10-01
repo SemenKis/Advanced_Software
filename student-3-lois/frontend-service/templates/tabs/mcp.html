@@ -13,7 +13,7 @@
 <main class="app-shell">
   <section class="card">
     <h2>MCP Mode</h2>
-    <p style="color: var(--muted); margin-top: -0.3rem;">Controlled tools an agent can call — each returns real inventory data, never a guess.</p>
+    <p style="color: var(--muted); margin-top: -0.3rem;">Controlled tools an agent can call, so each returns real inventory data, never a guess.</p>
 
     <div class="feature-toggle-row">
       <label class="toggle-switch" for="mcp-mode-toggle">
@@ -52,7 +52,7 @@
 </main>
 
 <script>
-const BACKEND = "http://localhost:5013";
+const BACKEND = "http://localhost:5001";
 const mcpModeToggle = document.getElementById("mcp-mode-toggle");
 const mcpModeState = document.getElementById("mcp-mode-state");
 const mcpResultPanel = document.getElementById("mcp-result");
