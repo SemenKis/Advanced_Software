@@ -53,5 +53,52 @@ def prioritise_shipping_tasks():
 
 
 
+
+
+MCP_SERVER_URL = os.environ.get('MCP_SERVER_URL', 'http://host.docker.internal:5004')
+RAG_SERVER_URL = os.environ.get('RAG_SERVER_URL', 'http://host.docker.internal:5003')
+MCP_ENABLED = os.environ.get('MCP_ENABLED', 'false').lower() in ('1', 'true', 'yes')
+RAG_ENABLED = os.environ.get('RAG_ENABLED', 'false').lower() in ('1', 'true', 'yes')
+
+
+@app.route('/mcp/check-storage-capacity', methods=['POST'])
+def mcp_check_storage_capacity():
+    if not MCP_ENABLED:
+        return jsonify({'status': 'error', 'error': 'MCP mode is disabled'}), 403
+
+    zone_name = request.form.get('zone_name', '').strip()
+    try:
+        resp = requests.post(
+            f'{MCP_SERVER_URL}/tool/check_storage_capacity',
+            json={'zone_name': zone_name},
+            timeout=10,
+        )
+        resp.raise_for_status()
+        return jsonify(resp.json()), 200
+    except requests.exceptions.RequestException as exc:
+        return jsonify({'status': 'error', 'error': f'MCP server unreachable: {exc}'}), 503
+
+
+@app.route('/rag/answer', methods=['POST'])
+def rag_answer():
+    if not RAG_ENABLED:
+        return jsonify({'status': 'error', 'error': 'RAG mode is disabled'}), 403
+
+    query = request.form.get('query', '').strip()
+    if not query:
+        return jsonify({'status': 'error', 'error': 'query is required'}), 400
+
+    try:
+        resp = requests.post(
+            f'{RAG_SERVER_URL}/answer',
+            json={'query': query, 'k': 5, 'caller': 'warehouse-management'},
+            timeout=60,
+        )
+        resp.raise_for_status()
+        return jsonify(resp.json()), 200
+    except requests.exceptions.RequestException as exc:
+        return jsonify({'status': 'error', 'error': f'RAG server unreachable: {exc}'}), 503
+
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5001)
