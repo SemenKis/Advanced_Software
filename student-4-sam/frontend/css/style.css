@@ -145,13 +145,13 @@ button[type="button"],
     border: 1px solid var(--border);
     border-radius: 16px;
     box-shadow: var(--shadow);
-    padding: 18px 22px;
+    padding: 24px 26px;
     margin-top: 22px;
 }
 
-.mcp-rag-panel h3 {
-    margin: 0 0 14px;
-    font-size: 1.1rem;
+.mcp-rag-panel h2 {
+    margin: 0 0 18px;
+    font-size: 1.15rem;
     letter-spacing: -0.03em;
 }
 
@@ -213,68 +213,95 @@ button[type="button"],
     line-height: 1.5;
 }
 
-.tool-panel {
-    margin-top: 22px;
-    background: #dfeaf4;
-    border: 1px solid #c8d4df;
+.mcp-rag-tools-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+    margin-top: 18px;
+}
+
+.tool-card {
+    background: var(--field);
+    border: 1px solid var(--border);
     border-radius: 12px;
-    padding: 20px 18px 18px;
-}
-
-.tool-panel h2 {
-    margin: 0 0 18px;
-    font-size: clamp(2rem, 3vw, 2.6rem);
-    letter-spacing: -0.05em;
-}
-
-.tool-block {
-    margin-bottom: 22px;
-}
-
-.tool-block h3 {
-    margin: 0 0 12px;
-    font-size: 1.1rem;
-    letter-spacing: -0.03em;
-}
-
-.tool-block form {
+    padding: 16px;
     display: flex;
+    flex-direction: column;
+}
+
+.tool-header {
+    display: flex;
+    justify-content: space-between;
     align-items: center;
-    gap: 10px;
-    margin-bottom: 8px;
+    margin-bottom: 12px;
 }
 
-.tool-block input {
-    flex: 1;
-    min-width: 200px;
-    min-height: 40px;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    background: #f3f3f3;
-    padding: 10px 12px;
-}
-
-.tool-block button {
-    min-height: 40px;
-    padding: 0 18px;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    background: transparent;
+.tool-header h3 {
+    margin: 0;
+    font-size: 1rem;
+    letter-spacing: -0.03em;
     color: var(--text);
+}
+
+.tool-label {
+    display: inline-block;
+    font-size: 0.7rem;
     font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    background: var(--primary);
+    color: var(--primary-text);
+    padding: 4px 8px;
+    border-radius: 6px;
+}
+
+.tool-card form {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.tool-card input {
+    flex: 1;
+    min-height: 36px;
+    padding: 8px 10px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--panel);
+    font-size: 0.9rem;
+}
+
+.tool-card button {
+    min-height: 36px;
+    padding: 0 14px;
+    background: var(--primary);
+    color: var(--primary-text);
+    border: 1px solid var(--primary);
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 0.9rem;
     cursor: pointer;
+    white-space: nowrap;
+}
+
+.tool-card button:hover {
+    opacity: 0.9;
 }
 
 .tool-result {
     margin: 0;
-    padding: 12px 14px;
-    background: rgba(255, 255, 255, 0.25);
+    padding: 12px;
+    background: var(--panel);
     border: 1px solid var(--border);
     border-radius: 8px;
     white-space: pre-wrap;
     word-break: break-word;
     color: var(--text);
-    min-height: 50px;
+    min-height: 80px;
+    font-size: 0.85rem;
+    max-height: 250px;
+    overflow-y: auto;
+    flex-grow: 1;
 }
 
 .panel-stack {
@@ -309,12 +336,22 @@ button[type="button"],
 
 @media (max-width: 700px) {
     .field-grid,
-    .mcp-rag-grid {
+    .mcp-rag-grid,
+    .mcp-rag-tools-grid {
         grid-template-columns: 1fr;
     }
-}
-@media (max-width: 700px) {
-    .field-grid {
-        grid-template-columns: 1fr;
+
+    .tool-card form {
+        flex-direction: column;
+    }
+
+    .tool-card input {
+        width: 100%;
+    }
+
+    .tool-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
     }
 }

@@ -3,8 +3,11 @@ from datetime import datetime, timezone
 
 import requests
 
-DATABASE_SERVICE_URL = os.getenv("TRANSPORT_DATABASE_SERVICE_URL", "http://localhost:5004")
-SOURCE_PREFIX = "transport"
+DATABASE_SERVICE_URL = os.getenv(
+    "TRANSPORTATION_DATABASE_SERVICE_URL",
+    os.getenv("DATABASE_SERVICE_URL", "http://localhost:5004"),
+)
+SOURCE_PREFIX = "transportation"
 
 
 def _now_iso() -> str:
@@ -12,28 +15,26 @@ def _now_iso() -> str:
 
 
 def load_chunks() -> list[dict]:
-    """Called once per refresh_corpus() by the shared rag_pipeline.py."""
+    """Build live transportation context from the shipping database."""
     chunks: list[dict] = []
     try:
         shipments = requests.get(f"{DATABASE_SERVICE_URL}/api/shipments", timeout=10).json()
     except Exception as exc:
         return [{
             "chunk_id": f"{SOURCE_PREFIX}_unreachable",
-            "source_id": f"{SOURCE_PREFIX}-backend",
+            "source_id": f"{SOURCE_PREFIX}-database-service",
             "authority_tier": "tier_1",
             "text": f"Transportation database unreachable: {exc}",
             "metadata": {"source_type": "database", "feature": SOURCE_PREFIX, "reachable": False},
             "indexed_at": _now_iso(),
         }]
 
-    if not isinstance(shipments, list):
-        shipments = []
-
+    shipment_count = len(shipments)
     chunks.append({
         "chunk_id": f"{SOURCE_PREFIX}_shipment_count",
-        "source_id": f"{SOURCE_PREFIX}-backend:/api/shipments",
+        "source_id": f"{SOURCE_PREFIX}-database-service:/api/shipments",
         "authority_tier": "tier_1",
-        "text": f"Total shipments in transportation is {len(shipments)}.",
+        "text": f"Total shipment records in transportation management are {shipment_count}.",
         "metadata": {"source_type": "database", "feature": SOURCE_PREFIX, "metric": "count"},
         "indexed_at": _now_iso(),
     })
@@ -42,19 +43,31 @@ def load_chunks() -> list[dict]:
     for shipment in shipments:
         status = str(shipment.get("status", "UNKNOWN")).upper()
         status_counts[status] = status_counts.get(status, 0) + 1
+        chunks.append({
+            "chunk_id": f"{SOURCE_PREFIX}_shipment_{shipment.get('id')}",
+            "source_id": f"{SOURCE_PREFIX}-database-service:/api/shipments",
+            "authority_tier": "tier_1",
+            "text": (
+                f"Shipment record: id={shipment.get('id')}, origin={shipment.get('origin', 'unknown')}, "
+                f"destination={shipment.get('destination', 'unknown')}, status={status}, "
+                f"driver={shipment.get('driver', 'unknown')}, vehicle={shipment.get('vehicle', 'unknown')}, "
+                f"departure_date={shipment.get('departure_date', 'n/a')}, "
+                f"estimated_arrival={shipment.get('estimated_arrival', 'n/a')}, "
+                f"delay_minutes={shipment.get('delay_minutes', 0)}."
+            ),
+            "metadata": {"source_type": "database", "feature": SOURCE_PREFIX, "table": "shipments"},
+            "indexed_at": _now_iso(),
+        })
 
-    if status_counts:
-        summary = "; ".join(f"{status}={count}" for status, count in sorted(status_counts.items()))
-        summary_text = f"Shipment status breakdown: {summary}."
-    else:
-        summary_text = "No shipments are currently recorded in the transportation system."
-
+    status_summary = "; ".join(
+        f"{status}={count}" for status, count in sorted(status_counts.items())
+    ) or "No shipments found"
     chunks.append({
         "chunk_id": f"{SOURCE_PREFIX}_status_summary",
-        "source_id": f"{SOURCE_PREFIX}-backend:/api/shipments",
+        "source_id": f"{SOURCE_PREFIX}-database-service:/api/shipments",
         "authority_tier": "tier_1",
-        "text": summary_text,
-        "metadata": {"source_type": "database", "feature": SOURCE_PREFIX, "metric": "status_breakdown"},
+        "text": f"Current shipment status summary: {status_summary}.",
+        "metadata": {"source_type": "database", "feature": SOURCE_PREFIX, "metric": "status_summary"},
         "indexed_at": _now_iso(),
     })
 
@@ -65,36 +78,20 @@ def load_chunks() -> list[dict]:
     ]
     if delayed:
         summary = "; ".join(
-            f"{shipment.get('origin', 'unknown')}->{shipment.get('destination', 'unknown')} ({shipment.get('status', 'unknown')}, delay {shipment.get('delay_minutes', 0)} min)"
+            f"shipment {shipment.get('id')} ({shipment.get('origin')} to {shipment.get('destination')}, delay {shipment.get('delay_minutes', 0)} min)"
             for shipment in delayed
         )
-        delay_text = f"Delayed shipments: {summary}."
+        text = f"Delayed shipments currently active: {summary}."
     else:
-        delay_text = "No shipment delays are currently recorded."
+        text = "No shipments are currently delayed or running late."
 
     chunks.append({
-        "chunk_id": f"{SOURCE_PREFIX}_delay_summary",
-        "source_id": f"{SOURCE_PREFIX}-backend:/api/shipments",
+        "chunk_id": f"{SOURCE_PREFIX}_delayed_shipments",
+        "source_id": f"{SOURCE_PREFIX}-database-service:/api/shipments",
         "authority_tier": "tier_1",
-        "text": delay_text,
-        "metadata": {"source_type": "database", "feature": SOURCE_PREFIX, "metric": "delay_tracking"},
+        "text": text,
+        "metadata": {"source_type": "database", "feature": SOURCE_PREFIX, "metric": "delay_risk"},
         "indexed_at": _now_iso(),
     })
-
-    for shipment in shipments[:5]:
-        chunks.append({
-            "chunk_id": f"{SOURCE_PREFIX}_shipment_{shipment.get('id')}",
-            "source_id": f"{SOURCE_PREFIX}-backend:/api/shipments",
-            "authority_tier": "tier_1",
-            "text": (
-                f"Shipment record: id={shipment.get('id', 'unknown')}, "
-                f"origin={shipment.get('origin', 'unknown')}, destination={shipment.get('destination', 'unknown')}, "
-                f"status={shipment.get('status', 'unknown')}, driver={shipment.get('driver', 'n/a')}, "
-                f"vehicle={shipment.get('vehicle', 'n/a')}, departure_date={shipment.get('departure_date', 'n/a')}, "
-                f"estimated_arrival={shipment.get('estimated_arrival', 'n/a')}, delay_minutes={shipment.get('delay_minutes', 0)}."
-            ),
-            "metadata": {"source_type": "database", "feature": SOURCE_PREFIX, "table": "shipments"},
-            "indexed_at": _now_iso(),
-        })
 
     return chunks
