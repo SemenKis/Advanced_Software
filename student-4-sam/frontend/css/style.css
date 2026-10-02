@@ -155,13 +155,32 @@ button[type="button"],
     letter-spacing: -0.03em;
 }
 
+.mcp-rag-actions {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+}
+
+.status-btn {
+    appearance: none;
+    border: 1px solid var(--border);
+    background: var(--field);
+    color: var(--text);
+    border-radius: 10px;
+    padding: 9px 14px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
 .mcp-rag-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 14px;
 }
 
-.mcp-rag-box {
+.mcp-rag-box,
+.status-card {
     background: var(--field);
     border: 1px solid var(--border);
     border-radius: 12px;
@@ -170,7 +189,8 @@ button[type="button"],
     min-height: 110px;
 }
 
-.mcp-rag-box .label {
+.mcp-rag-box .label,
+.status-card .label {
     display: block;
     margin-bottom: 6px;
     font-size: 0.75rem;
@@ -179,16 +199,82 @@ button[type="button"],
     color: var(--muted);
 }
 
-.mcp-rag-box strong {
+.mcp-rag-box strong,
+.status-card strong {
     display: block;
     font-size: 1.1rem;
     color: var(--text);
     margin-bottom: 8px;
 }
 
-.mcp-rag-box p {
+.mcp-rag-box p,
+.status-card p {
     margin: 0;
     line-height: 1.5;
+}
+
+.tool-panel {
+    margin-top: 22px;
+    background: #dfeaf4;
+    border: 1px solid #c8d4df;
+    border-radius: 12px;
+    padding: 20px 18px 18px;
+}
+
+.tool-panel h2 {
+    margin: 0 0 18px;
+    font-size: clamp(2rem, 3vw, 2.6rem);
+    letter-spacing: -0.05em;
+}
+
+.tool-block {
+    margin-bottom: 22px;
+}
+
+.tool-block h3 {
+    margin: 0 0 12px;
+    font-size: 1.1rem;
+    letter-spacing: -0.03em;
+}
+
+.tool-block form {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+}
+
+.tool-block input {
+    flex: 1;
+    min-width: 200px;
+    min-height: 40px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: #f3f3f3;
+    padding: 10px 12px;
+}
+
+.tool-block button {
+    min-height: 40px;
+    padding: 0 18px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: transparent;
+    color: var(--text);
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.tool-result {
+    margin: 0;
+    padding: 12px 14px;
+    background: rgba(255, 255, 255, 0.25);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    white-space: pre-wrap;
+    word-break: break-word;
+    color: var(--text);
+    min-height: 50px;
 }
 
 .panel-stack {

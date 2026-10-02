@@ -86,17 +86,47 @@
 
         <section class="mcp-rag-panel">
             <h3>MCP &amp; RAG</h3>
+
+            <div class="mcp-rag-actions">
+                <button type="button" class="status-btn" hx-get="http://localhost:5004/htmx/mcp-status" hx-target="#mcp-status-box" hx-swap="innerHTML">
+                    Check MCP
+                </button>
+                <button type="button" class="status-btn" hx-get="http://localhost:5004/htmx/rag-status" hx-target="#rag-status-box" hx-swap="innerHTML">
+                    Check RAG
+                </button>
+            </div>
+
             <div class="mcp-rag-grid">
-                <div class="mcp-rag-box">
+                <div id="mcp-status-box" class="mcp-rag-box" hx-get="http://localhost:5004/htmx/mcp-status" hx-trigger="load" hx-swap="innerHTML">
                     <span class="label">MCP status</span>
-                    <strong>Connected</strong>
-                    <p>Transportation tools are available for shipment lookup and operational checks.</p>
+                    <strong>Checking...</strong>
                 </div>
-                <div class="mcp-rag-box">
+                <div id="rag-status-box" class="mcp-rag-box" hx-get="http://localhost:5004/htmx/rag-status" hx-trigger="load" hx-swap="innerHTML">
                     <span class="label">RAG status</span>
-                    <strong>Ready</strong>
-                    <p>Operational context and shipment intelligence are available for AI-assisted analysis.</p>
+                    <strong>Checking...</strong>
                 </div>
+            </div>
+        </section>
+
+        <section class="tool-panel">
+            <h2>MCP &amp; RAG Tools</h2>
+
+            <div class="tool-block">
+                <h3>MCP: Check Shipment Status</h3>
+                <form hx-post="http://localhost:5004/htmx/mcp/check-shipment" hx-target="#mcp-result" hx-swap="innerHTML">
+                    <input name="shipment_id" placeholder="Shipment ID (e.g. 1)" size="32">
+                    <button type="submit">Run Tool</button>
+                </form>
+                <pre id="mcp-result" class="tool-result">MCP tool results will appear here.</pre>
+            </div>
+
+            <div class="tool-block">
+                <h3>RAG: Ask a Question</h3>
+                <form hx-post="http://localhost:5004/htmx/rag/answer" hx-target="#rag-result" hx-swap="innerHTML">
+                    <input name="query" placeholder="e.g. Which shipments are delayed?" size="48">
+                    <button type="submit">Ask</button>
+                </form>
+                <pre id="rag-result" class="tool-result">RAG answers will appear here.</pre>
             </div>
         </section>
 

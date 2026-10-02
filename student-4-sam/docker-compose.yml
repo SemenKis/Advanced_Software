@@ -7,10 +7,13 @@ services:
     container_name: transportation-backend
 
     network_mode: host
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
     environment:
       DATABASE_PATH: /app/database/transportation.db
       OLLAMA_URL: http://127.0.0.1:11434
+      OLLAMA_GENERATE_URL: http://127.0.0.1:11434/api/generate
       OLLAMA_MODEL: qwen2.5:0.5b
 
   frontend:
