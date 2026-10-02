@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Analysis</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;family=IBM+Plex+Mono:wght@500&amp;display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+  <main>
+    <div class="menu">
+      <h2>AI Analysis</h2>
+      <div class="ai-analysis">
+        <input type="text" id="ai-textbox" placeholder="Analyse orders with AI" required />
+        <button type="submit" id="ai-textbox-submit">Analyse Orders</button>
+      </div>
+    </div>
+  </main>
+
+  <div id="ai-analysis-result"></div>
+
+  <script>
+    const aiAnalysisBtn = document.getElementById('ai-textbox-submit');
+
+    aiAnalysisBtn.addEventListener('click', () => {
+      const text = document.getElementById("ai-textbox").value.trim();
+      analyseOrders(text);
+    });
+
+    async function analyseOrders(text) {
+      const resultEl = document.getElementById('ai-analysis-result');
+      resultEl.textContent = 'Analysing...';
+      try {
+        const res = await fetch("/api/orders/analyse", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ question: text }),
+        });
+
+        const result = await res.json();
+
+        if (!res.ok) {
+          console.log(res);
+          throw new Error(`AI analysis request failed: ${res.status}`);
+        }
+
+        resultEl.textContent = result.analysis;
+
+      } catch (err) {
+        resultEl.textContent = "Failed to connect with AI server";
+      }
+    }
+  </script>
+</body>
+</html>
