@@ -9,12 +9,15 @@ services:
     network_mode: host
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    volumes:
+      - ../ai-services:/workspace/ai-services:ro
 
     environment:
       DATABASE_PATH: /app/database/transportation.db
       OLLAMA_URL: http://127.0.0.1:11434
       OLLAMA_GENERATE_URL: http://127.0.0.1:11434/api/generate
       OLLAMA_MODEL: qwen2.5:0.5b
+      MCP_TOOLS_PATH: /workspace/ai-services/mcp-server/student-4-mcp/tools.py
 
   frontend:
     build:

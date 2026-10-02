@@ -1,5 +1,6 @@
+import importlib.util
 import json
-import sys
+import os
 from html import escape
 from pathlib import Path
 
@@ -36,19 +37,40 @@ def _mcp_status_html(label: str, status: str, detail: str):
     """
 
 
-def _get_mcp_status():
+def _load_mcp_tools_module():
+    env_path = os.getenv("MCP_TOOLS_PATH")
+    candidates = []
+
+    if env_path:
+        candidates.append(Path(env_path).expanduser())
+
     repo_root = Path(__file__).resolve().parents[2]
-    mcp_dir = repo_root / "ai-services" / "mcp-server" / "student-4-mcp"
+    candidates.extend([
+        repo_root / "ai-services" / "mcp-server" / "student-4-mcp" / "tools.py",
+        Path("/workspace/ai-services/mcp-server/student-4-mcp/tools.py"),
+        Path("/app/ai-services/mcp-server/student-4-mcp/tools.py"),
+    ])
 
-    if not mcp_dir.exists():
-        return "Disconnected", "MCP server folder is missing."
+    for tools_path in candidates:
+        if tools_path.exists():
+            spec = importlib.util.spec_from_file_location("student4_mcp_tools", str(tools_path))
+            if spec is None or spec.loader is None:
+                raise ImportError(f"Could not load MCP tools from {tools_path}")
 
-    sys.path.insert(0, str(mcp_dir))
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+            return module
 
+    raise FileNotFoundError(
+        "MCP tools not found. Set MCP_TOOLS_PATH to the student-4-mcp/tools.py file. "
+        f"Checked: {', '.join(str(p) for p in candidates)}"
+    )
+
+
+def _get_mcp_status():
     try:
-        from tools import get_shipment_count
-
-        result = get_shipment_count()
+        tools = _load_mcp_tools_module()
+        result = tools.get_shipment_count()
         if isinstance(result, dict) and "shipment_count" in result:
             return "Connected", "Transportation tools are available for shipment lookup and operational checks."
 
@@ -187,16 +209,27 @@ def get_rag_status():
     "/htmx/mcp/check-shipment"
 )
 def run_mcp_tool():
-    shipment_id = request.form.get("shipment_id", "").strip()
+    raw_shipment_id = request.form.get("shipment_id", "").strip()
 
     try:
-        sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "ai-services" / "mcp-server" / "student-4-mcp"))
-        from tools import get_shipment_count, get_shipment_status
+        tools = _load_mcp_tools_module()
 
-        if shipment_id:
-            payload = get_shipment_status(int(shipment_id))
-        else:
-            payload = get_shipment_count()
+        if raw_shipment_id == "":
+            payload = tools.get_shipment_count()
+            return f"<pre>{escape(json.dumps(payload, indent=2, default=str))}</pre>"
+
+        try:
+            shipment_id = int(raw_shipment_id)
+        except ValueError:
+            return "<pre>Shipment ID must be a number.</pre>", 400
+
+        try:
+            payload = tools.get_shipment_status(shipment_id)
+        except requests.exceptions.HTTPError as exc:
+            if "404" in str(exc):
+                return "<pre>Shipment not found.</pre>", 404
+            return f"<pre>{escape(str(exc))}</pre>", 502
+
     except Exception as exc:
         return f"<pre>{escape(str(exc))}</pre>", 500
 
