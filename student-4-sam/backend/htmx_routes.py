@@ -46,9 +46,9 @@ def _load_mcp_tools_module():
 
     repo_root = Path(__file__).resolve().parents[2]
     candidates.extend([
-        repo_root / "ai-services" / "mcp-server" / "student-4-mcp" / "tools.py",
-        Path("/workspace/ai-services/mcp-server/student-4-mcp/tools.py"),
-        Path("/app/ai-services/mcp-server/student-4-mcp/tools.py"),
+        repo_root / "mcp-server" / "tools.py",
+        Path("/workspace/mcp-server/tools.py"),
+        Path("/app/mcp-server/tools.py"),
     ])
 
     for tools_path in candidates:
@@ -62,7 +62,7 @@ def _load_mcp_tools_module():
             return module
 
     raise FileNotFoundError(
-        "MCP tools not found. Set MCP_TOOLS_PATH to the student-4-mcp/tools.py file. "
+        "MCP tools not found. Set MCP_TOOLS_PATH to the root mcp-server/tools.py file. "
         f"Checked: {', '.join(str(p) for p in candidates)}"
     )
 

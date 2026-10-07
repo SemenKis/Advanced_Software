@@ -24,7 +24,7 @@ jobs:
     env:
       MCP_ENABLED: "false"
       RAG_ENABLED: "false"
-      MCP_TOOLS_PATH: /workspace/ai-services/mcp-server/student-4-mcp/tools.py
+      MCP_TOOLS_PATH: /workspace/mcp-server/tools.py
       OLLAMA_URL: http://host.docker.internal:11434
       RAG_URL: http://host.docker.internal:5003
 
@@ -40,7 +40,7 @@ jobs:
         env:
           MCP_ENABLED: "false"
           RAG_ENABLED: "false"
-          MCP_TOOLS_PATH: /workspace/ai-services/mcp-server/student-4-mcp/tools.py
+          MCP_TOOLS_PATH: /workspace/mcp-server/tools.py
           OLLAMA_URL: http://host.docker.internal:11434
           RAG_URL: http://host.docker.internal:5003
         run: docker compose up -d
@@ -92,7 +92,7 @@ jobs:
     env:
       MCP_ENABLED: "true"
       RAG_ENABLED: "true"
-      MCP_TOOLS_PATH: /workspace/ai-services/mcp-server/student-4-mcp/tools.py
+      MCP_TOOLS_PATH: /workspace/mcp-server/tools.py
       OLLAMA_URL: http://host.docker.internal:11434
       RAG_URL: http://host.docker.internal:5003
 
@@ -108,7 +108,7 @@ jobs:
         env:
           MCP_ENABLED: "true"
           RAG_ENABLED: "true"
-          MCP_TOOLS_PATH: /workspace/ai-services/mcp-server/student-4-mcp/tools.py
+          MCP_TOOLS_PATH: /workspace/mcp-server/tools.py
           OLLAMA_URL: http://host.docker.internal:11434
           RAG_URL: http://host.docker.internal:5003
         run: |

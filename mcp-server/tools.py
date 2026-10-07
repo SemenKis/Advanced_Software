@@ -5,8 +5,38 @@ STUDENT_SERVICES = {
     "warehouse": os.environ.get("WAREHOUSE_DB_URL", "http://localhost:5020"),
     "order": os.environ.get("ORDER_DB_URL", "http://localhost:5012"),
     "inventory": os.environ.get("INVENTORY_DB_URL", "http://localhost:5002"),
-    "transportation": os.environ.get("TRANSPORT_DB_URL", "http://localhost:5032"),
+    "transportation": os.environ.get("TRANSPORT_DB_URL", "http://localhost:5004"),
 }
+
+
+def _transportation_request(shipment_id: str = None):
+    base_url = STUDENT_SERVICES["transportation"].rstrip("/")
+    url = f"{base_url}/api/shipments"
+    if shipment_id is not None:
+        url = f"{url}/{shipment_id}"
+
+    response = requests.get(url, timeout=5)
+    response.raise_for_status()
+    return response.json()
+
+
+def get_shipment_count():
+    shipments = _transportation_request()
+    if isinstance(shipments, list):
+        return {"shipment_count": len(shipments)}
+    if isinstance(shipments, dict):
+        if "results" in shipments and isinstance(shipments["results"], list):
+            return {"shipment_count": len(shipments["results"])}
+        if "count" in shipments:
+            return {"shipment_count": shipments["count"]}
+    return {"shipment_count": 0}
+
+
+def get_shipment_status(shipment_id):
+    payload = _transportation_request(shipment_id=shipment_id)
+    if isinstance(payload, dict) and "error" in payload:
+        raise RuntimeError(payload["error"])
+    return payload
 
 
 def check_storage_capacity(zone_name: str = None):
@@ -100,11 +130,10 @@ def inventory_supplier_lookup(supplier_name: str = None):
 
 def check_shipment_status(shipment_id: str = None):
     try:
-        url = f"{STUDENT_SERVICES['transportation']}/api/shipments"
-        if shipment_id:
-            url += f"/{shipment_id}"
-        resp = requests.get(url, timeout=5)
-        resp.raise_for_status()
-        return {"status": "success", "results": resp.json()}
+        if shipment_id is None:
+            return get_shipment_count()
+
+        payload = get_shipment_status(shipment_id)
+        return {"status": "success", "results": payload}
     except Exception as e:
         return {"status": "error", "error": f"Could not reach transportation database: {e}"}
