@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Orders RAG</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;family=IBM+Plex+Mono:wght@500&amp;display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+  <main>
+    <div class="menu">
+      <h2>RAG Mode</h2>
+      <p class="hint">Refresh the corpus, retrieve matching order records, or ask a question answered from them with citations.</p>
+
+      <div class="feature-toggle-row">
+        <label class="toggle-switch" for="rag-mode-toggle">
+          <input id="rag-mode-toggle" type="checkbox" checked>
+          <span class="toggle-label">RAG Enabled</span>
+        </label>
+        <span id="rag-mode-state" class="feature-state feature-on">ON</span>
+      </div>
+
+      <form id="rag-refresh-form" class="tool-form">
+        <label>Corpus</label>
+        <button type="submit" class="btn primary small">Refresh Corpus</button>
+        <p class="hint">Rebuilds the search index from the current orders. Run this after orders change.</p>
+      </form>
+
+      <form id="rag-retrieve-form" class="tool-form">
+        <label for="rag-retrieve-query">Retrieve Context</label>
+        <input id="rag-retrieve-query" type="text" placeholder="Example: pending orders" required>
+        <button type="submit" class="btn primary small">Retrieve Context</button>
+        <p class="hint">Hint: use short search phrases.</p>
+      </form>
+
+      <form id="rag-answer-form" class="tool-form">
+        <label for="rag-answer-query">Ask a Question</label>
+        <input id="rag-answer-query" type="text" placeholder="Example: Which orders are pending?" required>
+        <button type="submit" class="btn primary small">Answer with Citations</button>
+        <p class="hint">Hint: ask a full question. Answers from the language model can take a minute.</p>
+      </form>
+    </div>
+
+    <div id="rag-results" class="result-panel">RAG responses will appear here.</div>
+  </main>
+
+  <script>
+    const ragModeToggle = document.getElementById("rag-mode-toggle");
+    const ragModeState = document.getElementById("rag-mode-state");
+    const resultPanel = document.getElementById("rag-results");
+    const submitButtons = document.querySelectorAll("form button[type=submit]");
+
+    const RAG_STORAGE_KEY = "rag_mode_enabled";
+
+    function isRagEnabled() {
+      return ragModeToggle.checked;
+    }
+
+    function renderRagState() {
+      const on = isRagEnabled();
+      ragModeState.textContent = on ? "ON" : "OFF";
+      ragModeState.classList.toggle("feature-on", on);
+      ragModeState.classList.toggle("feature-off", !on);
+    }
+
+    function saveRagMode() {
+      try { localStorage.setItem(RAG_STORAGE_KEY, String(isRagEnabled())); } catch (e) {}
+    }
+
+    function loadRagMode() {
+      let persisted = null;
+      try { persisted = localStorage.getItem(RAG_STORAGE_KEY); } catch (e) {}
+      ragModeToggle.checked = persisted === null ? true : persisted === "true";
+      renderRagState();
+    }
+
+    function el(tag, text, className) {
+      const node = document.createElement(tag);
+      if (text !== undefined && text !== null) node.textContent = text;
+      if (className) node.className = className;
+      return node;
+    }
+
+    function show(isError, ...nodes) {
+      resultPanel.classList.toggle("is-error", isError);
+      resultPanel.replaceChildren(...nodes);
+    }
+
+    function showDisabledMessage() {
+      show(false, el("p", "RAG Mode is OFF. Enable RAG Mode to run RAG tools."));
+    }
+
+    function showError(title, data) {
+      const message = (data && (data.error || data.raw)) || "Request failed.";
+      const nodes = [el("h3", title), el("pre", message)];
+      if (data && data.details) nodes.push(el("p", data.details, "result-meta"));
+      show(true, ...nodes);
+    }
+
+    function renderRefresh(data) {
+      const nodes = [
+        el("h3", "Corpus refreshed"),
+        el("p", `Indexed ${data.chunk_count} chunks from: ${(data.sources_loaded || []).join(", ")}`),
+      ];
+      if (data.vector_store_status && data.vector_store_status !== "ready") {
+        nodes.push(el("p", `Vector store: ${data.vector_store_status}. Retrieval will use keyword matching.`, "result-meta"));
+      }
+      show(false, ...nodes);
+    }
+
+    function renderRetrieve(data) {
+      const results = data.results || [];
+      const list = el("ol");
+      results.forEach((r) => {
+        const item = el("li");
+        item.append(el("strong", r.chunk_id), el("span", `  (${r.authority_tier || "n/a"})`, "result-meta"), el("p", r.text));
+        list.append(item);
+      });
+      show(
+        false,
+        el("h3", `Retrieved ${results.length} chunk${results.length === 1 ? "" : "s"}`),
+        el("p", `Retrieval mode: ${data.retrieval_mode || "unknown"}`, "result-meta"),
+        results.length ? list : el("p", "No matching context found."),
+      );
+    }
+
+    function renderAnswer(data) {
+      const answer = data.answer || "";
+
+      // The RAG server reports success even when the language model is down,
+      // putting the error text in the answer. Show that as an error.
+      if (answer.startsWith("Ollama unavailable")) {
+        showError("Language model unavailable", { error: answer });
+        return;
+      }
+
+      const citations = data.citations || [];
+      const list = el("ol");
+      citations.forEach((c) => {
+        list.append(el("li", `${c.chunk_id} · ${c.source_id || "n/a"} · ${c.authority_tier || "n/a"}`));
+      });
+
+      const nodes = [
+        el("h3", "Answer"),
+        el("pre", answer, "answer-text"),
+        el("p", `Confidence: ${data.confidence_category || "Unknown"}`, "result-meta"),
+        el("h3", "Citations"),
+        citations.length ? list : el("p", "No citations returned."),
+      ];
+      show(false, ...nodes);
+    }
+
+    // ---- requests ----
+    function setBusy(busy) {
+      submitButtons.forEach((b) => { b.disabled = busy; });
+    }
+
+    async function callRag(path, body, title, render) {
+      if (!isRagEnabled()) {
+        showDisabledMessage();
+        return;
+      }
+
+      setBusy(true);
+      show(false, el("h3", title), el("p", "Working... answers from the language model can take a minute."));
+
+      try {
+        const res = await fetch(`/api/rag/${path}`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-RAG-Mode": isRagEnabled() ? "on" : "off",
+          },
+          body: JSON.stringify(body),
+        });
+
+        const text = await res.text();
+        let data;
+        try { data = JSON.parse(text); } catch (e) { data = { raw: text }; }
+
+        if (!res.ok) {
+          showError(`${title} failed (HTTP ${res.status})`, data);
+          return;
+        }
+        render(data);
+      } catch (err) {
+        showError(`${title} failed`, { error: "Could not reach the backend." });
+      } finally {
+        setBusy(false);
+      }
+    }
+
+    ragModeToggle.addEventListener("change", () => {
+      saveRagMode();
+      renderRagState();
+      if (!isRagEnabled()) showDisabledMessage();
+    });
+
+    document.getElementById("rag-refresh-form").addEventListener("submit", (e) => {
+      e.preventDefault();
+      callRag("refresh", {}, "Refresh Corpus", renderRefresh);
+    });
+
+    document.getElementById("rag-retrieve-form").addEventListener("submit", (e) => {
+      e.preventDefault();
+      const query = document.getElementById("rag-retrieve-query").value.trim();
+      if (query) callRag("retrieve", { query }, "Retrieve Context", renderRetrieve);
+    });
+
+    document.getElementById("rag-answer-form").addEventListener("submit", (e) => {
+      e.preventDefault();
+      const query = document.getElementById("rag-answer-query").value.trim();
+      if (query) callRag("answer", { query }, "Answer", renderAnswer);
+    });
+
+    loadRagMode();
+    if (!isRagEnabled()) showDisabledMessage();
+  </script>
+</body>
+</html>

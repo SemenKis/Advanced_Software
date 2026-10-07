@@ -6,6 +6,8 @@ services:
       - DB_PATH=/data/warehouse.db
     volumes:
       - student2-db-data:/data
+    ports:
+      - "5020:5002"
 
   warehouse-backend:
     build: ./backend
@@ -14,6 +16,10 @@ services:
       - DB_SERVICE_URL=http://warehouse-database:5002
       - OLLAMA_HOST=http://host.docker.internal:11434
       - OLLAMA_MODEL=qwen2.5:0.5b
+      - MCP_ENABLED=${MCP_ENABLED:-true}
+      - RAG_ENABLED=${RAG_ENABLED:-true}
+      - MCP_SERVER_URL=http://host.docker.internal:5004
+      - RAG_SERVER_URL=http://host.docker.internal:5003
     depends_on:
       - warehouse-database
 

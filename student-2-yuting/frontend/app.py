@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, redirect
 import requests
 import os
 
@@ -43,7 +43,7 @@ def build_payload(cfg, form):
 
 @app.route("/")
 def home():
-    return render_template("index.html")
+    return redirect("/storage")
 
 
 @app.route("/<resource>")
@@ -99,6 +99,29 @@ def shipping_prioritise():
     requests.post(f"{BACKEND_URL}/api/ai/prioritise-shipping-tasks")
     cfg = RESOURCE_CONFIG["shipping-tasks"]
     return render_template(cfg["rows_template"], items=fetch_items(cfg))
+
+
+
+
+@app.route("/mcp-rag")
+def mcp_rag_page():
+    return render_template("mcp_rag.html")
+
+
+
+
+@app.route("/mcp/check-storage-capacity", methods=["POST"])
+def mcp_check_storage_capacity():
+    zone_name = request.form.get("zone_name", "")
+    resp = requests.post(f"{BACKEND_URL}/mcp/check-storage-capacity", data={"zone_name": zone_name})
+    return resp.text, resp.status_code, {"Content-Type": "application/json"}
+
+
+@app.route("/rag/answer", methods=["POST"])
+def rag_answer_forward():
+    query = request.form.get("query", "")
+    resp = requests.post(f"{BACKEND_URL}/rag/answer", data={"query": query})
+    return resp.text, resp.status_code, {"Content-Type": "application/json"}
 
 
 if __name__ =="__main__":

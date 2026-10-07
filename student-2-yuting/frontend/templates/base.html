@@ -5,11 +5,28 @@
     <title>Warehouse Management - Student 2 Yuting</title>
     <script src="/static/htmx.min.js"></script>
     <style>
-        body { font-family: sans-serif; margin: 2rem; color: #222; }
-        table { border-collapse: collapse; width: 100%; margin-top: 1rem; }
-        th, td { border : 1px solid #ccc; padding: 10px 14px; text-align: left; font-size: 0.9rem;}
-        th { background-color: #f4f4f4; }
-        nav a { margin-right: 1rem; text-decoration: none; font-weight: bold; }
+        body { font-family: sans-serif; margin: 2rem; color: #032c24; background-color: #d3eaf8; }
+        table { border-collapse: collapse; width: 100%; margin-top: 1rem; background-color: #ffffff; }
+        th, td { border: 1px solid #376f7e; padding: 10px 14px; text-align: left; font-size: 0.9rem; }
+        th { background-color: #a5d5e9; color: #032c24; }
+        nav { background-color: #032c24; padding: 12px 20px; border-radius: 8px; }
+        nav a { margin-right: 1.2rem; text-decoration: none; font-weight: bold; color: #d3eaf8; }
+        nav a:hover { color: #a5d5e9; }
+
+        .ai-button {
+            background-color: #032c24;
+            color: #d3eaf8;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-weight: bold;
+            font-size: 1rem;
+            cursor: pointer;
+            margin-bottom: 1rem;
+        }
+        .ai-button:hover {
+            background-color: #376f7e;
+        }
 
         form:not(.inline) input,
         form:not(.inline) select {
@@ -43,12 +60,12 @@
 </head>
 <body>
     <nav>
-        <a href="/">Home</a>
+        <a href="http://localhost:8080">Team Home</a>
         <a href="/storage">Storage</a>
         <a href="/packing-lists">Packing Lists</a>
         <a href="/shipping-tasks">Shipping Tasks</a>
+        <a href="/mcp-rag">MCP &amp; RAG</a>
     </nav>
-    <hr>
     {% block content %}{% endblock %}
 </body>
 </html>
