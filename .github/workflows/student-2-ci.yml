@@ -60,7 +60,7 @@ jobs:
             return 1
           }
 
-          check_url "http://localhost:5000/"
+          check_url "http://localhost:5000/storage"
 
       - name: Stop services
         if: always()
