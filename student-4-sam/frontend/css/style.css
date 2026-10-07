@@ -256,30 +256,30 @@ button[type="button"],
 }
 
 .tool-card form {
-    display: flex;
-    gap: 8px;
+    gap: 10px;
     margin-bottom: 12px;
 }
 
 .tool-card input {
-    flex: 1;
-    min-height: 36px;
-    padding: 8px 10px;
+    width: 100%;
+    min-height: 46px;
+    padding: 10px 12px;
     border: 1px solid var(--border);
     border-radius: 8px;
     background: var(--panel);
-    font-size: 0.9rem;
+    font-size: 0.95rem;
 }
 
 .tool-card button {
-    min-height: 36px;
-    padding: 0 14px;
+    width: 100%;
+    min-height: 44px;
+    padding: 10px 14px;
     background: var(--primary);
     color: var(--primary-text);
     border: 1px solid var(--primary);
     border-radius: 8px;
     font-weight: 700;
-    font-size: 0.9rem;
+    font-size: 0.95rem;
     cursor: pointer;
     white-space: nowrap;
 }
