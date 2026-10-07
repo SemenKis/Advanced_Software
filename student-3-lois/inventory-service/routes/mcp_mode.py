@@ -1,25 +1,11 @@
 import json
-import os
 
 from flask import Blueprint, request
 import requests
 
-from services.database_api import get_low_stock_products, get_products
+from services.mcp_api import call_mcp_tool, mcp_disabled_response, mcp_mode_is_enabled
 
 mcp_bp = Blueprint("mcp_mode", __name__)
-
-
-def mcp_mode_is_enabled(req) -> bool:
-    enabled = os.getenv("MCP_ENABLED", "true").strip().lower() in ("1", "true", "yes", "on")
-    if not enabled:
-        return False
-    mode_header = req.headers.get("X-MCP-Mode", "on").strip().lower()
-    return mode_header in ("1", "true", "yes", "on")
-
-
-def mcp_disabled_response():
-    return "<p>MCP Mode is disabled.</p>", 403
-
 
 def mcp_render_json(title: str, payload):
     return f"<h3>{title}</h3><pre>{json.dumps(payload, indent=2, default=str)}</pre>"
@@ -30,8 +16,8 @@ def mcp_product_count():
     if not mcp_mode_is_enabled(request):
         return mcp_disabled_response()
     try:
-        count = len(get_products())
-        return mcp_render_json("MCP Tool: product_count", {"product_count": count}), 200
+        result = call_mcp_tool("inventory_product_count", {})
+        return mcp_render_json("MCP Tool: inventory_product_count", result), 200
     except requests.RequestException as exc:
         return f"<p>MCP product_count failed.</p><pre>{exc}</pre>", 503
 
@@ -46,9 +32,8 @@ def mcp_products_by_category():
         return "<p>category_name is required.</p>", 400
 
     try:
-        products = get_products()
-        matches = [p for p in products if p.get("category_name", "").lower() == category_name.lower()]
-        return mcp_render_json("MCP Tool: products_by_category", matches), 200
+        result = call_mcp_tool("inventory_products_by_category", {"category_name": category_name})
+        return mcp_render_json("MCP Tool: inventory_products_by_category", result), 200
     except requests.RequestException as exc:
         return f"<p>MCP products_by_category failed.</p><pre>{exc}</pre>", 503
 
@@ -58,8 +43,8 @@ def mcp_low_stock_report():
     if not mcp_mode_is_enabled(request):
         return mcp_disabled_response()
     try:
-        report = get_low_stock_products()
-        return mcp_render_json("MCP Tool: low_stock_report", report), 200
+        result = call_mcp_tool("inventory_low_stock_report", {})
+        return mcp_render_json("MCP Tool: inventory_low_stock_report", result), 200
     except requests.RequestException as exc:
         return f"<p>MCP low_stock_report failed.</p><pre>{exc}</pre>", 503
 
@@ -74,10 +59,8 @@ def mcp_supplier_lookup():
         return "<p>supplier_name is required.</p>", 400
 
     try:
-        products = get_products()
-        matches = [p for p in products if p.get("supplier_name", "").lower() == supplier_name.lower()]
-        if not matches:
-            return mcp_render_json("MCP Tool: supplier_lookup", {"error": f"No products found for supplier '{supplier_name}'"}), 200
-        return mcp_render_json("MCP Tool: supplier_lookup", matches), 200
+        result = call_mcp_tool("inventory_supplier_lookup", {"supplier_name": supplier_name})
+        return mcp_render_json("MCP Tool: inventory_supplier_lookup", result), 200
     except requests.RequestException as exc:
         return f"<p>MCP supplier_lookup failed.</p><pre>{exc}</pre>", 503
+

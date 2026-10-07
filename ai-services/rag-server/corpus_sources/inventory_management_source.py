@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 
 import requests
 
-DATABASE_SERVICE_URL = os.getenv("INVENTORY_DATABASE_SERVICE_URL", "http://localhost:5023")
+DATABASE_SERVICE_URL = os.getenv("INVENTORY_DATABASE_SERVICE_URL", "http://localhost:5002")
 SOURCE_PREFIX = "inventory"
 
 
@@ -12,9 +12,6 @@ def _now_iso() -> str:
 
 
 def load_chunks() -> list[dict]:
-    """Called once per refresh_corpus() by the shared rag_pipeline.py.
-    Must return a list of chunk dicts with the standard shape:
-    chunk_id, source_id, authority_tier, text, metadata, indexed_at."""
     chunks: list[dict] = []
     try:
         products = requests.get(f"{DATABASE_SERVICE_URL}/products", timeout=10).json()
