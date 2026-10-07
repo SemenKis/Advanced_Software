@@ -364,9 +364,32 @@ def deterministic_answer(query: str, results: list[dict[str, Any]]) -> str | Non
     return None
 
 
+def resolve_ollama_generate_url() -> str:
+    explicit = os.getenv("OLLAMA_GENERATE_URL")
+    if explicit:
+        return explicit.rstrip("/")
+
+    ollama_url = os.getenv("OLLAMA_URL")
+    if ollama_url:
+        return ollama_url.rstrip("/") + "/api/generate"
+
+    for candidate in (
+        "http://127.0.0.1:11434/api/generate",
+        "http://localhost:11434/api/generate",
+        "http://host.docker.internal:11434/api/generate",
+    ):
+        try:
+            response = requests.get(candidate.replace("/api/generate", "/api/tags"), timeout=2)
+            if response.status_code < 500:
+                return candidate
+        except Exception:
+            continue
+    return "http://127.0.0.1:11434/api/generate"
+
+
 def generate_with_ollama(query: str, context: str) -> str:
     model_name = os.getenv("OLLAMA_MODEL", "qwen2.5:0.5b")
-    ollama_generate_url = os.getenv("OLLAMA_GENERATE_URL", "http://host.docker.internal:11434/api/generate")
+    ollama_generate_url = resolve_ollama_generate_url()
     prompt = f"""
 You are a retrieval-grounded assistant for a supply chain management application.
 Use only the provided context, which may span Order Management, Warehouse Management,
