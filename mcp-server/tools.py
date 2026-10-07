@@ -39,7 +39,8 @@ def check_storage_capacity(zone_name: str = None):
 
 def check_order_status(order_id: str = None):
     try:
-        url = f"{STUDENT_SERVICES['order']}/api/orders"
+        url = f"{STUDENT_SERVICES['order']}/orders"
+
         if order_id:
             url += f"/{order_id}"
         resp = requests.get(url, timeout=5)
