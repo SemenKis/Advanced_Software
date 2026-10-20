@@ -100,5 +100,43 @@ def rag_answer():
         return jsonify({'status': 'error', 'error': f'RAG server unreachable: {exc}'}), 503
 
 
+MULTI_AGENT_SERVER_URL = os.environ.get('MULTI_AGENT_SERVER_URL', 'http://host.docker.internal:5005')
+MULTI_AGENT_ENABLED = os.environ.get('MULTI_AGENT_ENABLED', 'false').lower() in ('1', 'true', 'yes')
+
+
+def _multi_agent_proxy(method, path, payload=None, timeout=200):
+    if not MULTI_AGENT_ENABLED:
+        return jsonify({'status': 'error', 'error': 'Multi-Agent mode is disabled'}), 403
+    try:
+        resp = requests.request(method, f'{MULTI_AGENT_SERVER_URL}{path}', json=payload, timeout=timeout)
+        return jsonify(resp.json()), resp.status_code
+    except requests.exceptions.RequestException as exc:
+        return jsonify({'status': 'error', 'error': f'Multi-Agent server unreachable: {exc}'}), 503
+
+
+@app.route('/multi-agent/workflow', methods=['POST'])
+def multi_agent_workflow():
+    data = request.get_json(silent=True) or request.form
+    user_request = (data.get('request') or '').strip()
+    if not user_request:
+        return jsonify({'status': 'error', 'error': 'request is required'}), 400
+    return _multi_agent_proxy('POST', '/workflow', {'request': user_request})
+
+
+@app.route('/multi-agent/workflow/status', methods=['GET'])
+def multi_agent_status():
+    return _multi_agent_proxy('GET', '/workflow/status', timeout=10)
+
+
+@app.route('/multi-agent/workflow/decision', methods=['POST'])
+def multi_agent_decision():
+    data = request.get_json(silent=True) or request.form
+    return _multi_agent_proxy('POST', '/workflow/decision', {
+        'workflow_id': data.get('workflow_id', ''),
+        'decision': data.get('decision', ''),
+        'note': data.get('note', ''),
+    }, timeout=10)
+
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5001)

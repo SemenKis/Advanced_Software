@@ -12,6 +12,8 @@ services:
   warehouse-backend:
     build: ./backend
     container_name: student2-backend
+    ports:
+      - "5021:5001"
     environment:
       - DB_SERVICE_URL=http://warehouse-database:5002
       - OLLAMA_HOST=http://host.docker.internal:11434
@@ -20,6 +22,8 @@ services:
       - RAG_ENABLED=${RAG_ENABLED:-true}
       - MCP_SERVER_URL=http://host.docker.internal:5004
       - RAG_SERVER_URL=http://host.docker.internal:5003
+      - MULTI_AGENT_ENABLED=${MULTI_AGENT_ENABLED:-true}
+      - MULTI_AGENT_SERVER_URL=http://host.docker.internal:5005
     depends_on:
       - warehouse-database
 

@@ -124,6 +124,40 @@ def rag_answer_forward():
     return resp.text, resp.status_code, {"Content-Type": "application/json"}
 
 
+def _forward_multi_agent(method, path, payload=None, timeout=220):
+    try:
+        resp = requests.request(method, f"{BACKEND_URL}{path}", json=payload, timeout=timeout)
+        return resp.text, resp.status_code, {"Content-Type": "application/json"}
+    except requests.exceptions.RequestException as exc:
+        return {"status": "error", "error": f"Backend unreachable: {exc}"}, 503
+
+
+@app.route("/multi-agent")
+def multi_agent_page():
+    return render_template("multi_agent.html")
+
+
+@app.route("/multi-agent/workflow", methods=["POST"])
+def multi_agent_workflow_forward():
+    data = request.get_json(silent=True) or request.form
+    return _forward_multi_agent("POST", "/multi-agent/workflow", {"request": data.get("request", "")})
+
+
+@app.route("/multi-agent/workflow/status", methods=["GET"])
+def multi_agent_status_forward():
+    return _forward_multi_agent("GET", "/multi-agent/workflow/status", timeout=10)
+
+
+@app.route("/multi-agent/workflow/decision", methods=["POST"])
+def multi_agent_decision_forward():
+    data = request.get_json(silent=True) or request.form
+    return _forward_multi_agent("POST", "/multi-agent/workflow/decision", {
+        "workflow_id": data.get("workflow_id", ""),
+        "decision": data.get("decision", ""),
+        "note": data.get("note", ""),
+    }, timeout=10)
+
+
 if __name__ =="__main__":
     app.run(host="0.0.0.0", port=5000)
 

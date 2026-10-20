@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Multi-Agent Review</h2>
+<style>
+    .ma-suggest { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 14px 0; }
+    .ma-suggest-label { font-size: 0.9rem; font-weight: 600; color: #4E7A47; }
+    .ma-sample { background: #DDE8D0; color: #1F3D2B; border: 1px solid #B7C9A5; border-radius: 999px; padding: 6px 14px; font-size: 0.9rem; cursor: pointer; }
+    .ma-sample:hover { background: #4E7A47; color: #FFFFFF; border-color: #4E7A47; }
+    #ma-status:empty { display: none; }
+    .ma-flow { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 12px 0 18px; }
+    .ma-step { display: inline-flex; align-items: center; gap: 8px; background: transparent; color: #3E2F1F; border: 2px solid #8B6B4A; font-weight: 600; border-radius: 8px; padding: 4px 14px 4px 6px; }
+    .ma-step b { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 50%; background: #8B6B4A; color: #FFFFFF; font-size: 0.8rem; }
+    .ma-arrow { color: #8B6B4A; font-weight: 700; }
+    #ma-run, #ma-decision-btn, #ma-status-btn { background: #4E7A47; color: #FFFFFF; border: none; border-radius: 6px; padding: 8px 16px; font-weight: 600; cursor: pointer; }
+    #ma-run:hover, #ma-decision-btn:hover, #ma-status-btn:hover { background: #3A6035; }
+    #ma-run:disabled { opacity: 0.6; cursor: wait; }
+    #ma-request, #ma-note, #ma-decision-value { border: 1px solid #B9B7A0; border-radius: 6px; padding: 8px 10px; background: #FFFFFF; }
+    .ma-planner { background: #E4EEDA; border-left: 5px solid #4E7A47; }
+    .ma-worker { background: #EFE6D2; border-left: 5px solid #A88B5A; }
+    .ma-reviewer { background: #DDEBE7; border-left: 5px solid #2F6F6B; }
+    .ma-workflow { background: #FFFFFF; border: 1px solid #DAD7BE; }
+</style>
+<div class="ma-flow">
+    <span class="ma-step"><b>1</b>Planner</span><span class="ma-arrow">&rarr;</span>
+    <span class="ma-step"><b>2</b>Worker</span><span class="ma-arrow">&rarr;</span>
+    <span class="ma-step"><b>3</b>Reviewer</span><span class="ma-arrow">&rarr;</span>
+    <span class="ma-step"><b>4</b>Human Review</span>
+</div>
+
+<form id="ma-form">
+    <input id="ma-request" size="60" placeholder="e.g. Which storage zones are near capacity?">
+    <button type="submit" id="ma-run">Run Workflow</button>
+</form>
+<div class="ma-suggest">
+    <span class="ma-suggest-label">Suggested questions:</span>
+    <button type="button" class="ma-sample">Which storage zones are near capacity?</button>
+    <button type="button" class="ma-sample">Check Zone-C utilisation</button>
+</div>
+
+<div id="ma-result" style="margin-top: 10px;">Workflow results will appear here.</div>
+
+<section id="ma-decision" hidden style="margin-top: 16px;">
+    <h3>Human Review</h3>
+    <select id="ma-decision-value">
+        <option>Accept</option>
+        <option>Partially Accept</option>
+        <option>Reject</option>
+    </select>
+    <input id="ma-note" size="50" placeholder="Reason (optional)">
+    <button type="button" id="ma-decision-btn">Record Decision</button>
+    <span id="ma-decision-msg"></span>
+</section>
+
+<section id="ma-status-section" hidden style="margin-top: 24px;">
+    <button type="button" id="ma-status-btn">Refresh History Status</button>
+    <pre id="ma-status" style="background: #FFFFFF; border: 1px solid #DAD7BE; padding: 10px; border-radius: 6px;"></pre>
+</section>
+
+<script>
+const el = (id) => document.getElementById(id);
+let currentWorkflowId = null;
+
+function block(title, status, text) {
+    const box = document.createElement("div");
+    box.className = "ma-box ma-" + title.toLowerCase();
+    box.style.cssText = "margin:8px 0;padding:10px 12px;border-radius:6px;";
+    const head = document.createElement("strong");
+    head.textContent = title + (status ? " (" + status + ")" : "");
+    const body = document.createElement("div");
+    body.style.whiteSpace = "pre-wrap";
+    body.textContent = text;
+    box.append(head, body);
+    return box;
+}
+
+async function call(method, path, body) {
+    const opts = { method: method, headers: { "Content-Type": "application/json" } };
+    if (body) { opts.body = JSON.stringify(body); }
+    const resp = await fetch(path, opts);
+    let data = {};
+    try { data = await resp.json(); } catch (e) { data = { error: "Invalid response from server" }; }
+    return { ok: resp.ok, data: data };
+}
+
+function evidenceText(list) {
+    return (list || []).map(function (e) {
+        return e.zone + ": " + e.current_load + "/" + e.capacity + " (" + e.utilisation_pct + "%)" + (e.near_capacity ? " NEAR CAPACITY" : "");
+    }).join("\n");
+}
+
+el("ma-form").addEventListener("submit", async function (ev) {
+    ev.preventDefault();
+    const request = el("ma-request").value.trim();
+    if (!request) { return; }
+    el("ma-run").disabled = true;
+    el("ma-decision").hidden = true;
+    el("ma-result").textContent = "Running Planner, Worker and Reviewer... this can take a minute.";
+    const res = await call("POST", "/multi-agent/workflow", { request: request });
+    el("ma-run").disabled = false;
+    if (!res.ok) {
+        el("ma-result").textContent = "Error: " + (res.data.error || "workflow failed");
+        return;
+    }
+    const w = res.data;
+    currentWorkflowId = w.workflow_id;
+    el("ma-result").replaceChildren(
+        block("Planner", w.planner.status, w.planner.output),
+        block("Worker", w.worker.status, w.worker.output + "\n\nEvidence:\n" + evidenceText(w.worker.evidence)),
+        block("Reviewer", w.reviewer.status, w.reviewer.output),
+        block("Workflow", "", "ID: " + w.workflow_id + "\nDuration: " + w.duration_ms + " ms\nHuman decision: " + w.human_decision.status)
+    );
+    el("ma-decision-msg").textContent = "";
+    el("ma-decision").hidden = false;
+    el("ma-status-section").hidden = false;
+});
+
+el("ma-decision-btn").addEventListener("click", async function () {
+    const res = await call("POST", "/multi-agent/workflow/decision", {
+        workflow_id: currentWorkflowId,
+        decision: el("ma-decision-value").value,
+        note: el("ma-note").value
+    });
+    el("ma-decision-msg").textContent = res.data.message || res.data.error || "Failed";
+});
+
+el("ma-status-btn").addEventListener("click", async function () {
+    const res = await call("GET", "/multi-agent/workflow/status");
+    const d = res.data;
+    el("ma-status").textContent = res.ok
+        ? "Workflows: " + d.workflow_count + "\nAudit events: " + d.audit_event_count
+        : "Error: " + (d.error || "status failed");
+});
+
+document.querySelectorAll(".ma-sample").forEach(function (b) {
+    b.addEventListener("click", function () { el("ma-request").value = b.textContent; });
+});
+</script>
+{% endblock %}
