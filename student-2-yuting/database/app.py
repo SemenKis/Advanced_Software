@@ -60,7 +60,7 @@ def collection(resource):
 
 
     if request.method == "GET":
-        rows = conn.execute(f"SELECT * FROM {meta['table']} ORDER BY id DESC").fetchall()
+        rows = conn.execute(f"SELECT * FROM {meta['table']} ORDER BY id DESC").fetchall()  # noqa: S608 - table/column names come from the TABLES allow-list; values are parameterised
         conn.close()
         return jsonify([row_to_dict(r) for r in rows])
 
@@ -74,12 +74,12 @@ def collection(resource):
     placeholders = ",".join(["?"] * len(cols))
     cols_sql = ",".join(cols + ["created_at", "updated_at"])
     cur = conn.execute(
-        f"INSERT INTO {meta['table']} ({cols_sql}) VALUES ({placeholders}, ?, ?)",
+        f"INSERT INTO {meta['table']} ({cols_sql}) VALUES ({placeholders}, ?, ?)",  # noqa: S608 - table/column names come from the TABLES allow-list; values are parameterised
         values + [now, now]
     )
     conn.commit()
     new_id = cur.lastrowid
-    row = conn.execute(f"SELECT * FROM {meta['table']} WHERE id = ?", (new_id,)).fetchone()
+    row = conn.execute(f"SELECT * FROM {meta['table']} WHERE id = ?", (new_id,)).fetchone()  # noqa: S608 - table/column names come from the TABLES allow-list; values are parameterised
     conn.close()
     return jsonify(row_to_dict(row)), 201
 
@@ -91,7 +91,7 @@ def item(resource, item_id):
     meta = TABLES[resource]
     conn = get_db()
 
-    row = conn.execute(f"SELECT * FROM {meta['table']} WHERE id = ?", (item_id,)).fetchone()
+    row = conn.execute(f"SELECT * FROM {meta['table']} WHERE id = ?", (item_id,)).fetchone()  # noqa: S608 - table/column names come from the TABLES allow-list; values are parameterised
     if not row:
         conn.close()
         abort(404, description=f"{resource} with id {item_id} not found")
@@ -110,15 +110,15 @@ def item(resource, item_id):
         now = datetime.utcnow().isoformat()
         set_sql = ",".join([f"{c} = ?" for c in cols])
         conn.execute(
-            f"UPDATE {meta['table']} SET {set_sql}, updated_at = ? WHERE id = ?",
+            f"UPDATE {meta['table']} SET {set_sql}, updated_at = ? WHERE id = ?",  # noqa: S608 - table/column names come from the TABLES allow-list; values are parameterised
             values + [now, item_id]
         )
         conn.commit()
-        row = conn.execute(f"SELECT * FROM {meta['table']} WHERE id = ?", (item_id,)).fetchone()
+        row = conn.execute(f"SELECT * FROM {meta['table']} WHERE id = ?", (item_id,)).fetchone()  # noqa: S608 - table/column names come from the TABLES allow-list; values are parameterised
         conn.close()
         return jsonify(row_to_dict(row))
 
-    conn.execute(f"DELETE FROM {meta['table']} WHERE id = ?", (item_id,))
+    conn.execute(f"DELETE FROM {meta['table']} WHERE id = ?", (item_id,))  # noqa: S608 - table/column names come from the TABLES allow-list; values are parameterised
     conn.commit()
     conn.close()
     return "", 204

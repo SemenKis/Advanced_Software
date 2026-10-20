@@ -68,7 +68,7 @@ def collect_implementation_evidence(student_folder):
         try:
             text = py_file.read_text()
             contents.append(f"--- {py_file.relative_to(student_dir)} ---\n{text[:500]}")
-        except Exception: 
+        except Exception:  # noqa: S112 - skip files that cannot be read
             continue
     return "\n\n".join(contents) if contents else f"No Python files found for {student_folder}."
    

@@ -64,7 +64,7 @@ def reset_collection() -> None:
     client = chromadb.PersistentClient(path=str(CHROMA_PATH))
     try:
         client.delete_collection(name=COLLECTION_NAME)
-    except Exception:
+    except Exception:  # noqa: S110 - collection may not exist yet on first run
         pass
     _collection = client.get_or_create_collection(name=COLLECTION_NAME)
 
@@ -382,7 +382,7 @@ def resolve_ollama_generate_url() -> str:
             response = requests.get(candidate.replace("/api/generate", "/api/tags"), timeout=2)
             if response.status_code < 500:
                 return candidate
-        except Exception:
+        except Exception:  # noqa: S112 - try the next Ollama candidate URL
             continue
     return "http://127.0.0.1:11434/api/generate"
 

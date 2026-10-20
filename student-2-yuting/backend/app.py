@@ -22,9 +22,9 @@ def collection(resource):
     url = f"{DB_SERVICE_URL}/api/{resource}"
 
     if request.method == "GET":
-        r = requests.get(url)
+        r = requests.get(url, timeout=10)
     else:
-        r = requests.post(url, json=request.get_json(force=True))
+        r = requests.post(url, json=request.get_json(force=True), timeout=10)
     return (r.text, r.status_code, {"Content-Type": "application/json"}) 
 
 
@@ -36,11 +36,11 @@ def item(resource, item_id):
     url = f"{DB_SERVICE_URL}/api/{resource}/{item_id}"
 
     if request.method == "GET":
-        r = requests.get(url)
+        r = requests.get(url, timeout=10)
     elif request.method == "PUT":
-        r = requests.put(url, json=request.get_json(force=True))
+        r = requests.put(url, json=request.get_json(force=True), timeout=10)
     else:
-        r = requests.delete(url)
+        r = requests.delete(url, timeout=10)
     if r.status_code == 204:
         return "", 204
     return (r.text, r.status_code, {"Content-Type": "application/json"})
