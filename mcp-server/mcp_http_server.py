@@ -5,14 +5,20 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from tools import (
     check_storage_capacity,
     check_order_status,
-    check_inventory_level,
+    inventory_product_count,
+    inventory_products_by_category,
+    inventory_low_stock_report,
+    inventory_supplier_lookup,
     check_shipment_status,
 )
 
 TOOLS = {
     "check_storage_capacity": check_storage_capacity,
     "check_order_status": check_order_status,
-    "check_inventory_level": check_inventory_level,
+    "inventory_product_count": inventory_product_count,
+    "inventory_products_by_category": inventory_products_by_category,
+    "inventory_low_stock_report": inventory_low_stock_report,
+    "inventory_supplier_lookup": inventory_supplier_lookup,
     "check_shipment_status": check_shipment_status,
 }
 

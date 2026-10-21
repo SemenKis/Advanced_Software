@@ -7,235 +7,154 @@
     <meta name="htmx-config" content='{"selfRequestsOnly": false}'>
 
     <title>Transportation Management</title>
+    <link rel="stylesheet" href="css/style.css">
 
     <!-- HTMX -->
     <script src="https://unpkg.com/htmx.org@2.0.8"></script>
 </head>
 
 <body>
+    <div class="page">
+        <header class="title-wrap">
+            <h1>Transportation Manager</h1>
+            <p>Create, track, and monitor shipment operations.</p>
+        </header>
 
-    <h1>Transportation Management</h1>
+        <section class="card">
+            <h2>Create Shipment</h2>
 
-    <p>
-        Create, update, delete and track transportation shipments.
-    </p>
+            <form
+                hx-post="http://localhost:5004/htmx/shipments"
+                hx-target="#shipment-table"
+                hx-swap="innerHTML"
+                hx-on::after-request="if(event.detail.successful) this.reset()">
 
-    <hr>
+                <div class="field-grid">
+                    <div class="field">
+                        <label for="origin">Origin</label>
+                        <input id="origin" name="origin" type="text" value="Sydney" required>
+                    </div>
 
+                    <div class="field">
+                        <label for="destination">Destination</label>
+                        <input id="destination" name="destination" type="text" value="Melbourne" required>
+                    </div>
 
-    <h2>Create Shipment</h2>
+                    <div class="field full">
+                        <label for="status">Status</label>
+                        <select id="status" name="status">
+                            <option value="PLANNED" selected>Planned</option>
+                            <option value="READY_FOR_DISPATCH">Ready for Dispatch</option>
+                            <option value="IN_TRANSIT">In Transit</option>
+                            <option value="DELAYED">Delayed</option>
+                            <option value="DELIVERED">Delivered</option>
+                            <option value="CANCELLED">Cancelled</option>
+                        </select>
+                    </div>
 
-    <form
-        hx-post="http://localhost:5004/htmx/shipments"
-        hx-target="#shipment-table"
-        hx-swap="innerHTML"
-        hx-on::after-request="if(event.detail.successful) this.reset()">
+                    <div class="field">
+                        <label for="driver">Driver</label>
+                        <input id="driver" name="driver" type="text" value="Driver name">
+                    </div>
 
-        <div>
-            <label for="origin">Origin:</label>
+                    <div class="field">
+                        <label for="vehicle">Vehicle</label>
+                        <input id="vehicle" name="vehicle" type="text" value="TRK-01">
+                    </div>
 
-            <input
-                id="origin"
-                name="origin"
-                type="text"
-                placeholder="Sydney"
-                required>
+                    <div class="field">
+                        <label for="departure_date">Departure Date</label>
+                        <input id="departure_date" name="departure_date" type="datetime-local">
+                    </div>
+
+                    <div class="field">
+                        <label for="estimated_arrival">Estimated Arrival</label>
+                        <input id="estimated_arrival" name="estimated_arrival" type="datetime-local">
+                    </div>
+
+                    <div class="field full">
+                        <label for="delay_minutes">Delay Minutes</label>
+                        <input id="delay_minutes" name="delay_minutes" type="number" value="0" min="0">
+                    </div>
+                </div>
+
+                <div class="button-row">
+                    <button type="submit">Create Shipment</button>
+                </div>
+            </form>
+        </section>
+
+        <section class="mcp-rag-panel">
+            <h2>MCP &amp; RAG</h2>
+
+            <div class="mcp-rag-actions">
+                <button type="button" class="status-btn" hx-get="http://localhost:5004/htmx/mcp-status" hx-target="#mcp-status-box" hx-swap="innerHTML">
+                    Check MCP
+                </button>
+                <button type="button" class="status-btn" hx-get="http://localhost:5004/htmx/rag-status" hx-target="#rag-status-box" hx-swap="innerHTML">
+                    Check RAG
+                </button>
+            </div>
+
+            <div class="mcp-rag-grid">
+                <div id="mcp-status-box" class="mcp-rag-box" hx-get="http://localhost:5004/htmx/mcp-status" hx-trigger="load" hx-swap="innerHTML">
+                    <span class="label">MCP Status</span>
+                    <strong>Checking...</strong>
+                </div>
+                <div id="rag-status-box" class="mcp-rag-box" hx-get="http://localhost:5004/htmx/rag-status" hx-trigger="load" hx-swap="innerHTML">
+                    <span class="label">RAG Status</span>
+                    <strong>Checking...</strong>
+                </div>
+            </div>
+
+            <div class="mcp-rag-tools-grid">
+                <div class="tool-card">
+                    <div class="tool-header">
+                        <h3>Check Shipment Status</h3>
+                        <span class="tool-label">MCP</span>
+                    </div>
+                    <form hx-post="http://localhost:5004/htmx/mcp/check-shipment" hx-target="#mcp-result" hx-swap="innerHTML">
+                        <input name="shipment_id" placeholder="Shipment ID (e.g. 1)">
+                        <button type="submit">Run Tool</button>
+                    </form>
+                    <pre id="mcp-result" class="tool-result">Results will appear here</pre>
+                </div>
+
+                <div class="tool-card">
+                    <div class="tool-header">
+                        <h3>Ask a Question</h3>
+                        <span class="tool-label">RAG</span>
+                    </div>
+                    <form hx-post="http://localhost:5004/htmx/rag/answer" hx-target="#rag-result" hx-swap="innerHTML">
+                        <input name="query" placeholder="e.g. Which shipments are delayed?">
+                        <button type="submit">Ask</button>
+                    </form>
+                    <pre id="rag-result" class="tool-result">Answers will appear here</pre>
+                </div>
+            </div>
+        </section>
+
+        <div class="panel-stack">
+            <section class="mini-panel">
+                <h3>Current Shipments</h3>
+                <div
+                    id="shipment-table"
+                    class="shipments-box"
+                    hx-get="http://localhost:5004/htmx/shipments"
+                    hx-trigger="load"
+                    hx-swap="innerHTML">
+                    Loading shipments...
+                </div>
+            </section>
+
+            <section class="mini-panel">
+                <h3>AI Analysis</h3>
+                <div id="ai-result" class="ai-box">
+                    No shipment has been analysed yet.
+                </div>
+            </section>
         </div>
-
-        <br>
-
-        <div>
-            <label for="destination">Destination:</label>
-
-            <input
-                id="destination"
-                name="destination"
-                type="text"
-                placeholder="Melbourne"
-                required>
-        </div>
-
-        <br>
-
-        <div>
-            <label for="status">Status:</label>
-
-            <select
-                id="status"
-                name="status">
-
-                <option value="PLANNED">
-                    Planned
-                </option>
-
-                <option value="READY_FOR_DISPATCH">
-                    Ready for Dispatch
-                </option>
-
-                <option value="IN_TRANSIT">
-                    In Transit
-                </option>
-
-                <option value="DELAYED">
-                    Delayed
-                </option>
-
-                <option value="DELIVERED">
-                    Delivered
-                </option>
-
-                <option value="CANCELLED">
-                    Cancelled
-                </option>
-
-            </select>
-        </div>
-
-        <br>
-
-        <div>
-            <label for="driver">Driver:</label>
-
-            <input
-                id="driver"
-                name="driver"
-                type="text"
-                placeholder="Driver name">
-        </div>
-
-        <br>
-
-        <div>
-            <label for="vehicle">Vehicle:</label>
-
-            <input
-                id="vehicle"
-                name="vehicle"
-                type="text"
-                placeholder="TRK-01">
-        </div>
-
-        <br>
-
-        <div>
-            <label for="departure_date">
-                Departure Date:
-            </label>
-
-            <input
-                id="departure_date"
-                name="departure_date"
-                type="datetime-local">
-        </div>
-
-        <br>
-
-        <div>
-            <label for="estimated_arrival">
-                Estimated Arrival:
-            </label>
-
-            <input
-                id="estimated_arrival"
-                name="estimated_arrival"
-                type="datetime-local">
-        </div>
-
-        <br>
-
-        <div>
-            <label for="delay_minutes">
-                Delay Minutes:
-            </label>
-
-            <input
-                id="delay_minutes"
-                name="delay_minutes"
-                type="number"
-                value="0"
-                min="0">
-        </div>
-
-        <br>
-
-        <button type="submit">
-            Create Shipment
-        </button>
-
-    </form>
-
-    <hr>
-
-    <h2>Shipments</h2>
-
-    <button
-        type="button"
-        hx-get="http://localhost:5004/htmx/shipments"
-        hx-target="#shipment-table"
-        hx-swap="innerHTML">
-
-        Refresh Shipments
-
-    </button>
-
-    <br>
-    <br>
-
-    <div
-        id="shipment-table"
-        hx-get="http://localhost:5004/htmx/shipments"
-        hx-trigger="load"
-        hx-swap="innerHTML">
-
-        <p>
-            Loading shipments...
-        </p>
-
     </div>
-
-    <hr>
-
-    <h2>AI Transportation Analysis</h2>
-
-    <p>
-        Select a shipment and click
-        <strong>Analyse with Qwen</strong>
-        to run the Plan → Act → Observe → Adapt workflow.
-    </p>
-
-    <!--
-        The Analyse button is generated by Flask inside
-        the shipment table.
-
-        It will use:
-
-        hx-post="http://localhost:5004/htmx/shipments/{id}/analyse"
-
-        and place the response here.
-    -->
-
-    <div id="ai-result">
-
-        <p>
-            No shipment has been analysed yet.
-        </p>
-
-    </div>
-
-    <hr>
-
-    <!-- <h2>Backend Service</h2>
-
-    <p>
-        Transportation backend:
-        <strong>http://localhost:5004</strong>
-    </p>
-
-    <p>
-        Frontend communicates with the backend using
-        HTTP requests generated by HTMX.
-    </p> -->
-
 </body>
 
 </html>
