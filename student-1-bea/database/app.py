@@ -1,3 +1,4 @@
+import os
 from flask import Flask, jsonify, request
 import sqlite3
 
@@ -159,4 +160,4 @@ def delete_order(order_id):
     return jsonify({"order_id": order_id, "deleted": True}), 200
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5002, debug=True)
+    app.run(host="0.0.0.0", port=5002, debug=os.environ.get("FLASK_DEBUG", "false").lower() == "true")

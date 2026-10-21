@@ -1,5 +1,10 @@
 {% extends "base.html" %}
 {% block content %}
+<style>
+    button { background: #4E7A47; color: #FFFFFF; border: none; border-radius: 6px; padding: 8px 16px; font-weight: 600; cursor: pointer; }
+    button:hover { background: #3A6035; }
+    input { border: 1px solid #B9B7A0; border-radius: 6px; padding: 8px 10px; background: #FFFFFF; }
+</style>
 <h2>MCP &amp; RAG Tools</h2>
 
 <section style="margin-bottom: 2rem;">
@@ -8,7 +13,7 @@
         <input name="zone_name" placeholder="Zone name (e.g. Zone-C)" size="60">
         <button type="submit">Run Tool</button>
     </form>
-    <div id="mcp-result" style="margin-top: 10px; padding: 12px; background: #f4f4f4; border-radius: 6px;">
+    <div id="mcp-result" style="margin-top: 10px; padding: 12px; background: #FFFFFF; border: 1px solid #DAD7BE; border-radius: 6px;">
         MCP tool results will appear here.
     </div>
 </section>
@@ -19,7 +24,7 @@
         <input name="query" placeholder="e.g. Why did this task fall back to rule-based priority?" size="50">
         <button type="submit">Ask</button>
     </form>
-    <div id="rag-result" style="margin-top: 10px; padding: 12px; background: #f4f4f4; border-radius: 6px;">
+    <div id="rag-result" style="margin-top: 10px; padding: 12px; background: #FFFFFF; border: 1px solid #DAD7BE; border-radius: 6px;">
         RAG answers will appear here.
     </div>
 </section>
