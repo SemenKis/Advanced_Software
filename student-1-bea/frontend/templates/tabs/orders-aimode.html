@@ -22,6 +22,7 @@
   <div id="ai-analysis-result"></div>
 
   <script>
+          const API_BASE = window.location.pathname.startsWith("/orders/") ? "/orders/api" : "/api";
     const aiAnalysisBtn = document.getElementById('ai-textbox-submit');
 
     aiAnalysisBtn.addEventListener('click', () => {
@@ -33,7 +34,7 @@
       const resultEl = document.getElementById('ai-analysis-result');
       resultEl.textContent = 'Analysing...';
       try {
-        const res = await fetch("/api/orders/analyse", {
+        const res = await fetch(`${API_BASE}/orders/analyse`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ question: text }),

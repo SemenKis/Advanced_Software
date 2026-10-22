@@ -1,7 +1,7 @@
 
 import os
 import sqlite3
-from datetime import datetime, timedelta
+from datetime import datetime
 
 DATA_DIR = "/app/data"
 DATABASE_NAME = os.path.join(DATA_DIR, "inventory.db")
@@ -50,11 +50,6 @@ cursor.executescript(
     """
 )
 
-cursor.execute("DELETE FROM stocktake")
-cursor.execute("DELETE FROM products")
-cursor.execute("DELETE FROM supplier")
-cursor.execute("DELETE FROM category")
-
 categories = [
     (1, "Organisation Tools"),
     (2, "Loading Equipment"),
@@ -64,7 +59,7 @@ categories = [
 
 ]
 
-cursor.executemany("INSERT INTO category (category_id, name) VALUES (?, ?)", categories)
+cursor.executemany("INSERT OR IGNORE INTO category (category_id, name) VALUES (?, ?)", categories)
 
 suppliers = [
     (1, "TrackTools Co.", "0400111222", "orders@tracktools.example.com"),
@@ -75,7 +70,7 @@ suppliers = [
 
 ]
 cursor.executemany(
-    "INSERT INTO supplier (supplier_id, name, phone_number, email) VALUES (?, ?, ?, ?)",
+    "INSERT OR IGNORE INTO supplier (supplier_id, name, phone_number, email) VALUES (?, ?, ?, ?)",
     suppliers,
 )
 
@@ -89,7 +84,7 @@ products = [
 ]
 cursor.executemany(
     """
-    INSERT INTO products (
+    INSERT OR IGNORE INTO products (
         product_id, category_id, supplier_id, name, brand, description, price, quantity, reorder_level
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     """,
@@ -105,7 +100,7 @@ stocktakes = [
 ]
 cursor.executemany(
     """
-    INSERT INTO stocktake (stocktake_id, product_id, member_name, counted_quantity, timestamp)
+    INSERT OR IGNORE INTO stocktake (stocktake_id, product_id, member_name, counted_quantity, timestamp)
     VALUES (?, ?, ?, ? , ?)
     """,
     stocktakes,
@@ -114,4 +109,4 @@ cursor.executemany(
 conn.commit()
 conn.close()
 
-print("Inventory database initialized: 8 categories, 8 suppliers, 12 products, 10 stocktake records.")
+print("Inventory database initialized without overwriting existing records.")

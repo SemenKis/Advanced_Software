@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block content %}
 <h2>Shipping Tasks</h2>
-<form hx-post="/shipping-tasks/add" hx-target="#shipping-rows" hx-swap="innerHTML">
+<form hx-post="{{ url_for('resource_add', resource='shipping-tasks') }}" hx-target="#shipping-rows" hx-swap="innerHTML">
     <input name="order_id" type="number" placeholder="Order ID" required>
     <input name="packing_list_id" type="number" placeholder="Packing List ID">
     <select name="task_type"><option>pick</option><option>pack</option><option>load</option></select>
@@ -12,7 +12,7 @@
     <button type="submit">Add</button>
 </form>
 <p>
-    <button class="ai-button" hx-post="/shipping-tasks/prioritise" hx-target="#shipping-rows" hx-swap="innerHTML">
+    <button class="ai-button" hx-post="{{ url_for('shipping_prioritise') }}" hx-target="#shipping-rows" hx-swap="innerHTML">
         Run AI Task Prioritisation (Qwen via Ollama)
     </button>
 </p>
@@ -21,6 +21,6 @@
         <tr><th>ID</th><th>Order</th><th>Packing List</th><th>Type</th><th>Assigned</th>
             <th>Priority</th><th>Update</th><th>Bottleneck Risk</th><th>Delete</th></tr>
     </thead>
-    <tbody id="shipping-rows" hx-get="/shipping-tasks/table" hx-trigger="load"></tbody>
+    <tbody id="shipping-rows" hx-get="{{ url_for('resource_table', resource='shipping-tasks') }}" hx-trigger="load"></tbody>
 </table>
 {% endblock %}

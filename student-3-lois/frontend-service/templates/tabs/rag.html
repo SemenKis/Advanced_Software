@@ -46,7 +46,8 @@
 </main>
 
 <script>
-const BACKEND = "http://localhost:5001";
+const API_PREFIX = window.location.pathname.startsWith("/inventory/") ? "/inventory/api" : "/api";
+const BACKEND = API_PREFIX;
 const output = document.getElementById("rag-results");
 const ragModeToggle = document.getElementById("rag-mode-toggle");
 const ragModeState = document.getElementById("rag-mode-state");

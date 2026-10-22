@@ -47,6 +47,7 @@
   </main>
 
   <script>
+          const API_BASE = window.location.pathname.startsWith("/orders/") ? "/orders/api" : "/api";
     const ragModeToggle = document.getElementById("rag-mode-toggle");
     const ragModeState = document.getElementById("rag-mode-state");
     const resultPanel = document.getElementById("rag-results");
@@ -167,7 +168,7 @@
       show(false, el("h3", title), el("p", "Working... answers from the language model can take a minute."));
 
       try {
-        const res = await fetch(`/api/rag/${path}`, {
+        const res = await fetch(`${API_BASE}/rag/${path}`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",

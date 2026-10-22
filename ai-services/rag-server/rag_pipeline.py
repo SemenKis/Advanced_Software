@@ -353,7 +353,7 @@ def deterministic_answer(query: str, results: list[dict[str, Any]]) -> str | Non
 
     if "how many shipments" in q or "shipment count" in q:
         for r in results:
-            if r.get("chunk_id") == "transport_shipment_count":
+            if r.get("chunk_id") == "transportation_shipment_count":
                 return f"Answer:\n{r['text']}"
 
     if "how many storage locations" in q or "storage location count" in q:

@@ -175,7 +175,8 @@
 </main>
 
 <script>
-const BACKEND = "http://localhost:5001";
+const API_PREFIX = window.location.pathname.startsWith("/inventory/") ? "/inventory/api" : "/api";
+const BACKEND = API_PREFIX;
 
 async function renderIntoPanel(panelId, url, options = {}) {
   const panel = document.getElementById(panelId);

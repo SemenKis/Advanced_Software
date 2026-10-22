@@ -4,7 +4,7 @@
     <td>{{ it.order_id }}</td>
     <td>{{ it.items_json }}</td>
     <td>
-        <form class="inline" hx-post="/packing-lists/{{ it.id }}/update" hx-target="#packing-rows" hx-swap="innerHTML">
+        <form class="inline" hx-post="{{ url_for('resource_update', resource='packing-lists', item_id=it.id) }}" hx-target="#packing-rows" hx-swap="innerHTML">
              <input type="hidden" name="order_id" value="{{ it.order_id }}">
              <input type="hidden" name="items_json" value='{{ it.items_json }}'>
              <select name="status">
@@ -16,7 +16,7 @@
         </form>
     </td>
     <td>
-        <form class="inline" hx-delete="/packing-lists/{{ it.id }}/delete" hx-target="#packing-rows" hx-swap="innerHTML" hx-confirm="Delete?">
+        <form class="inline" hx-delete="{{ url_for('resource_delete', resource='packing-lists', item_id=it.id) }}" hx-target="#packing-rows" hx-swap="innerHTML" hx-confirm="Delete?">
             <button type="submit">Delete</button>
         </form>
     </td>

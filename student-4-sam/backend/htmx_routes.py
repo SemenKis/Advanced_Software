@@ -26,6 +26,11 @@ VALID_STATUSES = {
     "CANCELLED"
 }
 
+MCP_ENABLED = os.getenv("MCP_ENABLED", "true").strip().lower() in ("1", "true", "yes", "on")
+RAG_ENABLED = os.getenv("RAG_ENABLED", "true").strip().lower() in ("1", "true", "yes", "on")
+RAG_URL = os.getenv("RAG_URL", "http://localhost:5003").rstrip("/")
+TRANSPORTATION_API_PREFIX = "/transportation/api/transportation"
+
 
 def _mcp_status_html(label: str, status: str, detail: str):
     return f"""
@@ -68,6 +73,9 @@ def _load_mcp_tools_module():
 
 
 def _get_mcp_status():
+    if not MCP_ENABLED:
+        return "Disabled", "MCP is disabled in this deployment."
+
     try:
         tools = _load_mcp_tools_module()
         result = tools.get_shipment_count()
@@ -80,8 +88,11 @@ def _get_mcp_status():
 
 
 def _get_rag_status():
+    if not RAG_ENABLED:
+        return "Disabled", "RAG is disabled in this deployment."
+
     try:
-        response = requests.get("http://localhost:5003/health", timeout=5)
+        response = requests.get(f"{RAG_URL}/health", timeout=5)
         if response.status_code == 200:
             payload = response.json()
             if payload.get("status") == "ok":
@@ -156,14 +167,14 @@ def render_shipments():
             <td>
 
                 <button
-                    hx-get="http://localhost:5004/htmx/shipments/{shipment_id}/edit"
+                    hx-get="{TRANSPORTATION_API_PREFIX}/htmx/shipments/{shipment_id}/edit"
                     hx-target="#shipment-{shipment_id}"
                     hx-swap="outerHTML">
                     Edit
                 </button>
 
                 <button
-                    hx-delete="http://localhost:5004/htmx/shipments/{shipment_id}"
+                    hx-delete="{TRANSPORTATION_API_PREFIX}/htmx/shipments/{shipment_id}"
                     hx-target="#shipment-table"
                     hx-swap="innerHTML"
                     hx-confirm="Delete this shipment?">
@@ -171,7 +182,7 @@ def render_shipments():
                 </button>
 
                 <button
-                    hx-post="http://localhost:5004/htmx/shipments/{shipment_id}/analyse"
+                    hx-post="{TRANSPORTATION_API_PREFIX}/htmx/shipments/{shipment_id}/analyse"
                     hx-target="#ai-result"
                     hx-swap="innerHTML">
                     Analyse with Qwen
@@ -209,6 +220,9 @@ def get_rag_status():
     "/htmx/mcp/check-shipment"
 )
 def run_mcp_tool():
+    if not MCP_ENABLED:
+        return "<pre>MCP is disabled in this deployment.</pre>", 403
+
     raw_shipment_id = request.form.get("shipment_id", "").strip()
 
     try:
@@ -240,13 +254,16 @@ def run_mcp_tool():
     "/htmx/rag/answer"
 )
 def ask_rag_question():
+    if not RAG_ENABLED:
+        return "<pre>RAG is disabled in this deployment.</pre>", 403
+
     query = request.form.get("query", "").strip()
     if not query:
         return "<pre>Query is required.</pre>", 400
 
     try:
         response = requests.post(
-            "http://localhost:5003/answer",
+            f"{RAG_URL}/answer",
             json={"query": query, "k": 5, "caller": "student"},
             timeout=10
         )
@@ -479,7 +496,7 @@ def edit_shipment(shipment_id):
         <td>
 
             <button
-                hx-put="http://localhost:5004/htmx/shipments/{shipment_id}"
+                hx-put="{TRANSPORTATION_API_PREFIX}/htmx/shipments/{shipment_id}"
                 hx-include="#shipment-{shipment_id} input, #shipment-{shipment_id} select"
                 hx-target="#shipment-table"
                 hx-swap="innerHTML">
@@ -487,7 +504,7 @@ def edit_shipment(shipment_id):
             </button>
 
             <button
-                hx-get="http://localhost:5004/htmx/shipments"
+                hx-get="{TRANSPORTATION_API_PREFIX}/htmx/shipments"
                 hx-target="#shipment-table"
                 hx-swap="innerHTML">
                 Cancel

@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <title>Supply Chain and Logistics System</title>
+    <script src="/runtime-config.js"></script>
 
     <style>
         * {
@@ -68,7 +69,7 @@
 
             <a
                 class="feature-button"
-                href="http://localhost:8081"
+                data-module="inventory"
             >
                 Open Inventory
             </a>
@@ -78,7 +79,7 @@
 
             <a
                 class="feature-button"
-                href="http://localhost:8082"
+                data-module="orders"
             >
                 Open Orders
             </a>
@@ -88,7 +89,7 @@
 
             <a
                 class="feature-button"
-                href="http://localhost:5000"
+                data-module="warehouse"
             >
                 Open Warehouse
             </a>
@@ -98,13 +99,22 @@
 
             <a
                 class="feature-button"
-                href="http://localhost:3004"
+                data-module="transportation"
             >
                 Open Transportation
             </a>
 
         </div>
     </main>
+
+    <script>
+        document.querySelectorAll("[data-module]").forEach((link) => {
+            const moduleUrl = window.MODULE_URLS?.[link.dataset.module];
+            if (moduleUrl) {
+                link.href = moduleUrl;
+            }
+        });
+    </script>
 
 </body>
 </html>

@@ -1,0 +1,979 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Integrated logistics application on ECS Fargate behind one path-routing ALB.
+
+Parameters:
+  ClusterName:
+    Type: String
+    Default: advanced-software-cluster
+  TaskFamilyPrefix:
+    Type: String
+    Default: advanced-software
+  ImageTag:
+    Type: String
+    Default: latest
+    Description: Versioned image tag published to all twelve advanced-software ECR repositories.
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+  PublicSubnets:
+    Type: List<AWS::EC2::Subnet::Id>
+    Description: At least two public subnets in different Availability Zones.
+  TaskExecutionRoleArn:
+    Type: String
+    Description: ARN of the standard ECS task execution role with ECR pull and CloudWatch Logs permissions.
+  OllamaOpenAIBaseUrl:
+    Type: String
+    Default: ""
+    Description: Optional reachable Ollama OpenAI-compatible base URL, ending in /v1.
+  OllamaGenerateBaseUrl:
+    Type: String
+    Default: ""
+    Description: Optional reachable Ollama base URL, without /api/generate.
+  DesiredCount:
+    Type: Number
+    Default: 1
+    MinValue: 0
+    MaxValue: 1
+
+Resources:
+  ApplicationLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: /ecs/advanced-software/integrated
+      RetentionInDays: 7
+
+  AlbSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Public HTTP entry for the integrated application.
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          CidrIp: 0.0.0.0/0
+
+  TaskSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow frontend ports only from the application load balancer.
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          SourceSecurityGroupId: !Ref AlbSecurityGroup
+        - IpProtocol: tcp
+          FromPort: 5000
+          ToPort: 5000
+          SourceSecurityGroupId: !Ref AlbSecurityGroup
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          CidrIp: 0.0.0.0/0
+
+  EfsSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow NFS only from application tasks.
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 2049
+          ToPort: 2049
+          SourceSecurityGroupId: !Ref TaskSecurityGroup
+
+  DatabaseFileSystem:
+    Type: AWS::EFS::FileSystem
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      Encrypted: true
+      PerformanceMode: generalPurpose
+      ThroughputMode: bursting
+      BackupPolicy:
+        Status: DISABLED
+      LifecyclePolicies:
+        - TransitionToIA: AFTER_30_DAYS
+
+  EfsMountTargetA:
+    Type: AWS::EFS::MountTarget
+    Properties:
+      FileSystemId: !Ref DatabaseFileSystem
+      SubnetId: !Select [0, !Ref PublicSubnets]
+      SecurityGroups:
+        - !Ref EfsSecurityGroup
+
+  EfsMountTargetB:
+    Type: AWS::EFS::MountTarget
+    Properties:
+      FileSystemId: !Ref DatabaseFileSystem
+      SubnetId: !Select [1, !Ref PublicSubnets]
+      SecurityGroups:
+        - !Ref EfsSecurityGroup
+
+  OrderDatabaseAccessPoint:
+    Type: AWS::EFS::AccessPoint
+    Properties:
+      FileSystemId: !Ref DatabaseFileSystem
+      PosixUser:
+        Uid: "1000"
+        Gid: "1000"
+      RootDirectory:
+        Path: /orders
+        CreationInfo:
+          OwnerUid: "1000"
+          OwnerGid: "1000"
+          Permissions: "0750"
+
+  WarehouseDatabaseAccessPoint:
+    Type: AWS::EFS::AccessPoint
+    Properties:
+      FileSystemId: !Ref DatabaseFileSystem
+      PosixUser:
+        Uid: "1000"
+        Gid: "1000"
+      RootDirectory:
+        Path: /warehouse
+        CreationInfo:
+          OwnerUid: "1000"
+          OwnerGid: "1000"
+          Permissions: "0750"
+
+  InventoryDatabaseAccessPoint:
+    Type: AWS::EFS::AccessPoint
+    Properties:
+      FileSystemId: !Ref DatabaseFileSystem
+      PosixUser:
+        Uid: "1000"
+        Gid: "1000"
+      RootDirectory:
+        Path: /inventory
+        CreationInfo:
+          OwnerUid: "1000"
+          OwnerGid: "1000"
+          Permissions: "0750"
+
+  TransportationDatabaseAccessPoint:
+    Type: AWS::EFS::AccessPoint
+    Properties:
+      FileSystemId: !Ref DatabaseFileSystem
+      PosixUser:
+        Uid: "1000"
+        Gid: "1000"
+      RootDirectory:
+        Path: /transportation
+        CreationInfo:
+          OwnerUid: "1000"
+          OwnerGid: "1000"
+          Permissions: "0750"
+
+  InventoryTaskRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: MountInventoryDatabaseFiles
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - elasticfilesystem:ClientMount
+                  - elasticfilesystem:ClientWrite
+                Resource: !GetAtt DatabaseFileSystem.Arn
+                Condition:
+                  Bool:
+                    elasticfilesystem:AccessedViaMountTarget: "true"
+                  StringEquals:
+                    elasticfilesystem:AccessPointArn: !GetAtt InventoryDatabaseAccessPoint.Arn
+
+  OrderTaskRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: MountOrderDatabaseFiles
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - elasticfilesystem:ClientMount
+                  - elasticfilesystem:ClientWrite
+                Resource: !GetAtt DatabaseFileSystem.Arn
+                Condition:
+                  Bool:
+                    elasticfilesystem:AccessedViaMountTarget: "true"
+                  StringEquals:
+                    elasticfilesystem:AccessPointArn: !GetAtt OrderDatabaseAccessPoint.Arn
+
+  WarehouseTaskRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: MountWarehouseDatabaseFiles
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - elasticfilesystem:ClientMount
+                  - elasticfilesystem:ClientWrite
+                Resource: !GetAtt DatabaseFileSystem.Arn
+                Condition:
+                  Bool:
+                    elasticfilesystem:AccessedViaMountTarget: "true"
+                  StringEquals:
+                    elasticfilesystem:AccessPointArn: !GetAtt WarehouseDatabaseAccessPoint.Arn
+
+  TransportationTaskRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: MountTransportationDatabaseFiles
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - elasticfilesystem:ClientMount
+                  - elasticfilesystem:ClientWrite
+                Resource: !GetAtt DatabaseFileSystem.Arn
+                Condition:
+                  Bool:
+                    elasticfilesystem:AccessedViaMountTarget: "true"
+                  StringEquals:
+                    elasticfilesystem:AccessPointArn: !GetAtt TransportationDatabaseAccessPoint.Arn
+
+  ApplicationLoadBalancer:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Name: advanced-software-integrated
+      Scheme: internet-facing
+      Type: application
+      Subnets: !Ref PublicSubnets
+      SecurityGroups:
+        - !Ref AlbSecurityGroup
+
+  SharedTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      VpcId: !Ref VpcId
+      TargetType: ip
+      Protocol: HTTP
+      Port: 80
+      HealthCheckPath: /
+      Matcher:
+        HttpCode: "200"
+
+  InventoryTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      VpcId: !Ref VpcId
+      TargetType: ip
+      Protocol: HTTP
+      Port: 80
+      HealthCheckPath: /inventory/healthz
+      Matcher:
+        HttpCode: "200"
+
+  OrderTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      VpcId: !Ref VpcId
+      TargetType: ip
+      Protocol: HTTP
+      Port: 80
+      HealthCheckPath: /orders/healthz
+      Matcher:
+        HttpCode: "200"
+
+  WarehouseTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      VpcId: !Ref VpcId
+      TargetType: ip
+      Protocol: HTTP
+      Port: 5000
+      HealthCheckPath: /warehouse/health
+      Matcher:
+        HttpCode: "200"
+
+  TransportationTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      VpcId: !Ref VpcId
+      TargetType: ip
+      Protocol: HTTP
+      Port: 80
+      HealthCheckPath: /transportation/healthz
+      Matcher:
+        HttpCode: "200"
+
+  HttpListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      LoadBalancerArn: !Ref ApplicationLoadBalancer
+      Port: 80
+      Protocol: HTTP
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref SharedTargetGroup
+
+  InventoryPathRule:
+    Type: AWS::ElasticLoadBalancingV2::ListenerRule
+    Properties:
+      ListenerArn: !Ref HttpListener
+      Priority: 10
+      Conditions:
+        - Field: path-pattern
+          Values:
+            - /inventory
+            - /inventory/*
+      Actions:
+        - Type: forward
+          TargetGroupArn: !Ref InventoryTargetGroup
+
+  OrderPathRule:
+    Type: AWS::ElasticLoadBalancingV2::ListenerRule
+    Properties:
+      ListenerArn: !Ref HttpListener
+      Priority: 20
+      Conditions:
+        - Field: path-pattern
+          Values:
+            - /orders
+            - /orders/*
+      Actions:
+        - Type: forward
+          TargetGroupArn: !Ref OrderTargetGroup
+
+  WarehousePathRule:
+    Type: AWS::ElasticLoadBalancingV2::ListenerRule
+    Properties:
+      ListenerArn: !Ref HttpListener
+      Priority: 30
+      Conditions:
+        - Field: path-pattern
+          Values:
+            - /warehouse
+            - /warehouse/*
+      Actions:
+        - Type: forward
+          TargetGroupArn: !Ref WarehouseTargetGroup
+
+  TransportationPathRule:
+    Type: AWS::ElasticLoadBalancingV2::ListenerRule
+    Properties:
+      ListenerArn: !Ref HttpListener
+      Priority: 40
+      Conditions:
+        - Field: path-pattern
+          Values:
+            - /transportation
+            - /transportation/*
+      Actions:
+        - Type: forward
+          TargetGroupArn: !Ref TransportationTargetGroup
+
+  SharedTaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: !Sub "${TaskFamilyPrefix}-integrated-shared-frontend"
+      Cpu: "256"
+      Memory: "512"
+      NetworkMode: awsvpc
+      RequiresCompatibilities: [FARGATE]
+      RuntimePlatform:
+        CpuArchitecture: X86_64
+        OperatingSystemFamily: LINUX
+      ExecutionRoleArn: !Ref TaskExecutionRoleArn
+      ContainerDefinitions:
+        - Name: shared-frontend
+          Image: !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/advanced-software/shared-frontend:${ImageTag}"
+          Essential: true
+          PortMappings:
+            - ContainerPort: 80
+              Protocol: tcp
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref ApplicationLogGroup
+              awslogs-region: !Ref AWS::Region
+              awslogs-stream-prefix: shared-frontend
+          HealthCheck:
+            Command: [CMD-SHELL, "wget -q --spider http://127.0.0.1/ || exit 1"]
+            Interval: 30
+            Timeout: 5
+            Retries: 3
+            StartPeriod: 15
+
+  InventoryTaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: !Sub "${TaskFamilyPrefix}-integrated-inventory"
+      Cpu: "1024"
+      Memory: "2048"
+      NetworkMode: awsvpc
+      RequiresCompatibilities: [FARGATE]
+      RuntimePlatform:
+        CpuArchitecture: X86_64
+        OperatingSystemFamily: LINUX
+      ExecutionRoleArn: !Ref TaskExecutionRoleArn
+      TaskRoleArn: !GetAtt InventoryTaskRole.Arn
+      Volumes:
+        - Name: InventoryData
+          EFSVolumeConfiguration:
+            FilesystemId: !Ref DatabaseFileSystem
+            TransitEncryption: ENABLED
+            AuthorizationConfig:
+              AccessPointId: !Ref InventoryDatabaseAccessPoint
+              IAM: ENABLED
+      ContainerDefinitions:
+        - Name: database-service
+          Image: !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/advanced-software/database-service:${ImageTag}"
+          Essential: true
+          PortMappings:
+            - ContainerPort: 5002
+              Protocol: tcp
+          MountPoints:
+            - SourceVolume: InventoryData
+              ContainerPath: /app/data
+              ReadOnly: false
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref ApplicationLogGroup
+              awslogs-region: !Ref AWS::Region
+              awslogs-stream-prefix: inventory-database
+          HealthCheck:
+            Command: [CMD-SHELL, "python -c \"import urllib.request; r=urllib.request.urlopen('http://127.0.0.1:5002/', timeout=3); assert 200 <= r.status < 300\""]
+            Interval: 30
+            Timeout: 5
+            Retries: 3
+            StartPeriod: 30
+        - Name: inventory-service
+          Image: !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/advanced-software/inventory-service:${ImageTag}"
+          Essential: true
+          PortMappings:
+            - ContainerPort: 5001
+              Protocol: tcp
+          Environment:
+            - Name: DATABASE_SERVICE_URL
+              Value: http://127.0.0.1:5002
+            - Name: OLLAMA_BASE_URL
+              Value: !Ref OllamaOpenAIBaseUrl
+            - Name: OLLAMA_MODEL
+              Value: qwen2.5:0.5b
+            - Name: MCP_ENABLED
+              Value: "false"
+            - Name: RAG_ENABLED
+              Value: "false"
+            - Name: MCP_SERVICE_URL
+              Value: ""
+            - Name: RAG_SERVICE_URL
+              Value: ""
+          DependsOn:
+            - ContainerName: database-service
+              Condition: HEALTHY
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref ApplicationLogGroup
+              awslogs-region: !Ref AWS::Region
+              awslogs-stream-prefix: inventory-backend
+          HealthCheck:
+            Command: [CMD-SHELL, "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:5001/health', timeout=3)\""]
+            Interval: 30
+            Timeout: 5
+            Retries: 3
+            StartPeriod: 30
+        - Name: frontend-service
+          Image: !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/advanced-software/frontend-service:${ImageTag}"
+          Essential: true
+          PortMappings:
+            - ContainerPort: 80
+              Protocol: tcp
+          Environment:
+            - Name: INVENTORY_BACKEND_URL
+              Value: http://127.0.0.1:5001
+          DependsOn:
+            - ContainerName: inventory-service
+              Condition: HEALTHY
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref ApplicationLogGroup
+              awslogs-region: !Ref AWS::Region
+              awslogs-stream-prefix: inventory-frontend
+          HealthCheck:
+            Command: [CMD-SHELL, "wget -q --spider http://127.0.0.1/healthz || exit 1"]
+            Interval: 30
+            Timeout: 5
+            Retries: 3
+            StartPeriod: 15
+
+  OrderTaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: !Sub "${TaskFamilyPrefix}-integrated-orders"
+      Cpu: "1024"
+      Memory: "2048"
+      NetworkMode: awsvpc
+      RequiresCompatibilities: [FARGATE]
+      RuntimePlatform:
+        CpuArchitecture: X86_64
+        OperatingSystemFamily: LINUX
+      ExecutionRoleArn: !Ref TaskExecutionRoleArn
+      TaskRoleArn: !GetAtt OrderTaskRole.Arn
+      Volumes:
+        - Name: OrderData
+          EFSVolumeConfiguration:
+            FilesystemId: !Ref DatabaseFileSystem
+            TransitEncryption: ENABLED
+            AuthorizationConfig:
+              AccessPointId: !Ref OrderDatabaseAccessPoint
+              IAM: ENABLED
+      ContainerDefinitions:
+        - Name: order-database
+          Image: !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/advanced-software/order-database:${ImageTag}"
+          Essential: true
+          PortMappings:
+            - ContainerPort: 5002
+              Protocol: tcp
+          MountPoints:
+            - SourceVolume: OrderData
+              ContainerPath: /app/data
+              ReadOnly: false
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref ApplicationLogGroup
+              awslogs-region: !Ref AWS::Region
+              awslogs-stream-prefix: orders-database
+          HealthCheck:
+            Command: [CMD-SHELL, "python -c \"import urllib.request; r=urllib.request.urlopen('http://127.0.0.1:5002/', timeout=3); assert 200 <= r.status < 300\""]
+            Interval: 30
+            Timeout: 5
+            Retries: 3
+            StartPeriod: 30
+        - Name: order-backend
+          Image: !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/advanced-software/order-backend:${ImageTag}"
+          Essential: true
+          PortMappings:
+            - ContainerPort: 5001
+              Protocol: tcp
+          Environment:
+            - Name: DATABASE_SERVICE_URL
+              Value: http://127.0.0.1:5002
+            - Name: OLLAMA_BASE_URL
+              Value: !Ref OllamaOpenAIBaseUrl
+            - Name: OLLAMA_MODEL
+              Value: qwen2.5:0.5b
+            - Name: MCP_ENABLED
+              Value: "false"
+            - Name: RAG_ENABLED
+              Value: "false"
+            - Name: MCP_SERVER_URL
+              Value: ""
+            - Name: RAG_SERVICE_URL
+              Value: ""
+          DependsOn:
+            - ContainerName: order-database
+              Condition: HEALTHY
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref ApplicationLogGroup
+              awslogs-region: !Ref AWS::Region
+              awslogs-stream-prefix: orders-backend
+          HealthCheck:
+            Command: [CMD-SHELL, "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:5001/health', timeout=3)\""]
+            Interval: 30
+            Timeout: 5
+            Retries: 3
+            StartPeriod: 30
+        - Name: order-frontend
+          Image: !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/advanced-software/order-frontend:${ImageTag}"
+          Essential: true
+          PortMappings:
+            - ContainerPort: 80
+              Protocol: tcp
+          Environment:
+            - Name: ORDER_BACKEND_URL
+              Value: http://127.0.0.1:5001
+          DependsOn:
+            - ContainerName: order-backend
+              Condition: HEALTHY
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref ApplicationLogGroup
+              awslogs-region: !Ref AWS::Region
+              awslogs-stream-prefix: orders-frontend
+          HealthCheck:
+            Command: [CMD-SHELL, "wget -q --spider http://127.0.0.1/healthz || exit 1"]
+            Interval: 30
+            Timeout: 5
+            Retries: 3
+            StartPeriod: 15
+
+  WarehouseTaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: !Sub "${TaskFamilyPrefix}-integrated-warehouse"
+      Cpu: "1024"
+      Memory: "2048"
+      NetworkMode: awsvpc
+      RequiresCompatibilities: [FARGATE]
+      RuntimePlatform:
+        CpuArchitecture: X86_64
+        OperatingSystemFamily: LINUX
+      ExecutionRoleArn: !Ref TaskExecutionRoleArn
+      TaskRoleArn: !GetAtt WarehouseTaskRole.Arn
+      Volumes:
+        - Name: WarehouseData
+          EFSVolumeConfiguration:
+            FilesystemId: !Ref DatabaseFileSystem
+            TransitEncryption: ENABLED
+            AuthorizationConfig:
+              AccessPointId: !Ref WarehouseDatabaseAccessPoint
+              IAM: ENABLED
+      ContainerDefinitions:
+        - Name: warehouse-database
+          Image: !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/advanced-software/warehouse-database:${ImageTag}"
+          Essential: true
+          PortMappings:
+            - ContainerPort: 5002
+              Protocol: tcp
+          Environment:
+            - Name: DB_PATH
+              Value: /data/warehouse.db
+          MountPoints:
+            - SourceVolume: WarehouseData
+              ContainerPath: /data
+              ReadOnly: false
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref ApplicationLogGroup
+              awslogs-region: !Ref AWS::Region
+              awslogs-stream-prefix: warehouse-database
+          HealthCheck:
+            Command: [CMD-SHELL, "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:5002/health', timeout=3)\""]
+            Interval: 30
+            Timeout: 5
+            Retries: 3
+            StartPeriod: 30
+        - Name: warehouse-backend
+          Image: !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/advanced-software/warehouse-backend:${ImageTag}"
+          Essential: true
+          PortMappings:
+            - ContainerPort: 5001
+              Protocol: tcp
+          Environment:
+            - Name: DB_SERVICE_URL
+              Value: http://127.0.0.1:5002
+            - Name: OLLAMA_HOST
+              Value: !Ref OllamaGenerateBaseUrl
+            - Name: MCP_ENABLED
+              Value: "false"
+            - Name: RAG_ENABLED
+              Value: "false"
+            - Name: MCP_SERVER_URL
+              Value: ""
+            - Name: RAG_SERVER_URL
+              Value: ""
+          DependsOn:
+            - ContainerName: warehouse-database
+              Condition: HEALTHY
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref ApplicationLogGroup
+              awslogs-region: !Ref AWS::Region
+              awslogs-stream-prefix: warehouse-backend
+          HealthCheck:
+            Command: [CMD-SHELL, "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:5001/health', timeout=3)\""]
+            Interval: 30
+            Timeout: 5
+            Retries: 3
+            StartPeriod: 30
+        - Name: warehouse-frontend
+          Image: !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/advanced-software/warehouse-frontend:${ImageTag}"
+          Essential: true
+          PortMappings:
+            - ContainerPort: 5000
+              Protocol: tcp
+          Environment:
+            - Name: BACKEND_URL
+              Value: http://127.0.0.1:5001
+            - Name: URL_PREFIX
+              Value: /warehouse
+            - Name: TEAM_HOME_URL
+              Value: /
+          DependsOn:
+            - ContainerName: warehouse-backend
+              Condition: HEALTHY
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref ApplicationLogGroup
+              awslogs-region: !Ref AWS::Region
+              awslogs-stream-prefix: warehouse-frontend
+          HealthCheck:
+            Command: [CMD-SHELL, "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:5000/health', timeout=3)\""]
+            Interval: 30
+            Timeout: 5
+            Retries: 3
+            StartPeriod: 30
+
+  TransportationTaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: !Sub "${TaskFamilyPrefix}-integrated-transportation"
+      Cpu: "512"
+      Memory: "1024"
+      NetworkMode: awsvpc
+      RequiresCompatibilities: [FARGATE]
+      RuntimePlatform:
+        CpuArchitecture: X86_64
+        OperatingSystemFamily: LINUX
+      ExecutionRoleArn: !Ref TaskExecutionRoleArn
+      TaskRoleArn: !GetAtt TransportationTaskRole.Arn
+      Volumes:
+        - Name: TransportationData
+          EFSVolumeConfiguration:
+            FilesystemId: !Ref DatabaseFileSystem
+            TransitEncryption: ENABLED
+            AuthorizationConfig:
+              AccessPointId: !Ref TransportationDatabaseAccessPoint
+              IAM: ENABLED
+      ContainerDefinitions:
+        - Name: backend
+          Image: !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/advanced-software/backend:${ImageTag}"
+          Essential: true
+          PortMappings:
+            - ContainerPort: 5004
+              Protocol: tcp
+          Environment:
+            - Name: DATABASE_PATH
+              Value: /app/data/transportation.db
+            - Name: OLLAMA_URL
+              Value: !Ref OllamaGenerateBaseUrl
+            - Name: OLLAMA_MODEL
+              Value: qwen2.5:0.5b
+            - Name: MCP_ENABLED
+              Value: "false"
+            - Name: RAG_ENABLED
+              Value: "false"
+            - Name: RAG_URL
+              Value: ""
+          MountPoints:
+            - SourceVolume: TransportationData
+              ContainerPath: /app/data
+              ReadOnly: false
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref ApplicationLogGroup
+              awslogs-region: !Ref AWS::Region
+              awslogs-stream-prefix: transportation-backend
+          HealthCheck:
+            Command: [CMD-SHELL, "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:5004/health', timeout=3)\""]
+            Interval: 30
+            Timeout: 5
+            Retries: 3
+            StartPeriod: 30
+        - Name: frontend
+          Image: !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/advanced-software/frontend:${ImageTag}"
+          Essential: true
+          PortMappings:
+            - ContainerPort: 80
+              Protocol: tcp
+          Environment:
+            - Name: TRANSPORT_BACKEND_URL
+              Value: http://127.0.0.1:5004
+          DependsOn:
+            - ContainerName: backend
+              Condition: HEALTHY
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref ApplicationLogGroup
+              awslogs-region: !Ref AWS::Region
+              awslogs-stream-prefix: transportation-frontend
+          HealthCheck:
+            Command: [CMD-SHELL, "wget -q --spider http://127.0.0.1/healthz || exit 1"]
+            Interval: 30
+            Timeout: 5
+            Retries: 3
+            StartPeriod: 15
+
+  SharedEcsService:
+    Type: AWS::ECS::Service
+    DependsOn: HttpListener
+    Properties:
+      ServiceName: integrated-shared-frontend-service
+      Cluster: !Ref ClusterName
+      LaunchType: FARGATE
+      PlatformVersion: "1.4.0"
+      DesiredCount: !Ref DesiredCount
+      TaskDefinition: !Ref SharedTaskDefinition
+      DeploymentConfiguration:
+        MaximumPercent: 100
+        MinimumHealthyPercent: 0
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: ENABLED
+          Subnets: !Ref PublicSubnets
+          SecurityGroups:
+            - !Ref TaskSecurityGroup
+      LoadBalancers:
+        - TargetGroupArn: !Ref SharedTargetGroup
+          ContainerName: shared-frontend
+          ContainerPort: 80
+
+  InventoryEcsService:
+    Type: AWS::ECS::Service
+    DependsOn: InventoryPathRule
+    Properties:
+      ServiceName: integrated-inventory-service
+      Cluster: !Ref ClusterName
+      LaunchType: FARGATE
+      PlatformVersion: "1.4.0"
+      DesiredCount: !Ref DesiredCount
+      TaskDefinition: !Ref InventoryTaskDefinition
+      DeploymentConfiguration:
+        MaximumPercent: 100
+        MinimumHealthyPercent: 0
+      HealthCheckGracePeriodSeconds: 90
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: ENABLED
+          Subnets: !Ref PublicSubnets
+          SecurityGroups:
+            - !Ref TaskSecurityGroup
+      LoadBalancers:
+        - TargetGroupArn: !Ref InventoryTargetGroup
+          ContainerName: frontend-service
+          ContainerPort: 80
+
+  OrderEcsService:
+    Type: AWS::ECS::Service
+    DependsOn: OrderPathRule
+    Properties:
+      ServiceName: integrated-order-service
+      Cluster: !Ref ClusterName
+      LaunchType: FARGATE
+      PlatformVersion: "1.4.0"
+      DesiredCount: !Ref DesiredCount
+      TaskDefinition: !Ref OrderTaskDefinition
+      DeploymentConfiguration:
+        MaximumPercent: 100
+        MinimumHealthyPercent: 0
+      HealthCheckGracePeriodSeconds: 90
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: ENABLED
+          Subnets: !Ref PublicSubnets
+          SecurityGroups:
+            - !Ref TaskSecurityGroup
+      LoadBalancers:
+        - TargetGroupArn: !Ref OrderTargetGroup
+          ContainerName: order-frontend
+          ContainerPort: 80
+
+  WarehouseEcsService:
+    Type: AWS::ECS::Service
+    DependsOn: WarehousePathRule
+    Properties:
+      ServiceName: integrated-warehouse-service
+      Cluster: !Ref ClusterName
+      LaunchType: FARGATE
+      PlatformVersion: "1.4.0"
+      DesiredCount: !Ref DesiredCount
+      TaskDefinition: !Ref WarehouseTaskDefinition
+      DeploymentConfiguration:
+        MaximumPercent: 100
+        MinimumHealthyPercent: 0
+      HealthCheckGracePeriodSeconds: 90
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: ENABLED
+          Subnets: !Ref PublicSubnets
+          SecurityGroups:
+            - !Ref TaskSecurityGroup
+      LoadBalancers:
+        - TargetGroupArn: !Ref WarehouseTargetGroup
+          ContainerName: warehouse-frontend
+          ContainerPort: 5000
+
+  TransportationEcsService:
+    Type: AWS::ECS::Service
+    DependsOn: TransportationPathRule
+    Properties:
+      ServiceName: integrated-transportation-service
+      Cluster: !Ref ClusterName
+      LaunchType: FARGATE
+      PlatformVersion: "1.4.0"
+      DesiredCount: !Ref DesiredCount
+      TaskDefinition: !Ref TransportationTaskDefinition
+      DeploymentConfiguration:
+        MaximumPercent: 100
+        MinimumHealthyPercent: 0
+      HealthCheckGracePeriodSeconds: 90
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: ENABLED
+          Subnets: !Ref PublicSubnets
+          SecurityGroups:
+            - !Ref TaskSecurityGroup
+      LoadBalancers:
+        - TargetGroupArn: !Ref TransportationTargetGroup
+          ContainerName: frontend
+          ContainerPort: 80
+
+Outputs:
+  ApplicationUrl:
+    Description: Public application entry point.
+    Value: !Sub "http://${ApplicationLoadBalancer.DNSName}/"
+  InventoryUrl:
+    Value: !Sub "http://${ApplicationLoadBalancer.DNSName}/inventory/"
+  OrdersUrl:
+    Value: !Sub "http://${ApplicationLoadBalancer.DNSName}/orders/"
+  WarehouseUrl:
+    Value: !Sub "http://${ApplicationLoadBalancer.DNSName}/warehouse/"
+  TransportationUrl:
+    Value: !Sub "http://${ApplicationLoadBalancer.DNSName}/transportation/"
+  EfsFileSystemId:
+    Description: Persistent SQLite database storage. Retain/back up or delete deliberately when cleaning up.
+    Value: !Ref DatabaseFileSystem

@@ -2,6 +2,8 @@ services:
     order-frontend:
         build: ./frontend
         ports: ["8082:80"]
+        environment:
+            ORDER_BACKEND_URL: http://order-backend:5001
         depends_on: [order-backend]
         networks: [team-network]
 

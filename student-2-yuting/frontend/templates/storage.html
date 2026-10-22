@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block content %}
 <h2>Storage Locations</h2>
-<form hx-post="/storage/add" hx-target="#storage-rows" hx-swap="innerHTML">
+<form hx-post="{{ url_for('resource_add', resource='storage') }}" hx-target="#storage-rows" hx-swap="innerHTML">
     <input name="zone_name" placeholder="Zone name" required>
     <input name="aisle" placeholder="Aisle">
     <input name="shelf" placeholder="Shelf">
@@ -16,6 +16,6 @@
         <tr><th>ID</th><th>Zone</th><th>Aisle</th><th>Shelf</th><th>Bin</th><th>Capacity</th>
         <th>Load</th><th>Status</th><th>Update</th><th>Delete</th></tr>
     </thead>
-    <tbody id="storage-rows" hx-get="/storage/table" hx-trigger="load"></tbody>
+    <tbody id="storage-rows" hx-get="{{ url_for('resource_table', resource='storage') }}" hx-trigger="load"></tbody>
 </table>
 {% endblock %}

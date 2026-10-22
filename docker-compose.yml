@@ -3,11 +3,16 @@ name: warehouse-app
 services:
   shared-frontend:
     build:
-      context: .
-      dockerfile: shared/Dockerfile
+      context: ./shared
+      dockerfile: Dockerfile
     container_name: shared-frontend
     ports:
       - "8080:80"
+    environment:
+      INVENTORY_URL: ${INVENTORY_URL:-http://localhost:8081}
+      ORDERS_URL: ${ORDERS_URL:-http://localhost:8082}
+      WAREHOUSE_URL: ${WAREHOUSE_URL:-http://localhost:5000}
+      TRANSPORTATION_URL: ${TRANSPORTATION_URL:-http://localhost:3004}
     networks:
       - team-network
     restart: unless-stopped

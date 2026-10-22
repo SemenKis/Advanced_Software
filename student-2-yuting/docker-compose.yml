@@ -28,6 +28,7 @@ services:
     container_name: student2-frontend
     environment:
       - BACKEND_URL=http://warehouse-backend:5001
+      - TEAM_HOME_URL=http://localhost:8080
     ports:
       - "5000:5000"
     depends_on:

@@ -7,7 +7,7 @@ import re
 from datetime import datetime
 
 
-OLLAMA_HOST = os.environ.get("OLLAMA_HOST", "http://ollama:11434")
+OLLAMA_HOST = os.environ.get("OLLAMA_HOST", "http://ollama:11434").strip()
 OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "qwen2.5:0.5b")
 LOG_PATH = os.environ.get("LOG_PATH", "agent_loop_log.json1")
 
@@ -40,6 +40,8 @@ def plan(db_service_url):
 
 
 def act(context):
+    if not OLLAMA_HOST:
+        raise RuntimeError("OLLAMA_HOST must point to a reachable Ollama service.")
     prompt = (
         f"{SYSTEM_PROMPT}\n\nPending tasks:\n"
         f"{json.dumps(context['pending_tasks'])}\n\n"

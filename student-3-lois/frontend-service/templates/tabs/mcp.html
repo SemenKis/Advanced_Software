@@ -52,7 +52,8 @@
 </main>
 
 <script>
-const BACKEND = "http://localhost:5001";
+const API_PREFIX = window.location.pathname.startsWith("/inventory/") ? "/inventory/api" : "/api";
+const BACKEND = API_PREFIX;
 const mcpModeToggle = document.getElementById("mcp-mode-toggle");
 const mcpModeState = document.getElementById("mcp-mode-state");
 const mcpResultPanel = document.getElementById("mcp-result");

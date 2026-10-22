@@ -24,7 +24,7 @@
             <h2>Create Shipment</h2>
 
             <form
-                hx-post="/api/transportation/htmx/shipments"
+                hx-post="/transportation/api/transportation/htmx/shipments"
                 hx-target="#shipment-table"
                 hx-swap="innerHTML"
                 hx-on::after-request="if(event.detail.successful) this.reset()">
@@ -88,20 +88,20 @@
             <h2>MCP &amp; RAG</h2>
 
             <div class="mcp-rag-actions">
-                <button type="button" class="status-btn" hx-get="/api/transportation/htmx/mcp-status" hx-target="#mcp-status-box" hx-swap="innerHTML">
+                <button type="button" class="status-btn" hx-get="/transportation/api/transportation/htmx/mcp-status" hx-target="#mcp-status-box" hx-swap="innerHTML">
                     Check MCP
                 </button>
-                <button type="button" class="status-btn" hx-get="/api/transportation/htmx/rag-status" hx-target="#rag-status-box" hx-swap="innerHTML">
+                <button type="button" class="status-btn" hx-get="/transportation/api/transportation/htmx/rag-status" hx-target="#rag-status-box" hx-swap="innerHTML">
                     Check RAG
                 </button>
             </div>
 
             <div class="mcp-rag-grid">
-                <div id="mcp-status-box" class="mcp-rag-box" hx-get="/api/transportation/htmx/mcp-status" hx-trigger="load" hx-swap="innerHTML">
+                <div id="mcp-status-box" class="mcp-rag-box" hx-get="/transportation/api/transportation/htmx/mcp-status" hx-trigger="load" hx-swap="innerHTML">
                     <span class="label">MCP Status</span>
                     <strong>Checking...</strong>
                 </div>
-                <div id="rag-status-box" class="mcp-rag-box" hx-get="/api/transportation/htmx/rag-status" hx-trigger="load" hx-swap="innerHTML">
+                <div id="rag-status-box" class="mcp-rag-box" hx-get="/transportation/api/transportation/htmx/rag-status" hx-trigger="load" hx-swap="innerHTML">
                     <span class="label">RAG Status</span>
                     <strong>Checking...</strong>
                 </div>
@@ -113,7 +113,7 @@
                         <h3>Check Shipment Status</h3>
                         <span class="tool-label">MCP</span>
                     </div>
-                    <form hx-post="/api/transportation/htmx/mcp/check-shipment" hx-target="#mcp-result" hx-swap="innerHTML">
+                    <form hx-post="/transportation/api/transportation/htmx/mcp/check-shipment" hx-target="#mcp-result" hx-swap="innerHTML">
                         <input name="shipment_id" placeholder="Shipment ID (e.g. 1)">
                         <button type="submit">Run Tool</button>
                     </form>
@@ -125,7 +125,7 @@
                         <h3>Ask a Question</h3>
                         <span class="tool-label">RAG</span>
                     </div>
-                    <form hx-post="/api/transportation/htmx/rag/answer" hx-target="#rag-result" hx-swap="innerHTML">
+                    <form hx-post="/transportation/api/transportation/htmx/rag/answer" hx-target="#rag-result" hx-swap="innerHTML">
                         <input name="query" placeholder="e.g. Which shipments are delayed?">
                         <button type="submit">Ask</button>
                     </form>
@@ -140,7 +140,7 @@
                 <div
                     id="shipment-table"
                     class="shipments-box"
-                    hx-get="/api/transportation/htmx/shipments"
+                    hx-get="/transportation/api/transportation/htmx/shipments"
                     hx-trigger="load"
                     hx-swap="innerHTML">
                     Loading shipments...

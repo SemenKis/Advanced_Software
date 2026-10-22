@@ -1,9 +1,35 @@
-from flask import Flask, render_template, request, redirect
+from flask import Flask, jsonify, render_template, request, redirect, url_for
 import requests
 import os
 
 app = Flask(__name__)
 BACKEND_URL = os.environ.get("BACKEND_URL", "http://backend:5001")
+URL_PREFIX = os.environ.get("URL_PREFIX", "").rstrip("/")
+TEAM_HOME_URL = os.environ.get("TEAM_HOME_URL", "http://localhost:8080")
+
+
+class PrefixMiddleware:
+    def __init__(self, app, prefix):
+        self.app = app
+        self.prefix = prefix
+
+    def __call__(self, environ, start_response):
+        if self.prefix and (
+            environ["PATH_INFO"] == self.prefix
+            or environ["PATH_INFO"].startswith(f"{self.prefix}/")
+        ):
+            environ["SCRIPT_NAME"] = f"{environ.get('SCRIPT_NAME', '')}{self.prefix}"
+            environ["PATH_INFO"] = environ["PATH_INFO"][len(self.prefix):] or "/"
+        return self.app(environ, start_response)
+
+
+if URL_PREFIX:
+    app.wsgi_app = PrefixMiddleware(app.wsgi_app, URL_PREFIX)
+
+
+@app.context_processor
+def inject_navigation_config():
+    return {"team_home_url": TEAM_HOME_URL}
 RESOURCE_CONFIG = {
     "storage": {
         "api": "storage-locations",
@@ -43,7 +69,12 @@ def build_payload(cfg, form):
 
 @app.route("/")
 def home():
-    return redirect("/storage")
+    return redirect(url_for("resource_page", resource="storage"))
+
+
+@app.get("/health")
+def health():
+    return jsonify({"status": "ok", "service": "warehouse-frontend"})
 
 
 @app.route("/<resource>")

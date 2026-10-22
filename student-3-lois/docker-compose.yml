@@ -2,6 +2,8 @@ services:
   frontend-service:
     build:
       context: ./frontend-service
+    environment:
+      INVENTORY_BACKEND_URL: http://inventory-service:5001
     container_name: inventory-frontend-service
     ports:
       - "8081:80"
@@ -22,8 +24,9 @@ services:
       DATABASE_SERVICE_URL: http://database-service:5002
       OLLAMA_BASE_URL: http://host.docker.internal:11434/v1
       OLLAMA_MODEL: qwen2.5:0.5b
-      MCP_ENABLED: "true"
-      RAG_ENABLED: "true"
+      MCP_ENABLED: ${MCP_ENABLED:-true}
+      RAG_ENABLED: ${RAG_ENABLED:-true}
+      MCP_SERVICE_URL: http://host.docker.internal:5004
       RAG_SERVICE_URL: http://host.docker.internal:5003
     extra_hosts:
       - "host.docker.internal:host-gateway"

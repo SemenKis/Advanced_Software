@@ -1,0 +1,39 @@
+server {
+    listen 80;
+    root /usr/share/nginx/html;
+
+    location = /healthz {
+        return 200 "ok\n";
+    }
+
+    location = /inventory/healthz {
+        return 200 "ok\n";
+    }
+
+    location = /inventory {
+        return 301 /inventory/;
+    }
+
+    location ^~ /inventory/api/ {
+        rewrite ^/inventory/api/(.*)$ /$1 break;
+        proxy_pass ${INVENTORY_BACKEND_URL};
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+
+    location ^~ /api/ {
+        proxy_pass ${INVENTORY_BACKEND_URL}/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+
+    location ^~ /inventory/ {
+        rewrite ^/inventory/(.*)$ /$1 break;
+        try_files $uri $uri/ /index.html;
+    }
+
+    location / {
+        root /usr/share/nginx/html;
+        try_files $uri $uri/ /index.html;
+    }
+}

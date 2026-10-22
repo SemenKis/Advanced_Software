@@ -14,6 +14,9 @@ OLLAMA_MODEL = os.getenv(
 
 
 def generate_response(prompt):
+    if not OLLAMA_URL.strip():
+        raise RuntimeError("OLLAMA_URL must point to a reachable Ollama service.")
+
     url = f"{OLLAMA_URL}/api/generate"
 
     payload = {

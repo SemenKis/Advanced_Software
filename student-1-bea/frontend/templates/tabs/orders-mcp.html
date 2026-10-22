@@ -35,6 +35,7 @@
   </main>
 
   <script>
+          const API_BASE = window.location.pathname.startsWith("/orders/") ? "/orders/api" : "/api";
     const mcpModeToggle = document.getElementById("mcp-mode-toggle");
     const mcpModeState = document.getElementById("mcp-mode-state");
     const mcpResultPanel = document.getElementById("mcp-result");
@@ -104,7 +105,7 @@
       showResult(`MCP Tool: ${tool}`, "Running...");
 
       try {
-        const res = await fetch(`/api/mcp/${tool}`, {
+        const res = await fetch(`${API_BASE}/mcp/${tool}`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",

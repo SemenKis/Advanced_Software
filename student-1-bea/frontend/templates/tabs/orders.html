@@ -41,6 +41,7 @@
   <div id="orders-result"></div>
 
   <script>
+        const API_BASE = window.location.pathname.startsWith("/orders/") ? "/orders/api" : "/api";
     
     const createOrderBtn = document.getElementById('create-order-btn');
     const cancelOrderBtn = document.getElementById('cancel-order-btn');
@@ -70,7 +71,7 @@
       const quantity = document.getElementById("quantity").value.trim();
       const total_amount = document.getElementById("total-amount").value.trim();
  
-      const res = await fetch("/api/orders", {
+      const res = await fetch(`${API_BASE}/orders`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ 
@@ -96,7 +97,7 @@
       resultEl.textContent = "Loading...";
 
       try {
-        const res = await fetch("/api/orders");
+        const res = await fetch(`${API_BASE}/orders`);
         if (!res.ok) {
           throw new Error(`Request failed: ${res.status}`);
         }
@@ -112,7 +113,7 @@
       resultEl.textContent = "Loading...";
 
       try {
-        const res = await fetch(`/api/orders/${id}`);
+        const res = await fetch(`${API_BASE}/orders/${id}`);
         if (!res.ok) {
           throw new Error(`Request failed: ${res.status}`);
         }
@@ -265,7 +266,7 @@
       };
 
       try {
-        const res = await fetch(`/api/orders/${orderId}`, {
+        const res = await fetch(`${API_BASE}/orders/${orderId}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(updated),
@@ -285,7 +286,7 @@
       }
 
       try {
-        const res = await fetch(`/api/orders/${orderId}`, { method: "DELETE" });
+        const res = await fetch(`${API_BASE}/orders/${orderId}`, { method: "DELETE" });
         if (!res.ok) {
           throw new Error(`Delete order request failed: ${res.status}`);
         }

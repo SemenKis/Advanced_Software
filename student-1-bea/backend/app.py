@@ -23,6 +23,10 @@ def create_app():
     app.register_blueprint(mcp_bp)
     app.register_blueprint(rag_bp)
 
+    @app.get("/health")
+    def health():
+        return {"status": "ok", "service": "order-backend"}
+
     return app
 
 

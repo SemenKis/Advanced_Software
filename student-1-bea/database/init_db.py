@@ -24,10 +24,6 @@ CREATE TABLE IF NOT EXISTS orders (
 )
 """)
 
-cursor.execute(
-    "DELETE FROM orders"
-)
-
 # price and total amount should be calculated in backend since it is dependent on products-service
 
 orders = [
@@ -45,7 +41,7 @@ orders = [
 
 cursor.executemany(
     """
-    INSERT INTO orders (
+    INSERT OR IGNORE INTO orders (
         order_id,
         order_name,
         order_address,

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>Warehouse Management - Student 2 Yuting</title>
-    <script src="/static/htmx.min.js"></script>
+    <script src="{{ url_for('static', filename='htmx.min.js') }}"></script>
     <style>
         body { font-family: sans-serif; margin: 2rem; color: #032c24; background-color: #d3eaf8; }
         table { border-collapse: collapse; width: 100%; margin-top: 1rem; background-color: #ffffff; }
@@ -60,11 +60,11 @@
 </head>
 <body>
     <nav>
-        <a href="http://localhost:8080">Team Home</a>
-        <a href="/storage">Storage</a>
-        <a href="/packing-lists">Packing Lists</a>
-        <a href="/shipping-tasks">Shipping Tasks</a>
-        <a href="/mcp-rag">MCP &amp; RAG</a>
+        <a href="{{ team_home_url }}">Team Home</a>
+        <a href="{{ url_for('resource_page', resource='storage') }}">Storage</a>
+        <a href="{{ url_for('resource_page', resource='packing-lists') }}">Packing Lists</a>
+        <a href="{{ url_for('resource_page', resource='shipping-tasks') }}">Shipping Tasks</a>
+        <a href="{{ url_for('mcp_rag_page') }}">MCP &amp; RAG</a>
     </nav>
     {% block content %}{% endblock %}
 </body>

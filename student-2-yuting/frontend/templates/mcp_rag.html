@@ -4,7 +4,7 @@
 
 <section style="margin-bottom: 2rem;">
     <h3>MCP: Check Storage Capacity</h3>
-    <form hx-post="/mcp/check-storage-capacity" hx-target="#mcp-result" hx-swap="innerHTML">
+    <form hx-post="{{ url_for('mcp_check_storage_capacity') }}" hx-target="#mcp-result" hx-swap="innerHTML">
         <input name="zone_name" placeholder="Zone name (e.g. Zone-C)" size="60">
         <button type="submit">Run Tool</button>
     </form>
@@ -15,7 +15,7 @@
 
 <section>
     <h3>RAG: Ask a Question</h3>
-    <form hx-post="/rag/answer" hx-target="#rag-result" hx-swap="innerHTML">
+    <form hx-post="{{ url_for('rag_answer_forward') }}" hx-target="#rag-result" hx-swap="innerHTML">
         <input name="query" placeholder="e.g. Why did this task fall back to rule-based priority?" size="50">
         <button type="submit">Ask</button>
     </form>

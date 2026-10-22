@@ -1,0 +1,6 @@
+window.MODULE_URLS = {
+    inventory: "${INVENTORY_URL}",
+    orders: "${ORDERS_URL}",
+    warehouse: "${WAREHOUSE_URL}",
+    transportation: "${TRANSPORTATION_URL}"
+};

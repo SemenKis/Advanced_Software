@@ -12,4 +12,4 @@ RUN python init_db.py
 
 EXPOSE 5002
 
-CMD ["python", "app.py"]
+CMD ["sh", "-c", "python init_db.py && python app.py"]
