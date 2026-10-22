@@ -1,7 +1,7 @@
 name: student-1-bea
 
 on:
-  workflow_dispatch:
+  workflow_call:
 
 jobs:
 
@@ -21,7 +21,10 @@ jobs:
 
   smoke-check:
     runs-on: ubuntu-latest
-    needs: [build-images]
+    needs: [build-images]    
+    env:
+      MCP_ENABLED: "false"
+      RAG_ENABLED: "false"
 
     steps:
       - uses: actions/checkout@v4
@@ -66,6 +69,7 @@ jobs:
         working-directory: ./student-1-bea
         run: docker compose down -v
 
+
   evidence-pack:
     runs-on: ubuntu-latest
     needs: [smoke-check]
@@ -84,7 +88,7 @@ jobs:
             "run_id": "${{ github.run_id }}",
             "commit_sha": "${{ github.sha }}",
             "branch": "${{ github.ref_name }}",
-            "generated_timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            "generated_timestamp": "$(date -u %Y-%m-%dT%H:%M:%SZ)"
           }
           EOF
 

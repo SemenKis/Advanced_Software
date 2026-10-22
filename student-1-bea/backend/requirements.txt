@@ -3,3 +3,4 @@ flask-cors==6.0.0
 requests==2.33.0
 openai
 python-dotenv
+PyJWT>=2.11.0
