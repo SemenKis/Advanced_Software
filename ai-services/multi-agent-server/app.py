@@ -1,10 +1,12 @@
 import os
 
 from flask import Flask, jsonify, request
+from flask_cors import CORS
 
 from coordinator import record_decision, run_workflow, workflow_status
 
 app = Flask(__name__)
+CORS(app) 
 
 
 @app.get("/health")

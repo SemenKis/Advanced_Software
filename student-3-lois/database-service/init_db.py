@@ -1,4 +1,3 @@
-
 import os
 import sqlite3
 from datetime import datetime, timedelta
@@ -50,63 +49,116 @@ cursor.executescript(
     """
 )
 
+# Clear existing data in dependency order
 cursor.execute("DELETE FROM stocktake")
 cursor.execute("DELETE FROM products")
 cursor.execute("DELETE FROM supplier")
 cursor.execute("DELETE FROM category")
 
+# 10 categories
 categories = [
     (1, "Organisation Tools"),
     (2, "Loading Equipment"),
     (3, "Cleaning Supplies"),
     (4, "Perishables"),
     (5, "Safety Gear"),
-
+    (6, "Office Supplies"),
+    (7, "Packaging Materials"),
+    (8, "Electrical Equipment"),
+    (9, "Storage Solutions"),
+    (10, "Maintenance Tools"),
 ]
 
-cursor.executemany("INSERT INTO category (category_id, name) VALUES (?, ?)", categories)
+cursor.executemany(
+    "INSERT INTO category (category_id, name) VALUES (?, ?)",
+    categories,
+)
 
+# 10 suppliers
 suppliers = [
     (1, "TrackTools Co.", "0400111222", "orders@tracktools.example.com"),
     (2, "Global Machinery Ltd.", "0400222333", "sales@globalmachinery.example.com"),
     (3, "Protection Company", "0400333444", "contact@protectcompany.example.com"),
     (4, "CleanPro Supplies", "0400444555", "info@cleanpro.example.com"),
     (5, "SnackWorld Distribution", "0400555666", "orders@snackworld.example.com"),
-
+    (6, "Office Essentials", "0400666777", "sales@officeessentials.example.com"),
+    (7, "PackRight Supplies", "0400777888", "orders@packright.example.com"),
+    (8, "ElectroSource Pty Ltd.", "0400888999", "sales@electrosource.example.com"),
+    (9, "StorageWorks", "0400999000", "info@storageworks.example.com"),
+    (10, "FixIt Industrial", "0400101010", "orders@fixitindustrial.example.com"),
 ]
+
 cursor.executemany(
-    "INSERT INTO supplier (supplier_id, name, phone_number, email) VALUES (?, ?, ?, ?)",
+    """
+    INSERT INTO supplier (supplier_id, name, phone_number, email)
+    VALUES (?, ?, ?, ?)
+    """,
     suppliers,
 )
 
+# 10 products
 products = [
-    (1, 1, 1, "Barcode Scanners", "ClickTech", "Handheld scanner with Bluetooth connectivity", 35.99, 120, 20),
-    (2, 2, 2, "Pallet Jacks", "LoadMaster", "Stainless steel adjustable pallet jack", 139.49, 8, 15),
-    (3, 5, 3, "Medium Safety Gloves", "SafetyFirst", "Rubber gloves, medium-sized", 10.20, 45, 10),
-    (4, 4, 5, "Kettle Korn", "CrispCo", "Kettle-cooked chips, 150g bag", 5.10, 60, 15),
-    (5, 3, 4, "Bucket'n'Mop", "SqueakyClean", "Cleaning set with bucket and mop", 19.99, 35, 10),
-
+    (1, 1, 1, "Barcode Scanners", "ClickTech",
+     "Handheld scanner with Bluetooth connectivity", 35.99, 120, 20),
+    (2, 2, 2, "Pallet Jacks", "LoadMaster",
+     "Stainless steel adjustable pallet jack", 139.49, 8, 15),
+    (3, 5, 3, "Medium Safety Gloves", "SafetyFirst",
+     "Rubber gloves, medium-sized", 10.20, 45, 10),
+    (4, 4, 5, "Kettle Korn", "CrispCo",
+     "Kettle-cooked chips, 150g bag", 5.10, 60, 15),
+    (5, 3, 4, "Bucket'n'Mop", "SqueakyClean",
+     "Cleaning set with bucket and mop", 19.99, 35, 10),
+    (6, 6, 6, "A4 Paper", "PaperPlus",
+     "500-sheet ream of A4 printer paper", 7.50, 80, 20),
+    (7, 7, 7, "Packing Tape", "PackRight",
+     "Heavy-duty adhesive packaging tape", 3.99, 150, 30),
+    (8, 8, 8, "Cordless Drill", "PowerPro",
+     "18V cordless drill for maintenance work", 89.95, 12, 5),
+    (9, 9, 9, "Plastic Storage Bins", "StoreSmart",
+     "Stackable 40-litre storage container", 24.50, 25, 10),
+    (10, 10, 10, "Tool Kit", "FixIt",
+     "Multi-purpose maintenance tool kit", 54.99, 18, 5),
+    (11, 1, 1, "Label Printer", "PrintTech",
+     "Thermal label printer for inventory and barcode labels", 79.99, 14, 5),
+    (12, 2, 2, "Hand Truck", "LoadMaster",
+     "Heavy-duty hand truck for moving warehouse stock", 89.50, 9, 10),
+    (13, 5, 3, "Safety Goggles", "SafetyFirst",
+     "Protective eyewear for warehouse and maintenance tasks", 12.99, 40, 10),
+    (14, 3, 4, "Microfibre Cloths", "SqueakyClean",
+     "Reusable microfibre cleaning cloth pack", 8.49, 55, 15),
+    (15, 7, 7, "Bubble Wrap Roll", "PackRight",
+     "Protective bubble wrap for packing fragile goods", 16.95, 22, 8),
 ]
+
 cursor.executemany(
     """
     INSERT INTO products (
-        product_id, category_id, supplier_id, name, brand, description, price, quantity, reorder_level
+        product_id, category_id, supplier_id, name, brand,
+        description, price, quantity, reorder_level
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     """,
     products,
 )
 
+# 10 stocktake records
 stocktakes = [
     (1, 1, "Alex Chen", 118, "2026-01-01 15:15:00"),
     (2, 2, "Alex Chen", 8, "2026-02-01 10:30:00"),
     (3, 3, "Priya Nair", 45, "2026-03-01 09:55:00"),
     (4, 4, "Priya Nair", 60, "2026-04-01 10:00:00"),
     (5, 5, "Jordan Lee", 35, "2026-05-01 20:30:00"),
+    (6, 6, "Jordan Lee", 78, "2026-06-01 11:15:00"),
+    (7, 7, "Alex Chen", 145, "2026-07-01 14:20:00"),
+    (8, 8, "Priya Nair", 11, "2026-08-01 09:10:00"),
+    (9, 9, "Jordan Lee", 25, "2026-09-01 16:45:00"),
+    (10, 10, "Alex Chen", 17, "2026-10-01 13:30:00"),
 ]
+
 cursor.executemany(
     """
-    INSERT INTO stocktake (stocktake_id, product_id, member_name, counted_quantity, timestamp)
-    VALUES (?, ?, ?, ? , ?)
+    INSERT INTO stocktake (
+        stocktake_id, product_id, member_name, counted_quantity, timestamp
+    ) VALUES (?, ?, ?, ?, ?)
     """,
     stocktakes,
 )
@@ -114,4 +166,4 @@ cursor.executemany(
 conn.commit()
 conn.close()
 
-print("Inventory database initialized: 8 categories, 8 suppliers, 12 products, 10 stocktake records.")
+print("Inventory database initialized successfully: at least 10 rows in each table.")
