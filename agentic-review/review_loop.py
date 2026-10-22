@@ -220,6 +220,14 @@ def collect_testing_evidence(student_folder):
     else:
         sections.append(".pre-commit-config.yaml not found at repo root.")
 
+    evidence_dir = student_dir / "evidence"
+    for name in ("pre-commit-report.txt", f"student-{number}-test-results.txt"):
+        report = evidence_dir / name
+        if report.exists():
+            sections.append(f"--- {student_folder}/evidence/{name} ---\n{report.read_text()[:3000]}")
+        else:
+            sections.append(f"Report not found: {student_folder}/evidence/{name}.")
+
     return "\n\n".join(sections)
 
 
