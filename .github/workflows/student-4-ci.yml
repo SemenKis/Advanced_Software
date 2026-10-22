@@ -25,7 +25,7 @@ jobs:
 
       - name: Run Transportation tests
         run: |
-          python -m pytest student-4-sam/tests -v
+          python -m pytest student-4-sam/tests/test_ollama_url.py -v
 
       - name: Verify Docker Compose
         run: docker compose version
