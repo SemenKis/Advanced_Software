@@ -1,0 +1,41 @@
+{"workflow_id": "debf3222-a8b5-48c3-916b-2d0019885e96", "timestamp": "2026-10-20T03:21:18.339002+00:00", "event": "workflow_started", "detail": "Which storage zones are near capacity? Check Zone-C."}
+{"workflow_id": "debf3222-a8b5-48c3-916b-2d0019885e96", "timestamp": "2026-10-20T03:21:23.555275+00:00", "event": "planner_done", "detail": "completed"}
+{"workflow_id": "debf3222-a8b5-48c3-916b-2d0019885e96", "timestamp": "2026-10-20T03:21:23.771643+00:00", "event": "worker_done", "detail": "completed"}
+{"workflow_id": "36247da2-e3e4-4c18-811c-7b25687a64bc", "timestamp": "2026-10-20T03:31:14.997133+00:00", "event": "workflow_started", "detail": "Which storage zones are near capacity? Check Zone-C."}
+{"workflow_id": "36247da2-e3e4-4c18-811c-7b25687a64bc", "timestamp": "2026-10-20T03:31:19.947016+00:00", "event": "planner_done", "detail": "completed"}
+{"workflow_id": "36247da2-e3e4-4c18-811c-7b25687a64bc", "timestamp": "2026-10-20T03:31:19.948192+00:00", "event": "worker_done", "detail": "completed"}
+{"workflow_id": "36247da2-e3e4-4c18-811c-7b25687a64bc", "timestamp": "2026-10-20T03:32:38.565710+00:00", "event": "reviewer_done", "detail": "fallback (APITimeoutError)"}
+{"workflow_id": "36247da2-e3e4-4c18-811c-7b25687a64bc", "timestamp": "2026-10-20T03:32:38.648698+00:00", "event": "workflow_completed", "detail": "human decision pending"}
+{"workflow_id": "8ebb018d-338d-47cb-88bb-115446cb7cd3", "timestamp": "2026-10-20T03:36:50.568005+00:00", "event": "workflow_started", "detail": "Which storage zones are near capacity? Check Zone-C."}
+{"workflow_id": "8ebb018d-338d-47cb-88bb-115446cb7cd3", "timestamp": "2026-10-20T03:37:10.943692+00:00", "event": "planner_done", "detail": "completed"}
+{"workflow_id": "8ebb018d-338d-47cb-88bb-115446cb7cd3", "timestamp": "2026-10-20T03:37:10.953188+00:00", "event": "worker_done", "detail": "completed"}
+{"workflow_id": "8ebb018d-338d-47cb-88bb-115446cb7cd3", "timestamp": "2026-10-20T03:37:58.623082+00:00", "event": "reviewer_done", "detail": "completed"}
+{"workflow_id": "8ebb018d-338d-47cb-88bb-115446cb7cd3", "timestamp": "2026-10-20T03:38:05.202438+00:00", "event": "workflow_completed", "detail": "human decision pending"}
+{"workflow_id": "cdea00df-4ddb-4525-831b-5772793e2f1b", "timestamp": "2026-10-20T03:40:29.490772+00:00", "event": "workflow_started", "detail": "Which storage zones are near capacity?"}
+{"workflow_id": "cdea00df-4ddb-4525-831b-5772793e2f1b", "timestamp": "2026-10-20T03:40:31.805783+00:00", "event": "planner_done", "detail": "completed"}
+{"workflow_id": "cdea00df-4ddb-4525-831b-5772793e2f1b", "timestamp": "2026-10-20T03:40:31.975082+00:00", "event": "worker_done", "detail": "completed"}
+{"workflow_id": "cdea00df-4ddb-4525-831b-5772793e2f1b", "timestamp": "2026-10-20T03:41:30.024177+00:00", "event": "reviewer_done", "detail": "completed"}
+{"workflow_id": "cdea00df-4ddb-4525-831b-5772793e2f1b", "timestamp": "2026-10-20T03:41:30.071483+00:00", "event": "workflow_completed", "detail": "human decision pending"}
+{"workflow_id": "9bb16960-48cb-48e5-b41a-5f6ba1f70452", "timestamp": "2026-10-20T03:49:33.964076+00:00", "event": "workflow_started", "detail": "Which storage zones are near capacity?"}
+{"workflow_id": "9bb16960-48cb-48e5-b41a-5f6ba1f70452", "timestamp": "2026-10-20T03:49:39.503667+00:00", "event": "planner_done", "detail": "completed"}
+{"workflow_id": "9bb16960-48cb-48e5-b41a-5f6ba1f70452", "timestamp": "2026-10-20T03:49:39.504905+00:00", "event": "worker_done", "detail": "completed"}
+{"workflow_id": "9bb16960-48cb-48e5-b41a-5f6ba1f70452", "timestamp": "2026-10-20T03:50:23.309828+00:00", "event": "reviewer_done", "detail": "completed"}
+{"workflow_id": "9bb16960-48cb-48e5-b41a-5f6ba1f70452", "timestamp": "2026-10-20T03:50:29.810483+00:00", "event": "workflow_completed", "detail": "human decision pending"}
+{"workflow_id": "9bb16960-48cb-48e5-b41a-5f6ba1f70452", "timestamp": "2026-10-20T03:56:07.386247+00:00", "event": "human_decision", "detail": "{\"decision\": \"Accept\", \"note\": \"Output matches the warehouse data: no zone is above 80%.\"}"}
+{"workflow_id": "ce04dbd1-129a-4491-b86e-6bae5dbeefee", "timestamp": "2026-10-20T04:15:27.698410+00:00", "event": "workflow_started", "detail": "Which storage zones are near capacity?"}
+{"workflow_id": "ce04dbd1-129a-4491-b86e-6bae5dbeefee", "timestamp": "2026-10-20T04:15:32.197441+00:00", "event": "planner_done", "detail": "completed"}
+{"workflow_id": "ce04dbd1-129a-4491-b86e-6bae5dbeefee", "timestamp": "2026-10-20T04:15:32.199160+00:00", "event": "worker_done", "detail": "completed"}
+{"workflow_id": "ce04dbd1-129a-4491-b86e-6bae5dbeefee", "timestamp": "2026-10-20T04:16:30.511873+00:00", "event": "reviewer_done", "detail": "completed"}
+{"workflow_id": "ce04dbd1-129a-4491-b86e-6bae5dbeefee", "timestamp": "2026-10-20T04:16:44.299501+00:00", "event": "workflow_completed", "detail": "human decision pending"}
+{"workflow_id": "ce04dbd1-129a-4491-b86e-6bae5dbeefee", "timestamp": "2026-10-20T04:17:37.645337+00:00", "event": "human_decision", "detail": "{\"decision\": \"Accept\", \"note\": \"\"}"}
+{"workflow_id": "ce04dbd1-129a-4491-b86e-6bae5dbeefee", "timestamp": "2026-10-20T04:19:17.233827+00:00", "event": "human_decision", "detail": "{\"decision\": \"Reject\", \"note\": \"Worker claimed Zone-A is near capacity but evidence shows 27.5%\"}"}
+{"workflow_id": "ce04dbd1-129a-4491-b86e-6bae5dbeefee", "timestamp": "2026-10-20T04:19:21.162890+00:00", "event": "human_decision", "detail": "{\"decision\": \"Reject\", \"note\": \"Worker claimed Zone-A is near capacity but evidence shows 27.5%\"}"}
+{"workflow_id": "ce04dbd1-129a-4491-b86e-6bae5dbeefee", "timestamp": "2026-10-20T04:19:24.349171+00:00", "event": "human_decision", "detail": "{\"decision\": \"Reject\", \"note\": \"Worker claimed Zone-A is near capacity but evidence shows 27.5%\"}"}
+{"workflow_id": "ce04dbd1-129a-4491-b86e-6bae5dbeefee", "timestamp": "2026-10-20T04:19:38.172081+00:00", "event": "human_decision", "detail": "{\"decision\": \"Reject\", \"note\": \"Worker claimed Zone-A is near capacity but evidence shows 27.5%\"}"}
+{"workflow_id": "ce04dbd1-129a-4491-b86e-6bae5dbeefee", "timestamp": "2026-10-20T04:19:39.060839+00:00", "event": "human_decision", "detail": "{\"decision\": \"Reject\", \"note\": \"Worker claimed Zone-A is near capacity but evidence shows 27.5%\"}"}
+{"workflow_id": "3e9df35c-71c5-4049-9566-c53c0e8548a6", "timestamp": "2026-10-20T04:52:07.338294+00:00", "event": "workflow_started", "detail": "Check Zone-C utilisation"}
+{"workflow_id": "3e9df35c-71c5-4049-9566-c53c0e8548a6", "timestamp": "2026-10-20T04:52:13.019469+00:00", "event": "planner_done", "detail": "completed"}
+{"workflow_id": "3e9df35c-71c5-4049-9566-c53c0e8548a6", "timestamp": "2026-10-20T04:52:13.020657+00:00", "event": "worker_done", "detail": "completed"}
+{"workflow_id": "3e9df35c-71c5-4049-9566-c53c0e8548a6", "timestamp": "2026-10-20T04:52:51.332436+00:00", "event": "reviewer_done", "detail": "completed"}
+{"workflow_id": "3e9df35c-71c5-4049-9566-c53c0e8548a6", "timestamp": "2026-10-20T04:52:56.494515+00:00", "event": "workflow_completed", "detail": "human decision pending"}
+{"workflow_id": "3e9df35c-71c5-4049-9566-c53c0e8548a6", "timestamp": "2026-10-20T04:54:23.208221+00:00", "event": "human_decision", "detail": "{\"decision\": \"Partially Accept\", \"note\": \"Conclusion is correct (52.7% is below 80%) but Worker omitted the figure; Reviewer's rejection is wrong.\"}"}

@@ -17,7 +17,7 @@ def call_ollama(system_prompt, user_prompt, model=None):
         resp = requests.post(
             f"{OLLAMA_HOST}/api/generate",
             json={"model": model or OLLAMA_MODEL, "prompt": prompt, "stream": False},
-            timeout=180,
+            timeout=600,
         )
         return resp.json().get("response", "")
     except Exception as e:
