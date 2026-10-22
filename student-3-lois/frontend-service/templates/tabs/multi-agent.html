@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Multi-Agent Inventory Assistant</title>
+<link rel="stylesheet" href="/css/styles.css">
+<style>body{margin:0;min-height:auto;background:transparent}.app-shell{max-width:none;padding:0}textarea{width:100%;min-height:100px;box-sizing:border-box}pre{white-space:pre-wrap;overflow-wrap:anywhere}</style>
+</head>
+<body>
+<main class="app-shell"><section class="card">
+<h2>Shared Multi-Agent Server</h2>
+<p style="color:var(--muted)">Run a Planner, Worker, and Reviewer workflow against live inventory data. Results remain pending until a human records a decision.</p>
+<div class="feature-toggle-row"><label class="toggle-switch" for="agent-mode-toggle"><input id="agent-mode-toggle" type="checkbox" checked><span class="toggle-label">Multi-Agent Enabled</span></label><span id="agent-mode-state" class="feature-state feature-on">ON</span></div>
+<form id="workflow-form" class="stack-form"><label for="workflow-request">Inventory question or task</label><textarea id="workflow-request" required placeholder="Example: Which products need reordering, and what should we prioritise?"></textarea><button type="submit" class="rag-action">Run Multi-Agent Workflow</button></form>
+<div id="workflow-results" class="panel panel-mcp" aria-live="polite">Workflow results will appear here.</div>
+<form id="decision-form" class="stack-form"><h3>Human review</h3><label for="workflow-id">Workflow ID</label><input id="workflow-id" required placeholder="Filled after a workflow runs"><label for="decision">Decision</label><select id="decision" required><option value="Accept">Accept</option><option value="Partially Accept">Partially Accept</option><option value="Reject">Reject</option></select><label for="decision-note">Note (optional)</label><input id="decision-note" placeholder="Reason for your decision"><button type="submit" class="rag-action">Record Decision</button></form>
+</section></main>
+<script>
+const SERVER = `${window.location.protocol}//${window.location.hostname}:5006`;
+const enabled = document.getElementById("agent-mode-toggle");
+const state = document.getElementById("agent-mode-state");
+const output = document.getElementById("workflow-results");
+const storageKey = "multi_agent_mode_enabled";
+function renderState(){state.textContent=enabled.checked?"ON":"OFF";state.classList.toggle("feature-on",enabled.checked);state.classList.toggle("feature-off",!enabled.checked);}
+function renderPayload(title,payload){const heading=document.createElement("h3");heading.textContent=title;const pre=document.createElement("pre");pre.textContent=JSON.stringify(payload,null,2);output.replaceChildren(heading,pre);}
+async function postJson(path,payload){
+  let response;
+  try {
+    response = await fetch(`${SERVER}${path}`, {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(payload)});
+  } catch (error) {
+    throw new Error(`Cannot reach Multi-Agent API at ${SERVER}. Check that the multi-agent-server container is running and port 5006 is published. Browser detail: ${error.message}`);
+  }
+  const raw = await response.text();
+  let data;
+  try { data = raw ? JSON.parse(raw) : {}; } catch (_) { data = {error: raw || "The API returned an empty response."}; }
+  if(!response.ok) throw new Error(data.error||data.message||`Request failed (${response.status})`);
+  return data;
+}
+enabled.checked=localStorage.getItem(storageKey)!=="false";renderState();enabled.addEventListener("change",()=>{localStorage.setItem(storageKey,String(enabled.checked));renderState();if(!enabled.checked)output.textContent="Multi-Agent Mode is OFF. Enable it to run workflows.";});
+document.getElementById("workflow-form").addEventListener("submit",async(e)=>{e.preventDefault();if(!enabled.checked){output.textContent="Multi-Agent Mode is OFF.";return;}output.textContent="Running Planner, Worker, and Reviewer...";try{const data=await postJson("/workflow",{request:document.getElementById("workflow-request").value.trim()});document.getElementById("workflow-id").value=data.workflow_id||"";renderPayload("Multi-Agent Workflow",data);}catch(error){output.textContent=`Workflow failed: ${error.message}`;}});
+document.getElementById("decision-form").addEventListener("submit",async(e)=>{e.preventDefault();try{const data=await postJson("/workflow/decision",{workflow_id:document.getElementById("workflow-id").value.trim(),decision:document.getElementById("decision").value,note:document.getElementById("decision-note").value.trim()});renderPayload("Human Decision",data);}catch(error){output.textContent=`Could not record decision: ${error.message}`;}});
+</script>
+</body>
+</html>

@@ -1,0 +1,2306 @@
+<files>
+This section contains the contents of the repository's files.
+
+<file path="database-service/app.py">
+import os
+import sqlite3
+from flask import Flask, jsonify, request
+from datetime import datetime
+
+app = Flask(__name__)
+
+DATABASE_NAME = "/app/data/inventory.db"
+
+def get_db_connection():
+    conn = sqlite3.connect(DATABASE_NAME)
+    conn.row_factory = sqlite3.Row
+    return conn
+
+
+@app.get("/")
+def health():
+    return jsonify({"service": "database-service", "status": "running"})
+
+@app.get("/categories")
+def get_categories():
+    conn = get_db_connection()
+    rows = conn.execute("SELECT * FROM category ORDER BY name").fetchall()
+    conn.close()
+    return jsonify([dict(r) for r in rows])
+
+
+@app.post("/categories")
+def create_category():
+    data = request.get_json(force=True, silent=True) or {}
+    name = (data.get("name") or "").strip()
+    if not name:
+        return jsonify({"error": "name is required"}), 400
+    conn = get_db_connection()
+    cur = conn.execute("INSERT INTO category (name) VALUES (?)", (name,))
+    conn.commit()
+    new_id = cur.lastrowid
+    conn.close()
+    return jsonify({"category_id": new_id, "name": name}), 201
+
+
+@app.get("/suppliers")
+def get_suppliers():
+    conn = get_db_connection()
+    rows = conn.execute("SELECT * FROM supplier ORDER BY name").fetchall()
+    conn.close()
+    return jsonify([dict(r) for r in rows])
+
+
+@app.post("/suppliers")
+def create_supplier():
+    data = request.get_json(force=True, silent=True) or {}
+    name = (data.get("name") or "").strip()
+    if not name:
+        return jsonify({"error": "name is required"}), 400
+    conn = get_db_connection()
+    cur = conn.execute(
+        "INSERT INTO supplier (name, phone_number, email) VALUES (?, ?, ?)",
+        (name, data.get("phone_number", ""), data.get("email", "")),
+    )
+    conn.commit()
+    new_id = cur.lastrowid
+    conn.close()
+    return jsonify({"supplier_id": new_id}), 201
+
+
+
+PRODUCT_VIEW_SQL = """
+    SELECT
+        p.product_id, p.category_id, p.supplier_id, p.name, p.brand,
+        p.description, p.price, p.quantity, p.reorder_level,
+        c.name AS category_name, s.name AS supplier_name
+    FROM products p
+    JOIN category c ON c.category_id = p.category_id
+    JOIN supplier s ON s.supplier_id = p.supplier_id
+"""
+
+
+@app.get("/products")
+def get_products():
+    category_id = request.args.get("category_id")
+    supplier_id = request.args.get("supplier_id")
+    search = request.args.get("search", "").strip()
+    sort_by = request.args.get("sort_by", "name")
+    sort_dir = request.args.get("sort_dir", "asc").lower()
+
+    sort_column_map = {
+        "name": "p.name",
+        "price": "p.price",
+        "quantity": "p.quantity",
+        "category_name": "c.name",
+        "supplier_name": "s.name",
+    }
+    sort_column = sort_column_map.get(sort_by, "p.name")
+    sort_dir = "DESC" if sort_dir == "desc" else "ASC"
+
+    query = PRODUCT_VIEW_SQL
+    conditions = []
+    params = []
+
+    if category_id:
+        conditions.append("p.category_id = ?")
+        params.append(category_id)
+    if supplier_id:
+        conditions.append("p.supplier_id = ?")
+        params.append(supplier_id)
+    if search:
+        conditions.append("(p.name LIKE ? OR p.brand LIKE ? OR p.description LIKE ?)")
+        like = f"%{search}%"
+        params.extend([like, like, like])
+
+    if conditions:
+        query += " WHERE " + " AND ".join(conditions)
+
+    query += f" ORDER BY {sort_column} {sort_dir}"
+
+    conn = get_db_connection()
+    rows = conn.execute(query, params).fetchall()
+    conn.close()
+    return jsonify([dict(r) for r in rows])
+
+
+@app.get("/products/low-stock")
+def get_low_stock_products():
+    conn = get_db_connection()
+    rows = conn.execute(
+        PRODUCT_VIEW_SQL + " WHERE p.quantity <= p.reorder_level ORDER BY p.quantity ASC"
+    ).fetchall()
+    conn.close()
+    return jsonify([dict(r) for r in rows])
+
+
+@app.get("/products/<int:product_id>")
+def get_product(product_id):
+    conn = get_db_connection()
+    row = conn.execute(PRODUCT_VIEW_SQL + " WHERE p.product_id = ?", (product_id,)).fetchone()
+    conn.close()
+    if row is None:
+        return jsonify({"error": "Product not found"}), 404
+    return jsonify(dict(row))
+
+
+@app.post("/products")
+def create_product():
+    data = request.get_json(force=True, silent=True) or {}
+    required = ["name", "category_id", "supplier_id", "price"]
+    missing = [f for f in required if data.get(f) in (None, "")]
+    if missing:
+        return jsonify({"error": f"Missing required fields: {', '.join(missing)}"}), 400
+
+    conn = get_db_connection()
+    try:
+        cur = conn.execute(
+            """
+            INSERT INTO products (
+                category_id, supplier_id, name, brand, description, price, quantity, reorder_level
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                data["category_id"],
+                data["supplier_id"],
+                data["name"],
+                data.get("brand", ""),
+                data.get("description", ""),
+                data["price"],
+                data.get("quantity", 0),
+                data.get("reorder_level", 10),
+            ),
+        )
+        conn.commit()
+        new_id = cur.lastrowid
+    except sqlite3.IntegrityError as exc:
+        conn.close()
+        return jsonify({"error": f"Integrity error: {exc}"}), 400
+    conn.close()
+    return jsonify({"product_id": new_id}), 201
+
+
+@app.put("/products/<int:product_id>")
+def update_product(product_id):
+    data = request.get_json(force=True, silent=True) or {}
+    conn = get_db_connection()
+    existing = conn.execute("SELECT * FROM products WHERE product_id = ?", (product_id,)).fetchone()
+    if existing is None:
+        conn.close()
+        return jsonify({"error": "Product not found"}), 404
+
+    fields = ["category_id", "supplier_id", "name", "brand", "description", "price", "quantity", "reorder_level"]
+    updated = {f: data.get(f, existing[f]) for f in fields}
+
+    conn.execute(
+        """
+        UPDATE products
+        SET category_id = ?, supplier_id = ?, name = ?, brand = ?, description = ?,
+            price = ?, quantity = ?, reorder_level = ?
+        WHERE product_id = ?
+        """,
+        (
+            updated["category_id"], updated["supplier_id"], updated["name"], updated["brand"],
+            updated["description"], updated["price"], updated["quantity"], updated["reorder_level"],
+            product_id,
+        ),
+    )
+    conn.commit()
+    conn.close()
+    return jsonify({"product_id": product_id, "status": "updated"})
+
+
+@app.delete("/products/<int:product_id>")
+def delete_product(product_id):
+    conn = get_db_connection()
+    existing = conn.execute("SELECT * FROM products WHERE product_id = ?", (product_id,)).fetchone()
+    if existing is None:
+        conn.close()
+        return jsonify({"error": "Product not found"}), 404
+    conn.execute("DELETE FROM stocktake WHERE product_id = ?", (product_id,))
+    conn.execute("DELETE FROM products WHERE product_id = ?", (product_id,))
+    conn.commit()
+    conn.close()
+    return jsonify({"product_id": product_id, "status": "deleted"})
+
+
+
+@app.get("/stocktakes")
+def get_stocktakes():
+    conn = get_db_connection()
+    rows = conn.execute(
+        """
+        SELECT st.stocktake_id, st.product_id, p.name AS product_name,
+               st.member_name, st.counted_quantity, st.timestamp
+        FROM stocktake st
+        JOIN products p ON p.product_id = st.product_id
+        ORDER BY st.timestamp DESC
+        """
+    ).fetchall()
+    conn.close()
+    return jsonify([dict(r) for r in rows])
+
+
+@app.post("/stocktakes")
+def create_stocktake():
+    data = request.get_json(force=True, silent=True) or {}
+    product_id = data.get("product_id")
+    member_name = (data.get("member_name") or "").strip()
+    counted_quantity = data.get("counted_quantity")
+
+    if not product_id or not member_name or counted_quantity is None:
+        return jsonify({"error": "product_id, member_name and counted_quantity are required"}), 400
+
+    conn = get_db_connection()
+    product = conn.execute("SELECT * FROM products WHERE product_id = ?", (product_id,)).fetchone()
+    if product is None:
+        conn.close()
+        return jsonify({"error": "Product not found"}), 404
+
+    timestamp = datetime.utcnow().isoformat(timespec="seconds")
+    cur = conn.execute(
+        "INSERT INTO stocktake (product_id, member_name, counted_quantity, timestamp) VALUES (?, ?, ?, ?)",
+        (product_id, member_name, counted_quantity, timestamp),
+    )
+
+    conn.execute(
+        "UPDATE products SET quantity = ? WHERE product_id = ?",
+        (counted_quantity, product_id),
+    )
+    conn.commit()
+    new_id = cur.lastrowid
+    conn.close()
+    return jsonify({"stocktake_id": new_id, "timestamp": timestamp}), 201
+
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5002, debug=os.environ.get("FLASK_DEBUG", "false").lower() == "true")
+</file>
+
+<file path="database-service/Dockerfile">
+FROM python:3.11-slim
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+COPY app.py init_db.py ./
+RUN mkdir -p /app/data
+EXPOSE 5002
+CMD ["sh", "-c", "if [ ! -f /app/data/inventory.db ]; then python init_db.py; fi; exec python app.py"]
+</file>
+
+<file path="database-service/init_db.py">
+import os
+import sqlite3
+from datetime import datetime, timedelta
+
+DATA_DIR = "/app/data"
+DATABASE_NAME = os.path.join(DATA_DIR, "inventory.db")
+
+os.makedirs(DATA_DIR, exist_ok=True)
+
+conn = sqlite3.connect(DATABASE_NAME)
+cursor = conn.cursor()
+
+cursor.executescript(
+    """
+    CREATE TABLE IF NOT EXISTS category (
+        category_id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL UNIQUE
+    );
+
+    CREATE TABLE IF NOT EXISTS supplier (
+        supplier_id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        phone_number TEXT,
+        email TEXT
+    );
+
+    CREATE TABLE IF NOT EXISTS products (
+        product_id INTEGER PRIMARY KEY AUTOINCREMENT,
+        category_id INTEGER NOT NULL,
+        supplier_id INTEGER NOT NULL,
+        name TEXT NOT NULL,
+        brand TEXT,
+        description TEXT,
+        price REAL NOT NULL,
+        quantity INTEGER NOT NULL DEFAULT 0,
+        reorder_level INTEGER NOT NULL DEFAULT 10,
+        FOREIGN KEY (category_id) REFERENCES category (category_id),
+        FOREIGN KEY (supplier_id) REFERENCES supplier (supplier_id)
+    );
+
+    CREATE TABLE IF NOT EXISTS stocktake (
+        stocktake_id INTEGER PRIMARY KEY AUTOINCREMENT,
+        product_id INTEGER NOT NULL,
+        member_name TEXT NOT NULL,
+        counted_quantity INTEGER NOT NULL,
+        timestamp TEXT NOT NULL,
+        FOREIGN KEY (product_id) REFERENCES products (product_id)
+    );
+    """
+)
+
+cursor.execute("DELETE FROM stocktake")
+cursor.execute("DELETE FROM products")
+cursor.execute("DELETE FROM supplier")
+cursor.execute("DELETE FROM category")
+
+categories = [
+    (1, "Organisation Tools"),
+    (2, "Loading Equipment"),
+    (3, "Cleaning Supplies"),
+    (4, "Perishables"),
+    (5, "Safety Gear"),
+
+]
+
+cursor.executemany("INSERT INTO category (category_id, name) VALUES (?, ?)", categories)
+
+suppliers = [
+    (1, "TrackTools Co.", "0400111222", "orders@tracktools.example.com"),
+    (2, "Global Machinery Ltd.", "0400222333", "sales@globalmachinery.example.com"),
+    (3, "Protection Company", "0400333444", "contact@protectcompany.example.com"),
+    (4, "CleanPro Supplies", "0400444555", "info@cleanpro.example.com"),
+    (5, "SnackWorld Distribution", "0400555666", "orders@snackworld.example.com"),
+
+]
+cursor.executemany(
+    "INSERT INTO supplier (supplier_id, name, phone_number, email) VALUES (?, ?, ?, ?)",
+    suppliers,
+)
+
+products = [
+    (1, 1, 1, "Barcode Scanners", "ClickTech", "Handheld scanner with Bluetooth connectivity", 35.99, 120, 20),
+    (2, 2, 2, "Pallet Jacks", "LoadMaster", "Stainless steel adjustable pallet jack", 139.49, 8, 15),
+    (3, 5, 3, "Medium Safety Gloves", "SafetyFirst", "Rubber gloves, medium-sized", 10.20, 45, 10),
+    (4, 4, 5, "Kettle Korn", "CrispCo", "Kettle-cooked chips, 150g bag", 5.10, 60, 15),
+    (5, 3, 4, "Bucket'n'Mop", "SqueakyClean", "Cleaning set with bucket and mop", 19.99, 35, 10),
+
+]
+cursor.executemany(
+    """
+    INSERT INTO products (
+        product_id, category_id, supplier_id, name, brand, description, price, quantity, reorder_level
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """,
+    products,
+)
+
+stocktakes = [
+    (1, 1, "Alex Chen", 118, "2026-01-01 15:15:00"),
+    (2, 2, "Alex Chen", 8, "2026-02-01 10:30:00"),
+    (3, 3, "Priya Nair", 45, "2026-03-01 09:55:00"),
+    (4, 4, "Priya Nair", 60, "2026-04-01 10:00:00"),
+    (5, 5, "Jordan Lee", 35, "2026-05-01 20:30:00"),
+]
+cursor.executemany(
+    """
+    INSERT INTO stocktake (stocktake_id, product_id, member_name, counted_quantity, timestamp)
+    VALUES (?, ?, ?, ? , ?)
+    """,
+    stocktakes,
+)
+
+conn.commit()
+conn.close()
+
+print("Inventory database initialized: 8 categories, 8 suppliers, 12 products, 10 stocktake records.")
+</file>
+
+<file path="database-service/requirements.txt">
+flask==3.1.3
+</file>
+
+<file path="frontend-service/css/styles.css">
+:root {
+  --bg-0: #0a1410;
+  --bg-1: #0f1f18;
+  --bg-2: #16301f;
+  --surface: #0d1913;
+  --surface-alt: #142418;
+  --text: #eaf5ee;
+  --muted: #9fc2ab;
+  --accent: #3ddc84;
+  --accent-strong: #1fb868;
+  --border: #274a35;
+  --radius: 12px;
+  --danger-bg: #6a2031;
+  --danger-fg: #ffe2e8;
+  --ok-bg: #0f6a45;
+  --ok-fg: #d7ffee;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  line-height: 1.5;
+  color: var(--text);
+  background:
+    radial-gradient(1100px 540px at 10% -10%, #1c4230 0%, transparent 60%),
+    radial-gradient(900px 480px at 100% 0%, #164a2f 0%, transparent 58%),
+    linear-gradient(160deg, var(--bg-0) 0%, var(--bg-1) 46%, var(--bg-2) 100%);
+}
+
+.app-shell { max-width: 1200px; margin: 0 auto; padding: 1.25rem; }
+.app-header { margin-bottom: 1rem; }
+.app-header h1 { margin: 0; font-size: 1.9rem; }
+.app-header p { margin: 0.4rem 0 0; color: var(--muted); }
+
+.card {
+  background: linear-gradient(180deg, rgba(20, 46, 31, 0.95), rgba(13, 25, 19, 0.95));
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
+  margin-bottom: 1rem;
+}
+
+h2 { margin: 0 0 0.6rem; font-size: 1.1rem; }
+h3 { margin: 0 0 0.5rem; font-size: 0.98rem; color: var(--muted); }
+
+label { display: block; margin-bottom: 0.3rem; color: var(--muted); }
+
+button {
+  margin-top: 0.5rem;
+  padding: 0.5rem 0.9rem;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  font-weight: 600;
+  color: #06210f;
+  background: var(--accent);
+  cursor: pointer;
+}
+
+button:hover { background: var(--accent-strong); }
+button.danger { background: #e5566f; color: #2a0a10; }
+button.danger:hover { background: #cf3f58; }
+button.secondary { background: #1a2f22; color: var(--text); border-color: var(--border); }
+
+input, textarea, select {
+  width: 100%;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--text);
+  background: var(--surface-alt);
+  margin-bottom: 0.5rem;
+}
+
+.panel {
+  margin-top: 0.7rem;
+  padding: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  min-height: 2.5rem;
+  overflow-x: auto;
+}
+
+.is-hidden { display: none; }
+
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; }
+@media (max-width: 700px) { .form-row { grid-template-columns: 1fr; } }
+
+.data-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+.data-table th, .data-table td {
+  text-align: left;
+  padding: 0.45rem 0.6rem;
+  border-bottom: 1px solid var(--border);
+}
+.data-table th { color: var(--muted); font-weight: 600; }
+
+.badge {
+  display: inline-block;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+.badge-ok { background: var(--ok-bg); color: var(--ok-fg); }
+.badge-low { background: var(--danger-bg); color: var(--danger-fg); }
+
+.toolbar { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: flex-end; margin-bottom: 0.8rem; }
+.toolbar > div { flex: 1; min-width: 160px; }
+.toolbar button { margin-top: 0; }
+
+.tab-shell { padding: 0.8rem; }
+.tab-nav { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.8rem; }
+.tab-btn { margin-top: 0; color: var(--text); background: #14261a; border: 1px solid var(--border); }
+.tab-btn:hover { background: #1c3524; }
+.tab-btn.is-active { color: #06210f; background: var(--accent); border-color: transparent; }
+.tab-content { position: relative; }
+.tab-frame { width: 100%; min-height: 900px; border: 0; display: none; background: transparent; }
+.tab-frame.is-active { display: block; }
+
+@media (max-width: 900px) { .tab-frame { min-height: 1100px; } }
+</file>
+
+<file path="frontend-service/templates/tabs/ai-mode.html">
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>AI Mode</title>
+<link rel="stylesheet" href="/css/styles.css">
+<style>
+  body { margin: 0; min-height: auto; background: transparent; }
+  .app-shell { max-width: none; padding: 0; }
+</style>
+</head>
+<body>
+<main class="app-shell">
+  <section class="card">
+    <h2>Ask Local AI Agent</h2>
+    <p style="color: var(--muted); margin-top: -0.3rem;">Frontend to Backend/API to Ollama to LLM (no inventory data attached).</p>
+    <form id="ask-form">
+      <label for="question">Question</label>
+      <textarea id="question" name="question" rows="4">What is inventory management and why does it matter for a warehouse?</textarea>
+      <button type="submit">Ask Local Agent</button>
+    </form>
+    <div id="agent-result" class="panel"></div>
+  </section>
+
+  <section class="card">
+    <h2>Ask With Inventory Context</h2>
+    <p style="color: var(--muted); margin-top: -0.3rem;">Grounded in live product data (Plan to Act to Observe to Adapt).</p>
+    <form id="ask-with-context-form">
+      <label for="context-question">Question</label>
+      <textarea id="context-question" name="question" rows="4">Which products are low on stock right now and who supplies them?</textarea>
+      <button type="submit">Ask With Context</button>
+    </form>
+    <div id="context-result" class="panel"></div>
+  </section>
+
+  <section class="card">
+    <h2>AI Reorder Recommendations</h2>
+    <p style="color: var(--muted); margin-top: -0.3rem;">Analyses current stock vs. reorder levels and recommends what to reorder, and from which supplier.</p>
+    <button id="recommend-btn" type="button">Get Recommendations</button>
+    <div id="recommend-result" class="panel"></div>
+  </section>
+</main>
+
+<script>
+const BACKEND = "http://localhost:5001";
+
+async function renderIntoPanel(panelId, url, options = {}) {
+  const panel = document.getElementById(panelId);
+  panel.innerHTML = "<p>Thinking...</p>";
+  try {
+    const response = await fetch(url, options);
+    const body = await response.text();
+    panel.innerHTML = body;
+  } catch (error) {
+    panel.innerHTML = `<p>Request failed.</p><pre>${error}</pre>`;
+  }
+}
+
+document.getElementById("ask-form").addEventListener("submit", (event) => {
+  event.preventDefault();
+  const formData = new URLSearchParams(new FormData(event.target));
+  renderIntoPanel("agent-result", `${BACKEND}/ask`, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: formData,
+  });
+});
+
+document.getElementById("ask-with-context-form").addEventListener("submit", (event) => {
+  event.preventDefault();
+  const formData = new URLSearchParams(new FormData(event.target));
+  renderIntoPanel("context-result", `${BACKEND}/ask-with-context`, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: formData,
+  });
+});
+
+document.getElementById("recommend-btn").addEventListener("click", () => {
+  renderIntoPanel("recommend-result", `${BACKEND}/recommend`, { method: "POST" });
+});
+</script>
+</body>
+</html>
+</file>
+
+<file path="frontend-service/templates/tabs/mcp.html">
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>MCP</title>
+<link rel="stylesheet" href="../css/styles.css">
+<style>
+  body { margin: 0; min-height: auto; background: transparent; }
+  .app-shell { max-width: none; padding: 0; }
+</style>
+</head>
+<body>
+<main class="app-shell">
+  <section class="card">
+    <h2>MCP Mode</h2>
+    <p style="color: var(--muted); margin-top: -0.3rem;">Controlled tools an agent can call, so each returns real inventory data, never a guess.</p>
+
+    <div class="feature-toggle-row">
+      <label class="toggle-switch" for="mcp-mode-toggle">
+        <input id="mcp-mode-toggle" type="checkbox" checked>
+        <span class="toggle-label">MCP Enabled</span>
+      </label>
+      <span id="mcp-mode-state" class="feature-state feature-on">ON</span>
+    </div>
+
+    <h3>product_count</h3>
+    <div class="feature-actions">
+      <button type="button" class="mcp-action" id="mcp-product-count-btn">Get Product Count</button>
+    </div>
+
+    <h3>products_by_category</h3>
+    <form id="mcp-category-form" class="feature-form">
+      <label for="mcp_category_name">Category name</label>
+      <input id="mcp_category_name" name="category_name" type="text" placeholder="Example: Cleaning Supplies">
+      <button type="submit" class="mcp-action">Run Tool</button>
+    </form>
+
+    <h3>low_stock_report</h3>
+    <div class="feature-actions">
+      <button type="button" class="mcp-action" id="mcp-low-stock-btn">Get Low Stock Report</button>
+    </div>
+
+    <h3>supplier_lookup</h3>
+    <form id="mcp-supplier-form" class="feature-form">
+      <label for="mcp_supplier_name">Supplier name</label>
+      <input id="mcp_supplier_name" name="supplier_name" type="text" placeholder="Example: Protection Company">
+      <button type="submit" class="mcp-action">Run Tool</button>
+    </form>
+
+    <div id="mcp-result" class="panel panel-mcp">MCP tool responses will appear here.</div>
+  </section>
+</main>
+
+<script>
+const BACKEND = "http://localhost:5001";
+const mcpModeToggle = document.getElementById("mcp-mode-toggle");
+const mcpModeState = document.getElementById("mcp-mode-state");
+const mcpResultPanel = document.getElementById("mcp-result");
+const MCP_STORAGE_KEY = "mcp_mode_enabled";
+
+function isMcpEnabled() { return mcpModeToggle.checked; }
+
+function renderMcpState() {
+  mcpModeState.textContent = isMcpEnabled() ? "ON" : "OFF";
+  mcpModeState.classList.toggle("feature-on", isMcpEnabled());
+  mcpModeState.classList.toggle("feature-off", !isMcpEnabled());
+}
+
+function renderMcpDisabledMessage() {
+  mcpResultPanel.innerHTML = "<p>MCP Mode is OFF. Enable MCP Mode to run MCP tools.</p>";
+}
+
+function saveMcpMode() { localStorage.setItem(MCP_STORAGE_KEY, String(isMcpEnabled())); }
+
+function loadMcpMode() {
+  const persisted = localStorage.getItem(MCP_STORAGE_KEY);
+  mcpModeToggle.checked = persisted === null ? true : persisted === "true";
+  renderMcpState();
+}
+
+mcpModeToggle.addEventListener("change", () => {
+  saveMcpMode();
+  renderMcpState();
+  if (!isMcpEnabled()) renderMcpDisabledMessage();
+});
+
+async function callMcpTool(path, formData) {
+  if (!isMcpEnabled()) {
+    renderMcpDisabledMessage();
+    return;
+  }
+  mcpResultPanel.innerHTML = "<p>Running tool...</p>";
+  try {
+    const response = await fetch(`${BACKEND}${path}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded", "X-MCP-Mode": "on" },
+      body: formData || new URLSearchParams(),
+    });
+    mcpResultPanel.innerHTML = await response.text();
+  } catch (error) {
+    mcpResultPanel.innerHTML = `<p>Request failed.</p><pre>${error}</pre>`;
+  }
+}
+
+document.getElementById("mcp-product-count-btn").addEventListener("click", () => {
+  callMcpTool("/mcp/product-count");
+});
+
+document.getElementById("mcp-category-form").addEventListener("submit", (event) => {
+  event.preventDefault();
+  callMcpTool("/mcp/products-by-category", new URLSearchParams(new FormData(event.target)));
+});
+
+document.getElementById("mcp-low-stock-btn").addEventListener("click", () => {
+  callMcpTool("/mcp/low-stock-report");
+});
+
+document.getElementById("mcp-supplier-form").addEventListener("submit", (event) => {
+  event.preventDefault();
+  callMcpTool("/mcp/supplier-lookup", new URLSearchParams(new FormData(event.target)));
+});
+
+loadMcpMode();
+if (!isMcpEnabled()) renderMcpDisabledMessage();
+</script>
+</body>
+</html>
+</file>
+
+<file path="frontend-service/templates/tabs/multi-agent.html">
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Multi-Agent Inventory Assistant</title>
+<link rel="stylesheet" href="/css/styles.css">
+<style>body{margin:0;min-height:auto;background:transparent}.app-shell{max-width:none;padding:0}textarea{width:100%;min-height:100px;box-sizing:border-box}pre{white-space:pre-wrap;overflow-wrap:anywhere}</style>
+</head>
+<body>
+<main class="app-shell"><section class="card">
+<h2>Shared Multi-Agent Server</h2>
+<p style="color:var(--muted)">Run a Planner, Worker, and Reviewer workflow against live inventory data. Results remain pending until a human records a decision.</p>
+<div class="feature-toggle-row"><label class="toggle-switch" for="agent-mode-toggle"><input id="agent-mode-toggle" type="checkbox" checked><span class="toggle-label">Multi-Agent Enabled</span></label><span id="agent-mode-state" class="feature-state feature-on">ON</span></div>
+<form id="workflow-form" class="stack-form"><label for="workflow-request">Inventory question or task</label><textarea id="workflow-request" required placeholder="Example: Which products need reordering, and what should we prioritise?"></textarea><button type="submit" class="rag-action">Run Multi-Agent Workflow</button></form>
+<div id="workflow-results" class="panel panel-mcp" aria-live="polite">Workflow results will appear here.</div>
+<form id="decision-form" class="stack-form"><h3>Human review</h3><label for="workflow-id">Workflow ID</label><input id="workflow-id" required placeholder="Filled after a workflow runs"><label for="decision">Decision</label><select id="decision" required><option value="Accept">Accept</option><option value="Partially Accept">Partially Accept</option><option value="Reject">Reject</option></select><label for="decision-note">Note (optional)</label><input id="decision-note" placeholder="Reason for your decision"><button type="submit" class="rag-action">Record Decision</button></form>
+</section></main>
+<script>
+const SERVER = `${window.location.protocol}//${window.location.hostname}:5006`;
+const enabled = document.getElementById("agent-mode-toggle");
+const state = document.getElementById("agent-mode-state");
+const output = document.getElementById("workflow-results");
+const storageKey = "multi_agent_mode_enabled";
+function renderState(){state.textContent=enabled.checked?"ON":"OFF";state.classList.toggle("feature-on",enabled.checked);state.classList.toggle("feature-off",!enabled.checked);}
+function renderPayload(title,payload){const heading=document.createElement("h3");heading.textContent=title;const pre=document.createElement("pre");pre.textContent=JSON.stringify(payload,null,2);output.replaceChildren(heading,pre);}
+async function postJson(path,payload){
+  let response;
+  try {
+    response = await fetch(`${SERVER}${path}`, {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(payload)});
+  } catch (error) {
+    throw new Error(`Cannot reach Multi-Agent API at ${SERVER}. Check that the multi-agent-server container is running and port 5006 is published. Browser detail: ${error.message}`);
+  }
+  const raw = await response.text();
+  let data;
+  try { data = raw ? JSON.parse(raw) : {}; } catch (_) { data = {error: raw || "The API returned an empty response."}; }
+  if(!response.ok) throw new Error(data.error||data.message||`Request failed (${response.status})`);
+  return data;
+}
+enabled.checked=localStorage.getItem(storageKey)!=="false";renderState();enabled.addEventListener("change",()=>{localStorage.setItem(storageKey,String(enabled.checked));renderState();if(!enabled.checked)output.textContent="Multi-Agent Mode is OFF. Enable it to run workflows.";});
+document.getElementById("workflow-form").addEventListener("submit",async(e)=>{e.preventDefault();if(!enabled.checked){output.textContent="Multi-Agent Mode is OFF.";return;}output.textContent="Running Planner, Worker, and Reviewer...";try{const data=await postJson("/workflow",{request:document.getElementById("workflow-request").value.trim()});document.getElementById("workflow-id").value=data.workflow_id||"";renderPayload("Multi-Agent Workflow",data);}catch(error){output.textContent=`Workflow failed: ${error.message}`;}});
+document.getElementById("decision-form").addEventListener("submit",async(e)=>{e.preventDefault();try{const data=await postJson("/workflow/decision",{workflow_id:document.getElementById("workflow-id").value.trim(),decision:document.getElementById("decision").value,note:document.getElementById("decision-note").value.trim()});renderPayload("Human Decision",data);}catch(error){output.textContent=`Could not record decision: ${error.message}`;}});
+</script>
+</body>
+</html>
+</file>
+
+<file path="frontend-service/templates/tabs/normal.html">
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Normal UI</title>
+<link rel="stylesheet" href="/css/styles.css">
+<style>
+  body { margin: 0; min-height: auto; background: transparent; }
+  .app-shell { max-width: none; padding: 0; }
+</style>
+</head>
+<body>
+<main class="app-shell">
+
+  <section class="card">
+    <h2>Inventory Dashboard</h2>
+    <div class="toolbar">
+      <div>
+        <label for="search-input">Search</label>
+        <input id="search-input" type="text" placeholder="Name, brand, description">
+      </div>
+      <div>
+        <label for="category-filter">Category</label>
+        <select id="category-filter"><option value="">All categories</option></select>
+      </div>
+      <div>
+        <label for="supplier-filter">Supplier</label>
+        <select id="supplier-filter"><option value="">All suppliers</option></select>
+      </div>
+      <div>
+        <label for="sort-by">Sort by</label>
+        <select id="sort-by">
+          <option value="name">Name</option>
+          <option value="price">Price</option>
+          <option value="quantity">Quantity</option>
+          <option value="category_name">Category</option>
+          <option value="supplier_name">Supplier</option>
+        </select>
+      </div>
+      <div>
+        <label for="sort-dir">Direction</label>
+        <select id="sort-dir">
+          <option value="asc">Ascending</option>
+          <option value="desc">Descending</option>
+        </select>
+      </div>
+      <button id="apply-filters-btn" type="button">Apply</button>
+      <button id="low-stock-btn" type="button" class="secondary">Show Low Stock Only</button>
+    </div>
+    <div id="products-result" class="panel"></div>
+  </section>
+
+  <section class="card">
+    <h2>Add New Product</h2>
+    <form id="add-product-form" class="form-row">
+      <div>
+        <label for="add_name">Name</label>
+        <input id="add_name" name="name" type="text" required>
+      </div>
+      <div>
+        <label for="add_brand">Brand</label>
+        <input id="add_brand" name="brand" type="text">
+      </div>
+      <div style="grid-column: 1 / -1;">
+        <label for="add_description">Description</label>
+        <textarea id="add_description" name="description" rows="2"></textarea>
+      </div>
+      <div>
+        <label for="add_category_id">Category</label>
+        <select id="add_category_id" name="category_id" required></select>
+      </div>
+      <div>
+        <label for="add_supplier_id">Supplier</label>
+        <select id="add_supplier_id" name="supplier_id" required></select>
+      </div>
+      <div>
+        <label for="add_price">Price ($)</label>
+        <input id="add_price" name="price" type="number" step="0.01" min="0" required>
+      </div>
+      <div>
+        <label for="add_quantity">Starting Quantity</label>
+        <input id="add_quantity" name="quantity" type="number" min="0" value="0">
+      </div>
+      <div>
+        <label for="add_reorder_level">Reorder Level</label>
+        <input id="add_reorder_level" name="reorder_level" type="number" min="0" value="10">
+      </div>
+      <div style="grid-column: 1 / -1;">
+        <button type="submit">Add Product</button>
+      </div>
+    </form>
+    <div id="add-product-result" class="panel"></div>
+  </section>
+
+  <section class="card">
+    <h2>Update / Delete Product</h2>
+    <form id="find-product-form" class="form-row">
+      <div>
+        <label for="edit_product_id">Product ID</label>
+        <input id="edit_product_id" name="product_id" type="number" min="1" required>
+      </div>
+      <div style="align-self: flex-end;">
+        <button type="submit">Load Product</button>
+      </div>
+    </form>
+    <div id="product-lookup-result" class="panel"></div>
+
+    <form id="update-product-form" class="form-row is-hidden">
+      <div>
+        <label for="upd_name">Name</label>
+        <input id="upd_name" name="name" type="text">
+      </div>
+      <div>
+        <label for="upd_brand">Brand</label>
+        <input id="upd_brand" name="brand" type="text">
+      </div>
+      <div style="grid-column: 1 / -1;">
+        <label for="upd_description">Description</label>
+        <textarea id="upd_description" name="description" rows="2"></textarea>
+      </div>
+      <div>
+        <label for="upd_category_id">Category</label>
+        <select id="upd_category_id" name="category_id"></select>
+      </div>
+      <div>
+        <label for="upd_supplier_id">Supplier</label>
+        <select id="upd_supplier_id" name="supplier_id"></select>
+      </div>
+      <div>
+        <label for="upd_price">Price ($)</label>
+        <input id="upd_price" name="price" type="number" step="0.01" min="0">
+      </div>
+      <div>
+        <label for="upd_quantity">Quantity</label>
+        <input id="upd_quantity" name="quantity" type="number" min="0">
+      </div>
+      <div>
+        <label for="upd_reorder_level">Reorder Level</label>
+        <input id="upd_reorder_level" name="reorder_level" type="number" min="0">
+      </div>
+      <div style="grid-column: 1 / -1; display:flex; gap:0.5rem;">
+        <button type="submit">Save Changes</button>
+        <button type="button" id="delete-product-btn" class="danger">Delete Product</button>
+      </div>
+    </form>
+    <div id="update-product-result" class="panel"></div>
+  </section>
+
+  <section class="card">
+    <h2>Stocktake</h2>
+    <p style="color: var(--muted); margin-top: -0.3rem;">Record a physical count. This updates the live quantity for the product.</p>
+    <form id="stocktake-form" class="form-row">
+      <div>
+        <label for="st_product_id">Product ID</label>
+        <input id="st_product_id" name="product_id" type="number" min="1" required>
+      </div>
+      <div>
+        <label for="st_member_name">Team Member</label>
+        <input id="st_member_name" name="member_name" type="text" required>
+      </div>
+      <div>
+        <label for="st_counted_quantity">Counted Quantity</label>
+        <input id="st_counted_quantity" name="counted_quantity" type="number" min="0" required>
+      </div>
+      <div style="align-self: flex-end;">
+        <button type="submit">Record Stocktake</button>
+      </div>
+    </form>
+    <div id="stocktake-add-result" class="panel"></div>
+    <h3>Recent Stocktake Activity</h3>
+    <button id="load-stocktakes-btn" type="button" class="secondary">Load Stocktake History</button>
+    <div id="stocktake-history-result" class="panel"></div>
+  </section>
+
+</main>
+
+<script>
+const BACKEND = "http://localhost:5001";
+
+async function renderIntoPanel(panelId, url, options = {}) {
+  const panel = document.getElementById(panelId);
+  try {
+    const response = await fetch(url, options);
+    const body = await response.text();
+    panel.innerHTML = body;
+    return response;
+  } catch (error) {
+    panel.innerHTML = `<p>Request failed.</p><pre>${error}</pre>`;
+  }
+}
+
+async function populateSelect(selectEl, url, placeholder) {
+  try {
+    const response = await fetch(url);
+    const html = await response.text();
+    selectEl.innerHTML = (placeholder ? `<option value="">${placeholder}</option>` : "") + html;
+  } catch (error) {
+    selectEl.innerHTML = `<option value="">Failed to load</option>`;
+  }
+}
+
+function initDropdowns() {
+  populateSelect(document.getElementById("category-filter"), `${BACKEND}/categories/options`, "All categories");
+  populateSelect(document.getElementById("supplier-filter"), `${BACKEND}/suppliers/options`, "All suppliers");
+  populateSelect(document.getElementById("add_category_id"), `${BACKEND}/categories/options`, "");
+  populateSelect(document.getElementById("add_supplier_id"), `${BACKEND}/suppliers/options`, "");
+  populateSelect(document.getElementById("upd_category_id"), `${BACKEND}/categories/options`, "");
+  populateSelect(document.getElementById("upd_supplier_id"), `${BACKEND}/suppliers/options`, "");
+}
+initDropdowns();
+
+function loadProducts() {
+  const params = new URLSearchParams();
+  const search = document.getElementById("search-input").value.trim();
+  const category = document.getElementById("category-filter").value;
+  const supplier = document.getElementById("supplier-filter").value;
+  const sortBy = document.getElementById("sort-by").value;
+  const sortDir = document.getElementById("sort-dir").value;
+  if (search) params.set("search", search);
+  if (category) params.set("category_id", category);
+  if (supplier) params.set("supplier_id", supplier);
+  params.set("sort_by", sortBy);
+  params.set("sort_dir", sortDir);
+  renderIntoPanel("products-result", `${BACKEND}/products?${params.toString()}`);
+}
+loadProducts();
+
+document.getElementById("apply-filters-btn").addEventListener("click", loadProducts);
+document.getElementById("low-stock-btn").addEventListener("click", () => {
+  renderIntoPanel("products-result", `${BACKEND}/products/low-stock`);
+});
+
+// Add product
+document.getElementById("add-product-form").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const formData = new URLSearchParams(new FormData(event.target));
+  await renderIntoPanel("add-product-result", `${BACKEND}/products`, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: formData,
+  });
+  event.target.reset();
+  loadProducts();
+});
+
+// Find product to edit
+let currentEditId = null;
+document.getElementById("find-product-form").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const id = document.getElementById("edit_product_id").value;
+  const response = await fetch(`${BACKEND}/products/${id}`);
+  const body = await response.text();
+  document.getElementById("product-lookup-result").innerHTML = body;
+  const updateForm = document.getElementById("update-product-form");
+  if (response.ok) {
+    currentEditId = id;
+    updateForm.classList.remove("is-hidden");
+  } else {
+    currentEditId = null;
+    updateForm.classList.add("is-hidden");
+  }
+});
+
+// Update product
+document.getElementById("update-product-form").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  if (!currentEditId) return;
+  const formData = new URLSearchParams(new FormData(event.target));
+  await renderIntoPanel("update-product-result", `${BACKEND}/products/${currentEditId}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: formData,
+  });
+  loadProducts();
+});
+
+// Delete product
+document.getElementById("delete-product-btn").addEventListener("click", async () => {
+  if (!currentEditId) return;
+  if (!confirm(`Delete product ${currentEditId}? This cannot be undone.`)) return;
+  await renderIntoPanel("update-product-result", `${BACKEND}/products/${currentEditId}`, {
+    method: "DELETE",
+  });
+  document.getElementById("update-product-form").classList.add("is-hidden");
+  currentEditId = null;
+  loadProducts();
+});
+
+// Stocktake
+document.getElementById("stocktake-form").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const formData = new URLSearchParams(new FormData(event.target));
+  await renderIntoPanel("stocktake-add-result", `${BACKEND}/stocktakes`, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: formData,
+  });
+  event.target.reset();
+  loadProducts();
+});
+
+document.getElementById("load-stocktakes-btn").addEventListener("click", () => {
+  renderIntoPanel("stocktake-history-result", `${BACKEND}/stocktakes`);
+});
+</script>
+</body>
+</html>
+</file>
+
+<file path="frontend-service/templates/tabs/rag.html">
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>RAG</title>
+<link rel="stylesheet" href="/css/styles.css">
+<style>
+  body { margin: 0; min-height: auto; background: transparent; }
+  .app-shell { max-width: none; padding: 0; }
+</style>
+</head>
+<body>
+<main class="app-shell">
+  <section class="card">
+    <h2>RAG Mode</h2>
+    <p style="color: var(--muted); margin-top: -0.3rem;">Refresh the corpus, retrieve context, and generate grounded answers with citations and with no invented stock figures.</p>
+
+    <div class="feature-toggle-row">
+      <label class="toggle-switch" for="rag-mode-toggle">
+        <input id="rag-mode-toggle" type="checkbox" checked>
+        <span class="toggle-label">RAG Enabled</span>
+      </label>
+      <span id="rag-mode-state" class="feature-state feature-on">ON</span>
+    </div>
+
+    <form id="rag-refresh-form" class="stack-form">
+      <button type="submit" class="rag-action">Refresh Corpus</button>
+    </form>
+
+    <form id="rag-retrieve-form" class="stack-form">
+      <label for="rag-retrieve-query">Query</label>
+      <input id="rag-retrieve-query" name="query" required placeholder="Example: which products are low on stock">
+      <p class="rag-helper">Hint: use short retrieval phrases.</p>
+      <button type="submit" class="rag-action">Retrieve Context</button>
+    </form>
+
+    <form id="rag-answer-form" class="stack-form">
+      <label for="rag-answer-query">Question</label>
+      <input id="rag-answer-query" name="query" required placeholder="Example: How many products are in inventory?">
+      <p class="rag-helper">Hint: ask a full question for a grounded answer with citations.</p>
+      <button type="submit" class="rag-action">Answer with Citations</button>
+    </form>
+
+    <div id="rag-results" class="panel panel-mcp">RAG responses will appear here.</div>
+  </section>
+</main>
+
+<script>
+const BACKEND = "http://localhost:5001";
+const output = document.getElementById("rag-results");
+const ragModeToggle = document.getElementById("rag-mode-toggle");
+const ragModeState = document.getElementById("rag-mode-state");
+const RAG_STORAGE_KEY = "rag_mode_enabled";
+
+function isRagEnabled() { return ragModeToggle.checked; }
+
+function renderRagState() {
+  ragModeState.textContent = isRagEnabled() ? "ON" : "OFF";
+  ragModeState.classList.toggle("feature-on", isRagEnabled());
+  ragModeState.classList.toggle("feature-off", !isRagEnabled());
+}
+
+function renderRagDisabledMessage() {
+  output.innerHTML = "<p>RAG Mode is OFF. Enable RAG Mode to run RAG tools.</p>";
+}
+
+function saveRagMode() { localStorage.setItem(RAG_STORAGE_KEY, String(isRagEnabled())); }
+
+function loadRagMode() {
+  const persisted = localStorage.getItem(RAG_STORAGE_KEY);
+  ragModeToggle.checked = persisted === null ? true : persisted === "true";
+  renderRagState();
+}
+
+function renderJson(title, payload) {
+  output.innerHTML = `<h3>${title}</h3><pre>${JSON.stringify(payload, null, 2)}</pre>`;
+}
+
+async function postForm(path, data) {
+  if (!isRagEnabled()) {
+    renderRagDisabledMessage();
+    return { status: "error", error: "RAG Mode is OFF" };
+  }
+  output.innerHTML = "<p>Running...</p>";
+  const res = await fetch(`${BACKEND}${path}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded", "X-RAG-Mode": "on" },
+    body: new URLSearchParams(data),
+  });
+  const text = await res.text();
+  try {
+    return JSON.parse(text);
+  } catch {
+    return { raw: text };
+  }
+}
+
+ragModeToggle.addEventListener("change", () => {
+  saveRagMode();
+  renderRagState();
+  if (!isRagEnabled()) renderRagDisabledMessage();
+});
+
+document.getElementById("rag-refresh-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const payload = await postForm("/rag/refresh", {});
+  renderJson("RAG Tool: refresh_corpus", payload);
+});
+
+document.getElementById("rag-retrieve-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const query = document.getElementById("rag-retrieve-query").value.trim();
+  const payload = await postForm("/rag/retrieve", { query, k: "5" });
+  renderJson("RAG Tool: retrieve_context", payload);
+});
+
+document.getElementById("rag-answer-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const query = document.getElementById("rag-answer-query").value.trim();
+  const payload = await postForm("/rag/answer", { query, k: "5" });
+  renderJson("RAG Tool: answer_question", payload);
+});
+
+loadRagMode();
+if (!isRagEnabled()) renderRagDisabledMessage();
+</script>
+</body>
+</html>
+</file>
+
+<file path="frontend-service/templates/index.html">
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Warehouse &amp; Supply Chain</title>
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<main class="app-shell">
+  <header class="app-header">
+    <h1>Logistics &amp; Supply Chain App</h1>
+    <p>Inventory Management</p>
+  </header>
+
+  <section class="tab-shell card">
+    <nav class="tab-nav" aria-label="Application tabs">
+      <button class="tab-btn is-active" data-tab="normal" type="button">Normal UI</button>
+      <button class="tab-btn" data-tab="ai-mode" type="button">AI Mode</button>
+      <button class="tab-btn" data-tab="mcp" type="button">MCP</button>
+      <button class="tab-btn" data-tab="rag" type="button">RAG</button>
+      <button class="tab-btn" data-tab="multi-agent" type="button">Multi-Agent</button>
+    </nav>
+    <div class="tab-content">
+      <iframe id="tab-frame-normal" class="tab-frame is-active" src="tabs/normal.html" title="Normal UI tab"></iframe>
+      <iframe id="tab-frame-ai-mode" class="tab-frame" src="tabs/ai-mode.html" title="AI Mode tab"></iframe>
+      <iframe id="tab-frame-mcp" class="tab-frame" src="tabs/mcp.html" title="MCP tab"></iframe>
+      <iframe id="tab-frame-rag" class="tab-frame" src="tabs/rag.html" title="RAG tab"></iframe>
+      <iframe id="tab-frame-multi-agent" class="tab-frame" src="tabs/multi-agent.html" title="Multi-Agent tab"></iframe>
+    </div>
+  </section>
+</main>
+
+<script>
+const tabButtons = Array.from(document.querySelectorAll(".tab-btn"));
+const tabFrames = {
+  normal: document.getElementById("tab-frame-normal"),
+  "ai-mode": document.getElementById("tab-frame-ai-mode"),
+  mcp: document.getElementById("tab-frame-mcp"),
+  rag: document.getElementById("tab-frame-rag"),
+  "multi-agent": document.getElementById("tab-frame-multi-agent"),
+};
+
+function activateTab(tabName) {
+  tabButtons.forEach((button) => {
+    button.classList.toggle("is-active", button.dataset.tab === tabName);
+  });
+  Object.entries(tabFrames).forEach(([name, frame]) => {
+    frame.classList.toggle("is-active", name === tabName);
+  });
+  window.location.hash = tabName;
+}
+
+tabButtons.forEach((button) => {
+  button.addEventListener("click", () => activateTab(button.dataset.tab));
+});
+
+const hashTab = window.location.hash.replace("#", "");
+if (hashTab && tabFrames[hashTab]) {
+  activateTab(hashTab);
+} else {
+  activateTab("normal");
+}
+</script>
+</body>
+</html>
+</file>
+
+<file path="frontend-service/Dockerfile">
+FROM nginx:alpine
+COPY templates/ /usr/share/nginx/html/
+COPY css/ /usr/share/nginx/html/css/
+EXPOSE 80
+</file>
+
+<file path="inventory-service/routes/__init__.py">
+
+</file>
+
+<file path="inventory-service/routes/ai_mode.py">
+import requests
+from flask import Blueprint, request
+
+from services.database_api import get_low_stock_products, get_products
+from services.llm_client import OLLAMA_MODEL, create_chat_completion
+from services.prompt_loader import load_prompt
+
+ai_mode_bp = Blueprint("ai_mode", __name__)
+
+
+@ai_mode_bp.post("/ask")
+def ask_local_agent():
+    """Simple AI-mode: Frontend -> Backend/API -> Ollama -> LLM, no grounding."""
+    question = request.form.get("question", "").strip()
+    if not question:
+        return "<p>Question is required.</p>", 400
+    try:
+        answer = create_chat_completion(
+            [
+                {
+                    "role": "system",
+                    "content": (
+                        "You are a concise inventory management assistant. "
+                        "Answer in one short paragraph unless asked otherwise."
+                    ),
+                },
+                {"role": "user", "content": question},
+            ],
+            max_tokens=200,
+            temperature=0.2,
+            model=OLLAMA_MODEL,
+        )
+        return f"<p>{answer}</p>", 200
+    except Exception as exc:
+        return (
+            "<p>Local AI agent request failed. "
+            "Check that Ollama is running and the model is installed.</p>"
+            f"<pre>{exc}</pre>",
+            503,
+        )
+
+
+@ai_mode_bp.post("/ask-with-context")
+def ask_with_context():
+    """
+    Grounded AI-mode.
+    Plan: the question needs current product data as context.
+    Act: fetch live products from the database-service.
+    Observe: inject that evidence into the prompt.
+    Adapt: the LLM answers using only that real evidence.
+    """
+    question = request.form.get("question", "").strip()
+    if not question:
+        return "<p>Question is required.</p>", 400
+    try:
+        # Act - gather live evidence
+        products = get_products()
+        evidence_lines = [
+            f"- {p['name']} (brand: {p.get('brand') or 'n/a'}, category: {p['category_name']}, "
+            f"supplier: {p['supplier_name']}, price: ${p['price']:.2f}, qty: {p['quantity']}, "
+            f"reorder level: {p['reorder_level']})"
+            for p in products
+        ]
+        evidence = "\n".join(evidence_lines) if evidence_lines else "No products in inventory."
+
+        system_prompt = load_prompt("system_prompt.txt")
+        task_prompt = load_prompt("task_prompt.txt")
+
+        final_prompt = f"""{task_prompt}
+
+Inventory Evidence:
+{evidence}
+
+User Question:
+{question}
+"""
+        answer = create_chat_completion(
+            [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": final_prompt},
+            ],
+            max_tokens=300,
+            temperature=0.2,
+        )
+        return f"<p>{answer}</p>", 200
+    except requests.RequestException as exc:
+        return f"<p>Could not fetch inventory evidence.</p><pre>{exc}</pre>", 503
+    except Exception as exc:
+        return f"<p>Context-aware request failed.</p><pre>{exc}</pre>", 503
+
+
+@ai_mode_bp.post("/recommend")
+def recommend():
+    """
+    AI product recommendation, grounded in real stock/reorder-level/supplier data.
+    Plan -> Act -> Observe -> Adapt applied specifically to reorder decisions.
+    """
+    try:
+        # Act - gather evidence: low stock first, fall back to full snapshot
+        low_stock = get_low_stock_products()
+        products = low_stock if low_stock else get_products()
+
+        evidence_lines = [
+            f"- {p['name']}: qty={p['quantity']}, reorder_level={p['reorder_level']}, "
+            f"supplier={p['supplier_name']}, category={p['category_name']}"
+            for p in products
+        ]
+        evidence = "\n".join(evidence_lines) if evidence_lines else "No products in inventory."
+
+        system_prompt = load_prompt("system_prompt.txt")
+        recommend_prompt = load_prompt("recommend_prompt.txt")
+
+        final_prompt = f"""{recommend_prompt}
+
+Inventory Evidence:
+{evidence}
+"""
+        answer = create_chat_completion(
+            [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": final_prompt},
+            ],
+            max_tokens=250,
+            temperature=0.2,
+        )
+        return f"<pre>{answer}</pre>", 200
+    except requests.RequestException as exc:
+        return f"<p>Could not fetch inventory evidence.</p><pre>{exc}</pre>", 503
+    except Exception as exc:
+        return f"<p>Recommendation request failed.</p><pre>{exc}</pre>", 503
+</file>
+
+<file path="inventory-service/routes/mcp_mode.py">
+import json
+
+from flask import Blueprint, request
+import requests
+
+from services.mcp_api import call_mcp_tool, mcp_disabled_response, mcp_mode_is_enabled
+
+mcp_bp = Blueprint("mcp_mode", __name__)
+
+def mcp_render_json(title: str, payload):
+    return f"<h3>{title}</h3><pre>{json.dumps(payload, indent=2, default=str)}</pre>"
+
+
+@mcp_bp.post("/mcp/product-count")
+def mcp_product_count():
+    if not mcp_mode_is_enabled(request):
+        return mcp_disabled_response()
+    try:
+        result = call_mcp_tool("inventory_product_count", {})
+        return mcp_render_json("MCP Tool: inventory_product_count", result), 200
+    except requests.RequestException as exc:
+        return f"<p>MCP product_count failed.</p><pre>{exc}</pre>", 503
+
+
+@mcp_bp.post("/mcp/products-by-category")
+def mcp_products_by_category():
+    if not mcp_mode_is_enabled(request):
+        return mcp_disabled_response()
+
+    category_name = request.form.get("category_name", "").strip()
+    if not category_name:
+        return "<p>category_name is required.</p>", 400
+
+    try:
+        result = call_mcp_tool("inventory_products_by_category", {"category_name": category_name})
+        return mcp_render_json("MCP Tool: inventory_products_by_category", result), 200
+    except requests.RequestException as exc:
+        return f"<p>MCP products_by_category failed.</p><pre>{exc}</pre>", 503
+
+
+@mcp_bp.post("/mcp/low-stock-report")
+def mcp_low_stock_report():
+    if not mcp_mode_is_enabled(request):
+        return mcp_disabled_response()
+    try:
+        result = call_mcp_tool("inventory_low_stock_report", {})
+        return mcp_render_json("MCP Tool: inventory_low_stock_report", result), 200
+    except requests.RequestException as exc:
+        return f"<p>MCP low_stock_report failed.</p><pre>{exc}</pre>", 503
+
+
+@mcp_bp.post("/mcp/supplier-lookup")
+def mcp_supplier_lookup():
+    if not mcp_mode_is_enabled(request):
+        return mcp_disabled_response()
+
+    supplier_name = request.form.get("supplier_name", "").strip()
+    if not supplier_name:
+        return "<p>supplier_name is required.</p>", 400
+
+    try:
+        result = call_mcp_tool("inventory_supplier_lookup", {"supplier_name": supplier_name})
+        return mcp_render_json("MCP Tool: inventory_supplier_lookup", result), 200
+    except requests.RequestException as exc:
+        return f"<p>MCP supplier_lookup failed.</p><pre>{exc}</pre>", 503
+</file>
+
+<file path="inventory-service/routes/multi_agent_mode.py">
+import os
+
+import requests
+from flask import Blueprint, jsonify, request
+
+from services.database_api import get_products
+
+multi_agent_bp = Blueprint("multi_agent_mode", __name__)
+
+MULTI_AGENT_SERVICE_URL = os.getenv(
+    "MULTI_AGENT_SERVICE_URL",
+    "http://host.docker.internal:5006"
+)
+
+
+@multi_agent_bp.get("/api/multi-agent/inventory")
+def inventory_snapshot():
+    """Expose a read-only snapshot of products to the inventory multi-agent server."""
+    try:
+        return jsonify({"products": get_products()}), 200
+    except Exception as exc:
+        return jsonify({
+            "error": "Could not fetch inventory data.",
+            "detail": str(exc),
+        }), 503
+
+
+@multi_agent_bp.post("/api/multi-agent/workflow")
+def run_multi_agent_workflow():
+    """Forward a user request to the locally running inventory multi-agent server."""
+    data = request.get_json(silent=True) or {}
+    user_request = data.get("request")
+
+    if not isinstance(user_request, str) or not user_request.strip():
+        return jsonify({
+            "error": "A non-empty 'request' field is required."
+        }), 400
+
+    try:
+        response = requests.post(
+            f"{MULTI_AGENT_SERVICE_URL.rstrip('/')}/workflow",
+            json={"request": user_request},
+            timeout=120,
+        )
+
+        return (
+            response.text,
+            response.status_code,
+            {"Content-Type": response.headers.get(
+                "Content-Type", "application/json"
+            )},
+        )
+
+    except requests.RequestException as exc:
+        return jsonify({
+            "error": "Could not connect to the multi-agent server.",
+            "detail": str(exc),
+        }), 502
+
+"""
+MULTI_AGENT_SERVICE_URL = os.getenv("MULTI_AGENT_SERVICE_URL", "http://localhost:5004")
+
+try:
+    MULTI_AGENT_SERVICE_TIMEOUT_SECONDS = int(os.getenv("MULTI_AGENT_SERVICE_TIMEOUT_SECONDS", "60"))
+except ValueError:
+    MULTI_AGENT_SERVICE_TIMEOUT_SECONDS = 60
+
+
+def multi_agent_mode_is_enabled(req) -> bool:
+    enabled = os.getenv("MULTI_AGENT_ENABLED", "true").strip().lower() in ("1", "true", "yes", "on")
+    if not enabled:
+        return False
+
+    mode_header = req.headers.get("X-Multi-Agent-Mode", "on").strip().lower()
+    return mode_header in ("1", "true", "yes", "on")
+
+
+def multi_agent_disabled_response():
+    return {"status": "error", "error": "Multi-Agent mode is disabled."}, 403
+
+
+@multi_agent_bp.post("/multi-agent/workflow")
+def multi_agent_workflow():
+    if not multi_agent_mode_is_enabled(request):
+        return multi_agent_disabled_response()
+
+    data = request.get_json(silent=True) or {}
+    user_request = data.get("user_request", "").strip()
+
+    if not user_request:
+        return {"status": "error", "error": "user_request is required"}, 400
+
+    try:
+        response = requests.post(
+            f"{MULTI_AGENT_SERVICE_URL}/workflow",
+            json={"user_request": user_request},
+            timeout=MULTI_AGENT_SERVICE_TIMEOUT_SECONDS,
+        )
+        return response.json(), response.status_code
+    except requests.RequestException as exc:
+        return {"status": "error", "error": str(exc)}, 503
+
+
+@multi_agent_bp.get("/multi-agent/workflow/status")
+def multi_agent_workflow_status():
+    if not multi_agent_mode_is_enabled(request):
+        return multi_agent_disabled_response()
+
+    try:
+        response = requests.get(
+            f"{MULTI_AGENT_SERVICE_URL}/workflow/status",
+            timeout=MULTI_AGENT_SERVICE_TIMEOUT_SECONDS,
+        )
+        return response.json(), response.status_code
+    except requests.RequestException as exc:
+        return {"status": "error", "error": str(exc)}, 503
+"""
+</file>
+
+<file path="inventory-service/routes/normal_ui.py">
+from flask import Blueprint, request
+import requests
+
+from services.database_api import (
+    create_product,
+    create_stocktake,
+    delete_product,
+    get_categories,
+    get_low_stock_products,
+    get_product_response,
+    get_products,
+    get_stocktakes,
+    get_suppliers,
+    update_product,
+)
+from views.html_formatters import (
+    format_categories_options,
+    format_product_html,
+    format_products_html,
+    format_stocktakes_html,
+    format_suppliers_options,
+)
+
+normal_ui_bp = Blueprint("normal_ui", __name__)
+
+
+@normal_ui_bp.get("/")
+def health():
+    return "<p>inventory-service running</p>", 200
+
+# READ
+
+@normal_ui_bp.get("/products")
+def list_products():
+    params = {}
+    if request.args.get("search"):
+        params["search"] = request.args.get("search").strip()
+    if request.args.get("category_id"):
+        params["category_id"] = request.args.get("category_id")
+    if request.args.get("supplier_id"):
+        params["supplier_id"] = request.args.get("supplier_id")
+    if request.args.get("sort_by"):
+        params["sort_by"] = request.args.get("sort_by")
+    if request.args.get("sort_dir"):
+        params["sort_dir"] = request.args.get("sort_dir")
+
+    try:
+        products = get_products(params)
+        return format_products_html(products), 200
+    except requests.RequestException as exc:
+        return f"<p>Failed to retrieve products.</p><pre>{exc}</pre>", 503
+
+
+@normal_ui_bp.get("/products/low-stock")
+def list_low_stock():
+    try:
+        products = get_low_stock_products()
+        if not products:
+            return "<p>All products are above their reorder level.</p>", 200
+        return format_products_html(products), 200
+    except requests.RequestException as exc:
+        return f"<p>Failed to retrieve low-stock products.</p><pre>{exc}</pre>", 503
+
+
+@normal_ui_bp.get("/products/<int:product_id>")
+def get_single_product(product_id):
+    try:
+        response = get_product_response(product_id)
+        if response.status_code == 404:
+            return "<p>Product not found.</p>", 404
+        response.raise_for_status()
+        return format_product_html(response.json()), 200
+    except requests.RequestException as exc:
+        return f"<p>Failed to retrieve product.</p><pre>{exc}</pre>", 503
+
+# CREATE
+
+@normal_ui_bp.post("/products")
+def add_product():
+    form = request.form
+    required = ["name", "category_id", "supplier_id", "price"]
+    missing = [f for f in required if not form.get(f)]
+    if missing:
+        return f"<p>Missing required fields: {', '.join(missing)}</p>", 400
+
+    payload = {
+        "name": form.get("name"),
+        "brand": form.get("brand", ""),
+        "description": form.get("description", ""),
+        "category_id": int(form.get("category_id")),
+        "supplier_id": int(form.get("supplier_id")),
+        "price": float(form.get("price")),
+        "quantity": int(form.get("quantity", 0) or 0),
+        "reorder_level": int(form.get("reorder_level", 10) or 10),
+    }
+    try:
+        response = create_product(payload)
+        response.raise_for_status()
+        data = response.json()
+        return f"<p>Product added successfully (ID {data['product_id']}).</p>", 201
+    except requests.RequestException as exc:
+        return f"<p>Failed to add product.</p><pre>{exc}</pre>", 503
+
+# UPDATE
+
+@normal_ui_bp.put("/products/<int:product_id>")
+def edit_product(product_id):
+    form = request.form
+    payload = {}
+    for field in ["name", "brand", "description"]:
+        if form.get(field) is not None:
+            payload[field] = form.get(field)
+    for field in ["category_id", "supplier_id", "quantity", "reorder_level"]:
+        if form.get(field):
+            payload[field] = int(form.get(field))
+    if form.get("price"):
+        payload["price"] = float(form.get("price"))
+
+    try:
+        response = update_product(product_id, payload)
+        if response.status_code == 404:
+            return "<p>Product not found.</p>", 404
+        response.raise_for_status()
+        return "<p>Product updated successfully.</p>", 200
+    except requests.RequestException as exc:
+        return f"<p>Failed to update product.</p><pre>{exc}</pre>", 503
+
+# DELETE
+
+@normal_ui_bp.delete("/products/<int:product_id>")
+def remove_product(product_id):
+    try:
+        response = delete_product(product_id)
+        if response.status_code == 404:
+            return "<p>Product not found.</p>", 404
+        response.raise_for_status()
+        return "<p>Product discontinued (deleted) successfully.</p>", 200
+    except requests.RequestException as exc:
+        return f"<p>Failed to delete product.</p><pre>{exc}</pre>", 503
+
+# CATEGORIES/SUPPLIERS OPTIONS
+
+@normal_ui_bp.get("/categories/options")
+def category_options():
+    try:
+        categories = get_categories()
+        return format_categories_options(categories), 200
+    except requests.RequestException as exc:
+        return f"<p>Failed to load categories.</p><pre>{exc}</pre>", 503
+
+
+@normal_ui_bp.get("/suppliers/options")
+def supplier_options():
+    try:
+        suppliers = get_suppliers()
+        return format_suppliers_options(suppliers), 200
+    except requests.RequestException as exc:
+        return f"<p>Failed to load suppliers.</p><pre>{exc}</pre>", 503
+
+# STOCKTAKES
+
+@normal_ui_bp.get("/stocktakes")
+def list_stocktakes():
+    try:
+        stocktakes = get_stocktakes()
+        return format_stocktakes_html(stocktakes), 200
+    except requests.RequestException as exc:
+        return f"<p>Failed to retrieve stocktake activity.</p><pre>{exc}</pre>", 503
+
+
+@normal_ui_bp.post("/stocktakes")
+def add_stocktake():
+    form = request.form
+    product_id = form.get("product_id")
+    member_name = form.get("member_name", "").strip()
+    counted_quantity = form.get("counted_quantity")
+
+    if not product_id or not member_name or counted_quantity is None or counted_quantity == "":
+        return "<p>Product, member name and counted quantity are required.</p>", 400
+
+    payload = {
+        "product_id": int(product_id),
+        "member_name": member_name,
+        "counted_quantity": int(counted_quantity),
+    }
+    try:
+        response = create_stocktake(payload)
+        if response.status_code == 404:
+            return "<p>Product not found.</p>", 404
+        response.raise_for_status()
+        return "<p>Stocktake recorded successfully.</p>", 201
+    except requests.RequestException as exc:
+        return f"<p>Failed to record stocktake.</p><pre>{exc}</pre>", 503
+</file>
+
+<file path="inventory-service/routes/rag_mode.py">
+from flask import Blueprint, request
+import requests
+
+from services.rag_api import call_rag_service, rag_disabled_response, rag_mode_is_enabled
+
+rag_bp = Blueprint("rag_mode", __name__)
+
+
+@rag_bp.post("/rag/refresh")
+def rag_refresh():
+    if not rag_mode_is_enabled(request):
+        return rag_disabled_response()
+    caller = request.form.get("caller", "student").strip() or "student"
+    try:
+        return call_rag_service("/refresh", {"caller": caller}), 200
+    except requests.RequestException as exc:
+        return {"status": "error", "error": str(exc)}, 503
+
+
+@rag_bp.post("/rag/retrieve")
+def rag_retrieve():
+    if not rag_mode_is_enabled(request):
+        return rag_disabled_response()
+    query = request.form.get("query", "").strip()
+    k = int(request.form.get("k", "5"))
+    if not query:
+        return {"status": "error", "error": "query is required"}, 400
+    try:
+        return call_rag_service("/retrieve", {"query": query, "k": k, "caller": "student"}), 200
+    except requests.RequestException as exc:
+        return {"status": "error", "error": str(exc)}, 503
+
+
+@rag_bp.post("/rag/answer")
+def rag_answer():
+    if not rag_mode_is_enabled(request):
+        return rag_disabled_response()
+    query = request.form.get("query", "").strip()
+    k = int(request.form.get("k", "5"))
+    if not query:
+        return {"status": "error", "error": "query is required"}, 400
+    try:
+        return call_rag_service("/answer", {"query": query, "k": k, "caller": "student"}), 200
+    except requests.RequestException as exc:
+        return {"status": "error", "error": str(exc)}, 503
+</file>
+
+<file path="inventory-service/services/__init__.py">
+
+</file>
+
+<file path="inventory-service/services/database_api.py">
+import os
+
+import requests
+
+DATABASE_SERVICE_URL = os.getenv("DATABASE_SERVICE_URL", "http://database-service:5002")
+
+
+def get_products(params=None):
+    response = requests.get(f"{DATABASE_SERVICE_URL}/products", params=params or {}, timeout=5)
+    response.raise_for_status()
+    return response.json()
+
+
+def get_low_stock_products():
+    response = requests.get(f"{DATABASE_SERVICE_URL}/products/low-stock", timeout=5)
+    response.raise_for_status()
+    return response.json()
+
+
+def get_product_response(product_id):
+    return requests.get(f"{DATABASE_SERVICE_URL}/products/{product_id}", timeout=5)
+
+
+def create_product(payload):
+    return requests.post(f"{DATABASE_SERVICE_URL}/products", json=payload, timeout=5)
+
+
+def update_product(product_id, payload):
+    return requests.put(f"{DATABASE_SERVICE_URL}/products/{product_id}", json=payload, timeout=5)
+
+
+def delete_product(product_id):
+    return requests.delete(f"{DATABASE_SERVICE_URL}/products/{product_id}", timeout=5)
+
+
+def get_categories():
+    response = requests.get(f"{DATABASE_SERVICE_URL}/categories", timeout=5)
+    response.raise_for_status()
+    return response.json()
+
+
+def get_suppliers():
+    response = requests.get(f"{DATABASE_SERVICE_URL}/suppliers", timeout=5)
+    response.raise_for_status()
+    return response.json()
+
+
+def get_stocktakes():
+    response = requests.get(f"{DATABASE_SERVICE_URL}/stocktakes", timeout=5)
+    response.raise_for_status()
+    return response.json()
+
+
+def create_stocktake(payload):
+    return requests.post(f"{DATABASE_SERVICE_URL}/stocktakes", json=payload, timeout=5)
+</file>
+
+<file path="inventory-service/services/llm_client.py">
+import os
+
+from openai import OpenAI
+
+OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://host.docker.internal:11434/v1")
+OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen2.5:0.5b")
+
+client = OpenAI(base_url=OLLAMA_BASE_URL, api_key="ollama")
+
+
+def create_chat_completion(messages, max_tokens=300, temperature=0.2, model=None):
+    response = client.chat.completions.create(
+        model=model or OLLAMA_MODEL,
+        messages=messages,
+        max_tokens=max_tokens,
+        temperature=temperature,
+    )
+    return response.choices[0].message.content
+</file>
+
+<file path="inventory-service/services/mcp_api.py">
+import os
+
+import requests
+
+MCP_SERVICE_URL = os.getenv("MCP_SERVICE_URL", "http://host.docker.internal:5004")
+MCP_ENABLED = os.getenv("MCP_ENABLED", "true").strip().lower() in ("1", "true", "yes", "on")
+
+try:
+    MCP_SERVICE_TIMEOUT_SECONDS = int(os.getenv("MCP_SERVICE_TIMEOUT_SECONDS", "30"))
+except ValueError:
+    MCP_SERVICE_TIMEOUT_SECONDS = 30
+
+
+def mcp_mode_is_enabled(req) -> bool:
+    if not MCP_ENABLED:
+        return False
+    mode_header = req.headers.get("X-MCP-Mode", "on").strip().lower()
+    return mode_header in ("1", "true", "yes", "on")
+
+
+def mcp_disabled_response():
+    return "<p>MCP Mode is disabled.</p>", 403
+
+
+def call_mcp_tool(tool_name: str, payload: dict):
+    response = requests.post(
+        f"{MCP_SERVICE_URL}/tool/{tool_name}",
+        json=payload,
+        timeout=MCP_SERVICE_TIMEOUT_SECONDS,
+    )
+    try:
+        data = response.json()
+    except ValueError:
+        response.raise_for_status()
+        return {}
+    if response.status_code >= 400:
+        raise requests.HTTPError(
+            f"MCP service call to '{tool_name}' failed with status {response.status_code}: {data}",
+            response=response,
+        )
+    return data
+</file>
+
+<file path="inventory-service/services/prompt_loader.py">
+from pathlib import Path
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+APP_DIR = BASE_DIR.parent
+PROMPT_DIR = APP_DIR / "prompts" / "implementation"
+
+
+def load_prompt(filename):
+    return (PROMPT_DIR / filename).read_text(encoding="utf-8").strip()
+</file>
+
+<file path="inventory-service/services/rag_api.py">
+import os
+
+import requests
+
+RAG_SERVICE_URL = os.getenv("RAG_SERVICE_URL", "http://host.docker.internal:5003")
+RAG_ENABLED = os.getenv("RAG_ENABLED", "true").strip().lower() in ("1", "true", "yes", "on")
+
+try:
+    RAG_SERVICE_TIMEOUT_SECONDS = int(os.getenv("RAG_SERVICE_TIMEOUT_SECONDS", "180"))
+except ValueError:
+    RAG_SERVICE_TIMEOUT_SECONDS = 180
+
+
+def rag_mode_is_enabled(req) -> bool:
+    if not RAG_ENABLED:
+        return False
+    mode_header = req.headers.get("X-RAG-Mode", "on").strip().lower()
+    return mode_header in ("1", "true", "yes", "on")
+
+
+def rag_disabled_response():
+    return {"status": "error", "error": "RAG mode is disabled."}, 403
+
+
+def call_rag_service(path: str, payload: dict):
+    response = requests.post(f"{RAG_SERVICE_URL}{path}", json=payload, timeout=RAG_SERVICE_TIMEOUT_SECONDS)
+    try:
+        data = response.json()
+    except ValueError:
+        response.raise_for_status()
+        return {}
+    if response.status_code >= 400:
+        raise requests.HTTPError(f"RAG service {path} failed with status {response.status_code}: {data}", response=response)
+    return data
+</file>
+
+<file path="inventory-service/views/__init__.py">
+
+</file>
+
+<file path="inventory-service/views/html_formatters.py">
+def format_products_html(products):
+    if not products:
+        return "<p>No products found.</p>"
+    rows = ""
+    for p in products:
+        low_stock = p["quantity"] <= p["reorder_level"]
+        badge = (
+            '<span class="badge badge-low">Low stock</span>'
+            if low_stock
+            else '<span class="badge badge-ok">OK</span>'
+        )
+        rows += (
+            "<tr>"
+            f"<td>{p['product_id']}</td>"
+            f"<td>{p['name']}</td>"
+            f"<td>{p.get('brand') or '-'}</td>"
+            f"<td>{p['category_name']}</td>"
+            f"<td>{p['supplier_name']}</td>"
+            f"<td>${p['price']:.2f}</td>"
+            f"<td>{p['quantity']}</td>"
+            f"<td>{badge}</td>"
+            "</tr>"
+        )
+    return (
+        '<table class="data-table">'
+        "<thead><tr><th>ID</th><th>Name</th><th>Brand</th><th>Category</th>"
+        "<th>Supplier</th><th>Price</th><th>Qty</th><th>Status</th></tr></thead>"
+        f"<tbody>{rows}</tbody></table>"
+    )
+
+
+def format_product_html(product):
+    return (
+        "<div class='product-detail'>"
+        f"<p><strong>ID:</strong> {product['product_id']}</p>"
+        f"<p><strong>Name:</strong> {product['name']}</p>"
+        f"<p><strong>Brand:</strong> {product.get('brand') or '-'}</p>"
+        f"<p><strong>Description:</strong> {product.get('description') or '-'}</p>"
+        f"<p><strong>Category:</strong> {product['category_name']}</p>"
+        f"<p><strong>Supplier:</strong> {product['supplier_name']}</p>"
+        f"<p><strong>Price:</strong> ${product['price']:.2f}</p>"
+        f"<p><strong>Quantity:</strong> {product['quantity']}</p>"
+        f"<p><strong>Reorder level:</strong> {product['reorder_level']}</p>"
+        "</div>"
+    )
+
+
+def format_categories_options(categories):
+    return "".join(f"<option value='{c['category_id']}'>{c['name']}</option>" for c in categories)
+
+
+def format_suppliers_options(suppliers):
+    return "".join(f"<option value='{s['supplier_id']}'>{s['name']}</option>" for s in suppliers)
+
+
+def format_stocktakes_html(stocktakes):
+    if not stocktakes:
+        return "<p>No stocktake activity recorded yet.</p>"
+    rows = ""
+    for s in stocktakes:
+        rows += (
+            "<tr>"
+            f"<td>{s['stocktake_id']}</td>"
+            f"<td>{s['product_name']}</td>"
+            f"<td>{s['member_name']}</td>"
+            f"<td>{s['counted_quantity']}</td>"
+            f"<td>{s['timestamp']}</td>"
+            "</tr>"
+        )
+    return (
+        '<table class="data-table">'
+        "<thead><tr><th>ID</th><th>Product</th><th>Member</th><th>Counted Qty</th><th>Timestamp</th></tr></thead>"
+        f"<tbody>{rows}</tbody></table>"
+    )
+</file>
+
+<file path="inventory-service/app.py">
+from pathlib import Path
+import sys
+
+from flask import Flask
+from flask_cors import CORS
+
+BASE_DIR = Path(__file__).resolve().parent
+if str(BASE_DIR) not in sys.path:
+    sys.path.insert(0, str(BASE_DIR))
+
+from routes.ai_mode import ai_mode_bp
+from routes.normal_ui import normal_ui_bp
+from routes.mcp_mode import mcp_bp
+from routes.rag_mode import rag_bp
+from routes.multi_agent_mode import multi_agent_bp
+
+
+def create_app():
+    app = Flask(__name__)
+    CORS(app)
+    app.register_blueprint(normal_ui_bp)
+    app.register_blueprint(ai_mode_bp)
+    app.register_blueprint(mcp_bp)
+    app.register_blueprint(rag_bp)
+    app.register_blueprint(multi_agent_bp)
+    return app
+
+
+app = create_app()
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5001, debug=True)
+</file>
+
+<file path="inventory-service/Dockerfile">
+FROM python:3.11-slim
+
+WORKDIR /app
+
+COPY inventory-service/requirements.txt ./requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY inventory-service ./inventory-service
+COPY prompts ./prompts
+
+EXPOSE 5001
+
+CMD ["python", "inventory-service/app.py"]
+</file>
+
+<file path="inventory-service/requirements.txt">
+flask==3.1.3
+flask-cors==6.0.0
+requests==2.33.0
+openai
+python-dotenv
+</file>
+
+<file path="prompts/implementation/recommend_prompt.txt">
+Task:
+You are given a snapshot of current product stock levels, reorder levels, and suppliers.
+
+Plan: identify products that are at or below their reorder level (low stock), and consider
+which supplier they should be reordered from.
+Act: produce a short, prioritised reorder recommendation list.
+Observe: base every recommendation strictly on the supplied evidence below.
+Adapt: if there are no low-stock products, recommend which product(s) are selling fastest
+based on quantity relative to other items, or state that stock levels look healthy.
+
+Output format:
+- A short bullet list (max 5 bullets).
+- Each bullet: product name, current quantity, reorder level, supplier to reorder from.
+- Maximum 100 words total.
+</file>
+
+<file path="prompts/implementation/system_prompt.txt">
+You are an INVENTORY MANAGEMENT ASSISTANT for a warehouse Inventory Management microservice.
+
+Your role: Help staff understand stock levels, suppliers, categories, and recommend
+products worth reordering or promoting, using only the real inventory data supplied to you.
+
+Rules:
+- Use only the supplied inventory evidence. Do not invent products, suppliers, or quantities.
+- Do not invent database fields or endpoints.
+- If information is unavailable in the supplied evidence, say:
+  "Information unavailable in supplied evidence."
+- Keep answers concise and practical for a warehouse staff member.
+</file>
+
+<file path="prompts/implementation/task_prompt.txt">
+Task:
+Using the inventory evidence provided below, answer the user's question.
+If the evidence does not support an answer, say "Information unavailable in supplied evidence."
+Keep the answer under 120 words.
+</file>
+
+<file path="docker-compose.yml">
+services:
+  frontend-service:
+    build:
+      context: ./frontend-service
+    container_name: inventory-frontend-service
+    ports:
+      - "8081:80"
+    depends_on:
+      - inventory-service
+    networks:
+      - team-network
+    restart: unless-stopped
+
+  inventory-service:
+    build:
+      context: .
+      dockerfile: inventory-service/Dockerfile
+    container_name: inventory-service
+    ports:
+      - "5001:5001"
+    environment:
+      DATABASE_SERVICE_URL: http://database-service:5002
+      OLLAMA_BASE_URL: http://host.docker.internal:11434/v1
+      OLLAMA_MODEL: qwen2.5:0.5b
+      MCP_ENABLED: "false"
+      RAG_ENABLED: "false"
+      RAG_SERVICE_URL: http://host.docker.internal:5003
+      MULTI_AGENT_SERVICE_URL: http://host.docker.internal:5006
+      MULTI_AGENT_ENABLED: "true"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      - database-service
+    networks:
+      - team-network
+    restart: unless-stopped
+
+  database-service:
+    build:
+      context: ./database-service
+    container_name: inventory-database-service
+    ports:
+      - "5002:5002"
+    volumes:
+      - inventory_database_data:/app/data
+    networks:
+      - team-network
+    restart: unless-stopped
+
+networks:
+  team-network:
+    driver: bridge
+
+volumes:
+  inventory_database_data:
+</file>
+
+<file path="Dockerfile">
+
+</file>
+
+</files>
