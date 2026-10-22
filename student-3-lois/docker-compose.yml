@@ -22,9 +22,11 @@ services:
       DATABASE_SERVICE_URL: http://database-service:5002
       OLLAMA_BASE_URL: http://host.docker.internal:11434/v1
       OLLAMA_MODEL: qwen2.5:0.5b
-      MCP_ENABLED: "true"
-      RAG_ENABLED: "true"
+      MCP_ENABLED: "false"
+      RAG_ENABLED: "false"
       RAG_SERVICE_URL: http://host.docker.internal:5003
+      MULTI_AGENT_SERVICE_URL: http://multi-agent-service:5005
+      MULTI_AGENT_ENABLED: "true"
     extra_hosts:
       - "host.docker.internal:host-gateway"
     depends_on:
