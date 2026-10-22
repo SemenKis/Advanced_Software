@@ -31,8 +31,8 @@ def _log(step, payload):
 
 
 def plan(db_service_url):
-    tasks = requests.get(f"{db_service_url}/api/shipping-tasks").json()
-    locations = requests.get(f"{db_service_url}/api/storage-locations").json()
+    tasks = requests.get(f"{db_service_url}/api/shipping-tasks", timeout=10).json()
+    locations = requests.get(f"{db_service_url}/api/storage-locations", timeout=10).json()
     pending = [t for t in tasks if t["status"] in ("pending", "in_progress")]
     context = {"pending_tasks": pending, "storage_locations": locations}
     _log("PLAN", {"pending_tasks_count": len(pending), "location_count": len(locations)})
@@ -94,6 +94,7 @@ def adapt(parsed, context, db_service_url):
         r = requests.put(
             f"{db_service_url}/api/shipping-tasks/{entry['task_id']}",
             json={"priority": entry["priority"]},
+            timeout=10,
         )
         updates.append({"task_id": entry["task_id"], "status_code": r.status_code})
     _log("ADAPT", {"updates": updates})

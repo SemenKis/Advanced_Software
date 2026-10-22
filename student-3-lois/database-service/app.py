@@ -1,3 +1,4 @@
+import os
 import sqlite3
 from flask import Flask, jsonify, request
 from datetime import datetime
@@ -269,4 +270,4 @@ def create_stocktake():
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5002, debug=True)
+    app.run(host="0.0.0.0", port=5002, debug=os.environ.get("FLASK_DEBUG", "false").lower() == "true")

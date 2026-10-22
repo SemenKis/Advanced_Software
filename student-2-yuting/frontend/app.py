@@ -29,7 +29,7 @@ RESOURCE_CONFIG = {
 }
 
 def fetch_items(cfg):
-    return requests.get(f"{BACKEND_URL}/api/{cfg['api']}").json()
+    return requests.get(f"{BACKEND_URL}/api/{cfg['api']}", timeout=10).json()
 
 def build_payload(cfg, form):
     payload = {}
@@ -69,7 +69,7 @@ def resource_add(resource):
     cfg = RESOURCE_CONFIG.get(resource)
     if not cfg: 
         return "Not found", 404
-    requests.post(f"{BACKEND_URL}/api/{cfg['api']}", json=build_payload(cfg, request.form))
+    requests.post(f"{BACKEND_URL}/api/{cfg['api']}", json=build_payload(cfg, request.form), timeout=10)
     return render_template(cfg["rows_template"], items=fetch_items(cfg))
 
 
@@ -80,7 +80,7 @@ def resource_update(resource, item_id):
     cfg = RESOURCE_CONFIG.get(resource)
     if not cfg:
         return "Not found", 404
-    requests.put(f"{BACKEND_URL}/api/{cfg['api']}/{item_id}", json=build_payload(cfg, request.form))
+    requests.put(f"{BACKEND_URL}/api/{cfg['api']}/{item_id}", json=build_payload(cfg, request.form), timeout=10)
     return render_template(cfg["rows_template"], items=fetch_items(cfg))
 
 
@@ -90,13 +90,13 @@ def resource_delete(resource, item_id):
     cfg = RESOURCE_CONFIG.get(resource)
     if not cfg:
         return "Not found", 404
-    requests.delete(f"{BACKEND_URL}/api/{cfg['api']}/{item_id}")
+    requests.delete(f"{BACKEND_URL}/api/{cfg['api']}/{item_id}", timeout=10)
     return render_template(cfg["rows_template"], items=fetch_items(cfg))
 
 
 @app.route("/shipping-tasks/prioritise", methods=["POST"])
 def shipping_prioritise():
-    requests.post(f"{BACKEND_URL}/api/ai/prioritise-shipping-tasks")
+    requests.post(f"{BACKEND_URL}/api/ai/prioritise-shipping-tasks", timeout=120)
     cfg = RESOURCE_CONFIG["shipping-tasks"]
     return render_template(cfg["rows_template"], items=fetch_items(cfg))
 
@@ -113,15 +113,49 @@ def mcp_rag_page():
 @app.route("/mcp/check-storage-capacity", methods=["POST"])
 def mcp_check_storage_capacity():
     zone_name = request.form.get("zone_name", "")
-    resp = requests.post(f"{BACKEND_URL}/mcp/check-storage-capacity", data={"zone_name": zone_name})
+    resp = requests.post(f"{BACKEND_URL}/mcp/check-storage-capacity", data={"zone_name": zone_name}, timeout=15)
     return resp.text, resp.status_code, {"Content-Type": "application/json"}
 
 
 @app.route("/rag/answer", methods=["POST"])
 def rag_answer_forward():
     query = request.form.get("query", "")
-    resp = requests.post(f"{BACKEND_URL}/rag/answer", data={"query": query})
+    resp = requests.post(f"{BACKEND_URL}/rag/answer", data={"query": query}, timeout=120)
     return resp.text, resp.status_code, {"Content-Type": "application/json"}
+
+
+def _forward_multi_agent(method, path, payload=None, timeout=220):
+    try:
+        resp = requests.request(method, f"{BACKEND_URL}{path}", json=payload, timeout=timeout)
+        return resp.text, resp.status_code, {"Content-Type": "application/json"}
+    except requests.exceptions.RequestException as exc:
+        return {"status": "error", "error": f"Backend unreachable: {exc}"}, 503
+
+
+@app.route("/multi-agent")
+def multi_agent_page():
+    return render_template("multi_agent.html")
+
+
+@app.route("/multi-agent/workflow", methods=["POST"])
+def multi_agent_workflow_forward():
+    data = request.get_json(silent=True) or request.form
+    return _forward_multi_agent("POST", "/multi-agent/workflow", {"request": data.get("request", "")})
+
+
+@app.route("/multi-agent/workflow/status", methods=["GET"])
+def multi_agent_status_forward():
+    return _forward_multi_agent("GET", "/multi-agent/workflow/status", timeout=10)
+
+
+@app.route("/multi-agent/workflow/decision", methods=["POST"])
+def multi_agent_decision_forward():
+    data = request.get_json(silent=True) or request.form
+    return _forward_multi_agent("POST", "/multi-agent/workflow/decision", {
+        "workflow_id": data.get("workflow_id", ""),
+        "decision": data.get("decision", ""),
+        "note": data.get("note", ""),
+    }, timeout=10)
 
 
 if __name__ =="__main__":

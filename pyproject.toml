@@ -1,0 +1,17 @@
+[tool.ruff]
+# Runtime vector-store data, not source code
+exclude = ["ai-services/rag-server/chroma"]
+
+[tool.ruff.lint]
+# Static security scan: flake8-bandit (S) rules only
+select = ["S"]
+ignore = [
+    # Services run in Docker containers and must listen on all interfaces
+    "S104",
+]
+
+[tool.ruff.lint.per-file-ignores]
+# pytest relies on assert
+"**/tests/**" = ["S101"]
+# Random numbers are only used to generate demo seed data, not for security
+"student-2-yuting/database/seed.py" = ["S311"]

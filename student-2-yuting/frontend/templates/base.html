@@ -5,17 +5,44 @@
     <title>Warehouse Management - Student 2 Yuting</title>
     <script src="/static/htmx.min.js"></script>
     <style>
-        body { font-family: sans-serif; margin: 2rem; color: #032c24; background-color: #d3eaf8; }
+        body { font-family: sans-serif; margin: 2rem; color: #1F3D2B; background-color: #F1F0E2; }
         table { border-collapse: collapse; width: 100%; margin-top: 1rem; background-color: #ffffff; }
-        th, td { border: 1px solid #376f7e; padding: 10px 14px; text-align: left; font-size: 0.9rem; }
-        th { background-color: #a5d5e9; color: #032c24; }
-        nav { background-color: #032c24; padding: 12px 20px; border-radius: 8px; }
-        nav a { margin-right: 1.2rem; text-decoration: none; font-weight: bold; color: #d3eaf8; }
-        nav a:hover { color: #a5d5e9; }
+        th, td { border: 1px solid #D5D3BC; padding: 10px 14px; text-align: left; font-size: 0.9rem; }
+        th { background-color: #6B8F5E; color: #FFFFFF; }
+        tr:nth-child(even) td { background-color: #F8F7EE; }
+        nav { background-color: #1F3D2B; padding: 12px 20px; border-radius: 8px; }
+        nav a { margin-right: 0.4rem; padding: 6px 12px; border-radius: 6px; text-decoration: none; font-weight: bold; color: #E6EBD8; }
+        nav a:hover { background-color: #A65D57; color: #FFFFFF; }
+
+        button {
+            background-color: #4E7A47;
+            color: #FFFFFF;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        button:hover { background-color: #3A6035; }
+        td form.inline:not([hx-delete]) button {
+            background-color: transparent;
+            color: #4E7A47;
+            border: 2px solid #4E7A47;
+        }
+        td form.inline:not([hx-delete]) button:hover {
+            background-color: #4E7A47;
+            color: #FFFFFF;
+        }
+        td form.inline[hx-delete] button { background-color: #A65D57; }
+        td form.inline[hx-delete] button:hover { background-color: #8C4A45; }
+        input, select {
+            border: 1px solid #B9B7A0;
+            border-radius: 6px;
+            background-color: #FFFFFF;
+        }
 
         .ai-button {
-            background-color: #032c24;
-            color: #d3eaf8;
+            background-color: #4E7A47;
+            color: #FFFFFF;
             border: none;
             padding: 10px 20px;
             border-radius: 6px;
@@ -25,7 +52,7 @@
             margin-bottom: 1rem;
         }
         .ai-button:hover {
-            background-color: #376f7e;
+            background-color: #3A6035;
         }
 
         form:not(.inline) input,
@@ -65,6 +92,7 @@
         <a href="/packing-lists">Packing Lists</a>
         <a href="/shipping-tasks">Shipping Tasks</a>
         <a href="/mcp-rag">MCP &amp; RAG</a>
+        <a href="/multi-agent">Multi-Agent</a>
     </nav>
     {% block content %}{% endblock %}
 </body>

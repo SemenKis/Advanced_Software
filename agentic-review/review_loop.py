@@ -2,21 +2,22 @@ import os
 import json
 import requests
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timezone
 
 OLLAMA_HOST = os.environ.get("OLLAMA_HOST", "http://localhost:11434")
 OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "qwen2.5:0.5b")
+OLLAMA_REVIEW_MODEL = os.environ.get("OLLAMA_REVIEW_MODEL", "llama3.1:8b")
 REPO_ROOT = Path(__file__).resolve().parent.parent
 LOG_PATH = Path(__file__).resolve().parent / "agentic_review_log.jsonl"
 
 
-def call_ollama(system_prompt, user_prompt):
+def call_ollama(system_prompt, user_prompt, model=None):
     prompt = f"{system_prompt}\n\n{user_prompt}"
     try:
         resp = requests.post(
             f"{OLLAMA_HOST}/api/generate",
-            json={"model": OLLAMA_MODEL, "prompt": prompt, "stream": False},
-            timeout=60,
+            json={"model": model or OLLAMA_MODEL, "prompt": prompt, "stream": False},
+            timeout=180,
         )
         return resp.json().get("response", "")
     except Exception as e:
@@ -25,7 +26,7 @@ def call_ollama(system_prompt, user_prompt):
 
 def log_review(student, evidence_preview, review):
     entry = {
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
         "student": student,
         "evidence_preview": evidence_preview,
         "review": review,
@@ -67,7 +68,7 @@ def collect_implementation_evidence(student_folder):
         try:
             text = py_file.read_text()
             contents.append(f"--- {py_file.relative_to(student_dir)} ---\n{text[:500]}")
-        except Exception: 
+        except Exception:  # noqa: S112 - skip files that cannot be read
             continue
     return "\n\n".join(contents) if contents else f"No Python files found for {student_folder}."
    
@@ -120,6 +121,132 @@ def collect_rag_evidence(student_folder):
     return "\n\n".join(sections) if sections else f"No RAG evidence found for {student_folder}."
 
 
+def _read_jsonl(path):
+    rows = []
+    if not path.exists():
+        return rows
+    for line in path.read_text().splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            rows.append(json.loads(line))
+        except json.JSONDecodeError:
+            continue
+    return rows
+
+
+def collect_multi_agent_evidence(student_folder):
+    sections = []
+    server_dir = REPO_ROOT / "ai-services" / "multi-agent-server"
+    if server_dir.exists():
+        for name in ("app.py", "coordinator.py"):
+            p = server_dir / name
+            if p.exists():
+                sections.append(f"--- ai-services/multi-agent-server/{name} ---\n{p.read_text()[:1200]}")
+        history = _read_jsonl(server_dir / "workflow_history.jsonl")
+        audit = _read_jsonl(server_dir / "coordination_audit.jsonl")
+        if history:
+            last = history[-1]
+            worker = last.get("worker", {})
+            sections.append(
+                "--- Latest workflow (workflow_history.jsonl) ---\n"
+                f"workflow_id: {last.get('workflow_id')}\n"
+                f"request: {last.get('user_request')}\n"
+                f"planner status: {last.get('planner', {}).get('status')}\n"
+                f"worker status: {worker.get('status')}, evidence_count={worker.get('evidence_count')}\n"
+                f"worker output: {worker.get('output')}\n"
+                f"reviewer status: {last.get('reviewer', {}).get('status')}\n"
+                f"reviewer output: {last.get('reviewer', {}).get('output')}\n"
+                f"duration_ms: {last.get('duration_ms')}"
+            )
+            sections.append(f"Total workflows recorded: {len(history)}")
+            verdicts = []
+            for h in history:
+                out = h.get("reviewer", {}).get("output", "")
+                idx = out.find("Verdict:")
+                verdicts.append(out[idx:idx + 24].split("\n")[0] if idx != -1 else "no verdict")
+            sections.append("Reviewer verdicts across all workflows: " + "; ".join(verdicts))
+        else:
+            sections.append("No workflow history found. Run a workflow first.")
+        decisions = [a for a in audit if a.get("event") == "human_decision"]
+        sections.append(f"Audit events: {len(audit)}; human decisions recorded: {len(decisions)}")
+        if decisions:
+            sections.append("Latest human decision: " + str(decisions[-1].get("detail")))
+    else:
+        sections.append("Shared ai-services/multi-agent-server/ directory not found at repo root.")
+
+    student_dir = REPO_ROOT / student_folder
+    for rel in ("backend/app.py", "frontend/app.py"):
+        p = student_dir / rel
+        if p.exists():
+            lines = [l for l in p.read_text().splitlines() if "multi" in l.lower() and "agent" in l.lower()]
+            if lines:
+                sections.append(f"--- {student_folder}/{rel} (Multi-Agent integration lines) ---\n" + "\n".join(lines))
+
+    compose = student_dir / "docker-compose.yml"
+    if compose.exists():
+        env_lines = [l.strip() for l in compose.read_text().splitlines() if "MULTI_AGENT" in l]
+        if env_lines:
+            sections.append(f"--- {student_folder}/docker-compose.yml (Multi-Agent environment) ---\n" + "\n".join(env_lines))
+
+    return "\n\n".join(sections)
+
+
+def collect_testing_evidence(student_folder):
+    sections = []
+    student_dir = REPO_ROOT / student_folder
+    tests_dir = student_dir / "tests"
+    test_files = sorted(tests_dir.glob("test_*.py")) if tests_dir.exists() else []
+    if test_files:
+        for p in test_files:
+            sections.append(f"--- {student_folder}/tests/{p.name} ---\n{p.read_text()[:1500]}")
+    else:
+        sections.append(f"No test files found in {student_folder}/tests/.")
+
+    parts = student_folder.split("-")
+    number = parts[1] if len(parts) > 1 else ""
+    workflow = REPO_ROOT / ".github" / "workflows" / f"student-{number}-ci.yml"
+    if workflow.exists():
+        keys = ("pytest", "test", "upload-artifact", "name:")
+        lines = [l for l in workflow.read_text().splitlines() if any(k in l.lower() for k in keys)]
+        sections.append(f"--- .github/workflows/{workflow.name} (test-related lines) ---\n" + "\n".join(lines))
+    else:
+        sections.append(f"Workflow student-{number}-ci.yml not found.")
+
+    precommit = REPO_ROOT / ".pre-commit-config.yaml"
+    if precommit.exists():
+        sections.append(f"--- .pre-commit-config.yaml ---\n{precommit.read_text()[:800]}")
+    else:
+        sections.append(".pre-commit-config.yaml not found at repo root.")
+
+    return "\n\n".join(sections)
+
+
+def collect_cloud_deployment_evidence(student_folder):
+    sections = []
+    workflow = REPO_ROOT / ".github" / "workflows" / "cloud-deployment.yml"
+    if workflow.exists():
+        sections.append(f"--- .github/workflows/cloud-deployment.yml ---\n{workflow.read_text()[:1500]}")
+    else:
+        sections.append("cloud-deployment.yml not found yet.")
+
+    deploy_dir = REPO_ROOT / "scripts" / "deploy"
+    scripts = [p for p in sorted(deploy_dir.glob("*")) if p.is_file()] if deploy_dir.exists() else []
+    if scripts:
+        for p in scripts:
+            sections.append(f"--- scripts/deploy/{p.name} ---\n{p.read_text()[:800]}")
+    else:
+        sections.append("No deployment scripts found in scripts/deploy/ yet.")
+
+    compose = REPO_ROOT / student_folder / "docker-compose.yml"
+    if compose.exists():
+        flags = [l.strip() for l in compose.read_text().splitlines() if "ENABLED" in l]
+        sections.append(f"--- {student_folder}/docker-compose.yml (feature flags) ---\n" + "\n".join(flags))
+
+    return "\n\n".join(sections)
+
+
 COLLECTORS = {
     "database": collect_database_evidence,
     "architecture": collect_architecture_evidence,
@@ -127,7 +254,41 @@ COLLECTORS = {
     "implementation": collect_implementation_evidence,
     "mcp": collect_mcp_evidence,
     "rag": collect_rag_evidence,
+    "multi_agent": collect_multi_agent_evidence,
+    "testing": collect_testing_evidence,
+    "cloud_deployment": collect_cloud_deployment_evidence,
 }
+
+
+MODE_PROMPTS = {
+    "multi_agent": (
+        "You review the Multi-Agent Server workflow (Planner, Worker, Reviewer, Human Review). "
+        "Use ONLY the evidence supplied and do not mention topics that are not in it. "
+        "Assess: did all three agents complete, is the Worker output supported by its evidence, "
+        "did the Reviewer catch errors, and was a human decision recorded in the audit log. "
+        "Reply in at most 80 words as Strengths, Risks, Recommendation."
+    ),
+    "testing": (
+        "You review automated tests for one student's backend. The evidence has the test files, "
+        "the CI workflow test steps and the pre-commit configuration. Use ONLY the evidence. "
+        "Assess: which endpoints are tested, assertion quality, whether the tests run in CI and "
+        "results are uploaded, and whether pre-commit security scans exist. "
+        "Reply in at most 80 words as Strengths, Risks, Recommendation."
+    ),
+    "cloud_deployment": (
+        "You review cloud deployment readiness. The evidence has the deployment workflow, "
+        "deployment scripts and the feature flags in docker-compose. Use ONLY the evidence. "
+        "Assess: whether a deployment workflow and scripts exist, and whether AI Mode, MCP, RAG "
+        "and Multi-Agent are disabled by default for the cloud. State clearly what is missing. "
+        "Reply in at most 80 words as Strengths, Risks, Recommendation."
+    ),
+}
+
+VALIDATION_PROMPT = (
+    "You validate an AI assessment against the supplied evidence. "
+    "Point out any claim that the evidence does not support and any important gap. "
+    "Reply in at most 50 words."
+)
 
 
 def load_prompt(student_folder):
@@ -141,9 +302,23 @@ def run_review(student_folder, evidence_category):
     print(f"[PLAN] Collecting {evidence_category} evidence for {student_folder} only...")
     evidence = COLLECTORS[evidence_category](student_folder)
 
-    print(f"[ACT] Loading prompt and sending to {OLLAMA_MODEL}...")
-    system_prompt = load_prompt(student_folder)
-    review = call_ollama(system_prompt, f"Evidence:\n{evidence[:3000]}")
+    if evidence_category in MODE_PROMPTS:
+        print(f"[ACT] Implementation review with {OLLAMA_MODEL}...")
+        implementation = call_ollama(MODE_PROMPTS[evidence_category], f"Evidence:\n{evidence[:3500]}")
+        print(f"[ADAPT] Validation review with {OLLAMA_REVIEW_MODEL}...")
+        validation = call_ollama(
+            VALIDATION_PROMPT,
+            f"Assessment:\n{implementation}\n\nEvidence:\n{evidence[:3500]}",
+            model=OLLAMA_REVIEW_MODEL,
+        )
+        review = (
+            f"IMPLEMENTATION ({OLLAMA_MODEL}):\n{implementation}\n\n"
+            f"REVIEW ({OLLAMA_REVIEW_MODEL}):\n{validation}"
+        )
+    else:
+        print(f"[ACT] Loading prompt and sending to {OLLAMA_MODEL}...")
+        system_prompt = load_prompt(student_folder)
+        review = call_ollama(system_prompt, f"Evidence:\n{evidence[:3000]}")
 
     print("[OBSERVE] Review received.")
     log_review(student_folder, evidence[:300], review)
