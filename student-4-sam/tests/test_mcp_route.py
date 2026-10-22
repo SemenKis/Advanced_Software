@@ -8,6 +8,8 @@ if str(BACKEND) not in sys.path:
 
 from app import app
 
+app.config["TESTING"] = True
+
 
 def test_mcp_valid_shipment_id():
     client = app.test_client()
