@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Orders Multi-Agent</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;family=IBM+Plex+Mono:wght@500&amp;display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+  <main>
+    <div class="menu">
+      <h2>Multi-Agent Mode</h2>
+      <p class="hint">A Planner breaks the request into steps, a Worker produces the answer, and a Reviewer checks it. You then make the final call.</p>
+
+      <div class="feature-toggle-row">
+        <label class="toggle-switch" for="ma-mode-toggle">
+          <input id="ma-mode-toggle" type="checkbox" checked>
+          <span class="toggle-label">Multi-Agent Enabled</span>
+        </label>
+        <span id="ma-mode-state" class="feature-state feature-on">ON</span>
+      </div>
+
+      <ol class="ma-flow" aria-label="Workflow stages">
+        <li class="ma-step"><b>1</b>Planner</li>
+        <li class="ma-step"><b>2</b>Worker</li>
+        <li class="ma-step"><b>3</b>Reviewer</li>
+        <li class="ma-step"><b>4</b>Human Review</li>
+      </ol>
+
+      <form id="ma-workflow-form" class="tool-form">
+        <label for="ma-request">Run Workflow</label>
+        <input id="ma-request" type="text" placeholder="Example: Which orders are still pending?" required>
+        <button id="ma-run-btn" type="submit" class="btn primary small">Run Workflow</button>
+        <div class="ma-samples" aria-label="Sample requests">
+          <button type="button" class="btn ghost small ma-sample">Which orders are still pending?</button>
+          <button type="button" class="btn ghost small ma-sample">Summarise orders by status</button>
+          <button type="button" class="btn ghost small ma-sample">Which orders have the highest totals?</button>
+        </div>
+        <p class="hint">Hint: ask a full question. Three agents run in sequence, so this can take a minute.</p>
+      </form>
+
+      <form id="ma-status-form" class="tool-form">
+        <label>History</label>
+        <button id="ma-status-btn" type="submit" class="btn ghost small">Get Workflow Status</button>
+      </form>
+    </div>
+
+    <div id="ma-results" class="result-panel">Multi-agent responses will appear here.</div>
+
+    <section id="ma-decision" class="result-panel ma-decision" hidden>
+      <h3>Human Review</h3>
+      <p class="hint">Record your decision on this workflow's output.</p>
+      <div class="tool-form">
+        <select id="ma-decision-value" aria-label="Decision">
+          <option>Accept</option>
+          <option>Partially Accept</option>
+          <option>Reject</option>
+        </select>
+        <input id="ma-decision-note" type="text" placeholder="Reason (optional)">
+        <button id="ma-decision-btn" type="button" class="btn primary small">Record Decision</button>
+      </div>
+      <p id="ma-decision-msg" class="result-meta"></p>
+    </section>
+  </main>
+
+  <script>
+    const maToggle = document.getElementById("ma-mode-toggle");
+    const maState = document.getElementById("ma-mode-state");
+    const maResults = document.getElementById("ma-results");
+    const maDecision = document.getElementById("ma-decision");
+    const maDecisionMsg = document.getElementById("ma-decision-msg");
+    const maRunBtn = document.getElementById("ma-run-btn");
+    const maStatusBtn = document.getElementById("ma-status-btn");
+    const maDecisionBtn = document.getElementById("ma-decision-btn");
+
+    const MA_STORAGE_KEY = "multi_agent_mode_enabled";
+    let currentWorkflowId = null;
+
+    function isMaEnabled() {
+      return maToggle.checked;
+    }
+
+    function renderMaState() {
+      const on = isMaEnabled();
+      maState.textContent = on ? "ON" : "OFF";
+      maState.classList.toggle("feature-on", on);
+      maState.classList.toggle("feature-off", !on);
+    }
+
+    function saveMaMode() {
+      try { localStorage.setItem(MA_STORAGE_KEY, String(isMaEnabled())); } catch (e) {}
+    }
+
+    function loadMaMode() {
+      let persisted = null;
+      try { persisted = localStorage.getItem(MA_STORAGE_KEY); } catch (e) {}
+      maToggle.checked = persisted === null ? true : persisted === "true";
+      renderMaState();
+    }
+
+    // Everything is built with textContent so server output is never parsed as HTML
+    function el(tag, text, className) {
+      const node = document.createElement(tag);
+      if (text !== undefined && text !== null) node.textContent = text;
+      if (className) node.className = className;
+      return node;
+    }
+
+    function show(isError, ...nodes) {
+      maResults.classList.toggle("is-error", isError);
+      maResults.replaceChildren(...nodes);
+    }
+
+    function showDisabledMessage() {
+      maDecision.hidden = true;
+      show(false, el("p", "Multi-Agent Mode is OFF. Enable Multi-Agent Mode to run workflows."));
+    }
+
+    function showError(title, data) {
+      const message = (data && (data.error || data.raw)) || "Request failed.";
+      const nodes = [el("h3", title), el("pre", message)];
+      if (data && data.details) nodes.push(el("p", data.details, "result-meta"));
+      show(true, ...nodes);
+    }
+
+    function setBusy(busy) {
+      [maRunBtn, maStatusBtn].forEach((b) => { b.disabled = busy; });
+    }
+
+    // ---- rendering ----
+    function formatEvidence(evidence) {
+      return (evidence || []).map((item) => {
+        if (item && item.zone !== undefined) {
+          const flag = item.near_capacity ? "  NEAR CAPACITY" : "";
+          return `${item.zone}: ${item.current_load}/${item.capacity} (${item.utilisation_pct}%)${flag}`;
+        }
+        return typeof item === "string" ? item : JSON.stringify(item);
+      }).join("\n");
+    }
+
+    function agentCard(label, agent, extraText) {
+      const card = el("div", null, `ma-card ma-${label.toLowerCase()}`);
+      const status = agent && agent.status ? agent.status : "unknown";
+      const model = agent && agent.model ? ` · ${agent.model}` : "";
+      card.append(
+        el("strong", label),
+        el("span", `  (${status}${model})`, "result-meta"),
+        el("pre", (agent && agent.output) || "No output."),
+      );
+      if (extraText) {
+        card.append(el("p", "Evidence", "ma-evidence-label"), el("pre", extraText));
+      }
+      return card;
+    }
+
+    function renderWorkflow(w) {
+      const decisionStatus = (w.human_decision && w.human_decision.status) || "pending";
+      const summary = el("p", `Workflow ID: ${w.workflow_id}  ·  ${w.duration_ms} ms  ·  Human decision: ${decisionStatus}`, "result-meta");
+
+      show(
+        false,
+        el("h3", "Workflow result"),
+        agentCard("Planner", w.planner),
+        agentCard("Worker", w.worker, formatEvidence(w.worker && w.worker.evidence)),
+        agentCard("Reviewer", w.reviewer),
+        summary,
+      );
+    }
+
+    function renderStatus(data) {
+      const latest = data.latest_workflow;
+      const nodes = [
+        el("h3", "Workflow status"),
+        el("p", `Workflows recorded: ${data.workflow_count}`),
+        el("p", `Audit events: ${data.audit_event_count}`),
+      ];
+      if (latest) {
+        nodes.push(el("p", `Latest: ${latest.workflow_id} — "${latest.user_request}"`, "result-meta"));
+      } else {
+        nodes.push(el("p", "No workflows have been run yet.", "result-meta"));
+      }
+      show(false, ...nodes);
+    }
+
+    // ---- requests ----
+    async function callMa(method, path, body) {
+      const options = {
+        method,
+        headers: {
+          "Content-Type": "application/json",
+          "X-Multi-Agent-Mode": isMaEnabled() ? "on" : "off",
+        },
+      };
+      if (body) options.body = JSON.stringify(body);
+
+      const res = await fetch(`/api/multi-agent/${path}`, options);
+      const text = await res.text();
+      let data;
+      try { data = JSON.parse(text); } catch (e) { data = { raw: text }; }
+      return { ok: res.ok, status: res.status, data };
+    }
+
+    async function runWorkflow(request) {
+      if (!isMaEnabled()) {
+        showDisabledMessage();
+        return;
+      }
+
+      setBusy(true);
+      maDecision.hidden = true;
+      show(false, el("h3", "Run Workflow"), el("p", "Running Planner, Worker and Reviewer... this can take a minute."));
+
+      try {
+        const { ok, status, data } = await callMa("POST", "workflow", { request });
+        if (!ok) {
+          showError(`Run Workflow failed (HTTP ${status})`, data);
+          return;
+        }
+        currentWorkflowId = data.workflow_id;
+        renderWorkflow(data);
+
+        maDecisionMsg.textContent = "";
+        maDecisionBtn.disabled = false;
+        maDecision.hidden = false;
+      } catch (err) {
+        showError("Run Workflow failed", { error: "Could not reach the backend." });
+      } finally {
+        setBusy(false);
+      }
+    }
+
+    async function getStatus() {
+      if (!isMaEnabled()) {
+        showDisabledMessage();
+        return;
+      }
+
+      setBusy(true);
+      try {
+        const { ok, status, data } = await callMa("GET", "workflow/status");
+        if (!ok) {
+          showError(`Get Workflow Status failed (HTTP ${status})`, data);
+          return;
+        }
+        renderStatus(data);
+      } catch (err) {
+        showError("Get Workflow Status failed", { error: "Could not reach the backend." });
+      } finally {
+        setBusy(false);
+      }
+    }
+
+    async function recordDecision() {
+      if (!isMaEnabled()) {
+        showDisabledMessage();
+        return;
+      }
+      if (!currentWorkflowId) {
+        maDecisionMsg.textContent = "Run a workflow before recording a decision.";
+        return;
+      }
+
+      maDecisionBtn.disabled = true;
+      try {
+        const { ok, data } = await callMa("POST", "workflow/decision", {
+          workflow_id: currentWorkflowId,
+          decision: document.getElementById("ma-decision-value").value,
+          note: document.getElementById("ma-decision-note").value.trim(),
+        });
+        maDecisionMsg.textContent = data.message || data.error || (ok ? "Decision recorded." : "Failed to record decision.");
+        // Keep the button off after a success so the same workflow isn't decided twice
+        if (!ok) maDecisionBtn.disabled = false;
+      } catch (err) {
+        maDecisionMsg.textContent = "Could not reach the backend.";
+        maDecisionBtn.disabled = false;
+      }
+    }
+
+    // ---- wiring ----
+    maToggle.addEventListener("change", () => {
+      saveMaMode();
+      renderMaState();
+      if (!isMaEnabled()) showDisabledMessage();
+    });
+
+    document.getElementById("ma-workflow-form").addEventListener("submit", (e) => {
+      e.preventDefault();
+      const request = document.getElementById("ma-request").value.trim();
+      if (request) runWorkflow(request);
+    });
+
+    document.getElementById("ma-status-form").addEventListener("submit", (e) => {
+      e.preventDefault();
+      getStatus();
+    });
+
+    maDecisionBtn.addEventListener("click", recordDecision);
+
+    document.querySelectorAll(".ma-sample").forEach((button) => {
+      button.addEventListener("click", () => {
+        const input = document.getElementById("ma-request");
+        input.value = button.textContent;
+        input.focus();
+      });
+    });
+
+    loadMaMode();
+    if (!isMaEnabled()) showDisabledMessage();
+  </script>
+</body>
+</html>
