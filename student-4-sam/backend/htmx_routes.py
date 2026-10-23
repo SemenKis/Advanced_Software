@@ -16,6 +16,16 @@ htmx_transportation = Blueprint(
     __name__
 )
 
+MULTI_AGENT_SERVER_URL = os.getenv(
+    "MULTI_AGENT_SERVER_URL", "http://127.0.0.1:5005"
+).rstrip("/")
+MULTI_AGENT_ENABLED = os.getenv(
+    "MULTI_AGENT_ENABLED", "true"
+).strip().lower() in {"1", "true", "yes", "on"}
+MULTI_AGENT_ALLOWED_DECISIONS = {"Accept", "Correct", "Reject"}
+MAX_MULTI_AGENT_REQUEST_LENGTH = 1000
+MAX_MULTI_AGENT_NOTE_LENGTH = 500
+
 
 VALID_STATUSES = {
     "PLANNED",
@@ -25,6 +35,176 @@ VALID_STATUSES = {
     "DELIVERED",
     "CANCELLED"
 }
+
+
+def _multi_agent_status_html(status, detail):
+    return f"""
+    <div class="status-card">
+        <span class="label">Multi-Agent Server</span>
+        <strong>{escape(status)}</strong>
+        <p>{escape(detail)}</p>
+    </div>
+    """
+
+
+def _multi_agent_server_response(method, path, payload=None, timeout=240):
+    response = requests.request(
+        method,
+        f"{MULTI_AGENT_SERVER_URL}{path}",
+        json=payload,
+        timeout=timeout,
+    )
+    try:
+        result = response.json()
+    except ValueError:
+        result = {"error": response.text or "Multi-Agent server returned invalid JSON."}
+    if not isinstance(result, dict):
+        result = {"error": "Multi-Agent server returned an unexpected response format."}
+    return result, response.status_code
+
+
+def _render_multi_agent_workflow(result):
+    workflow_id = str(result.get("workflow_id", ""))
+    agent_html = ""
+    for role in ("planner", "worker", "reviewer"):
+        agent = result.get(role) or {}
+        agent_html += (
+            f"<h4>{escape(role.title())} - {escape(str(agent.get('status', 'unknown')))}</h4>"
+            f"<pre>{escape(str(agent.get('output', 'No output returned.')))}</pre>"
+        )
+        evidence = agent.get("evidence")
+        if role == "worker" and evidence:
+            agent_html += (
+                "<details><summary>Shipment evidence</summary><pre>"
+                + escape(json.dumps(evidence, indent=2, default=str))
+                + "</pre></details>"
+            )
+
+    return f"""
+    <section class="agent-results">
+        <p><strong>Workflow:</strong> {escape(workflow_id)}</p>
+        {agent_html}
+        <h4>Human review required</h4>
+        <p>Recommendations do not change shipment records. Review and record
+        your approval, correction, or rejection.</p>
+        <form
+            hx-post="http://localhost:5004/htmx/multi-agent/decision"
+            hx-target="#multi-agent-result"
+            hx-swap="innerHTML">
+            <input type="hidden" name="workflow_id" value="{escape(workflow_id)}">
+            <label for="multi-agent-note">Correction or reason</label>
+            <textarea id="multi-agent-note" name="note" maxlength="{MAX_MULTI_AGENT_NOTE_LENGTH}"
+                placeholder="Required when selecting Correct"></textarea>
+            <div class="agent-decision-buttons">
+                <button type="submit" name="decision" value="Accept">Approve</button>
+                <button type="submit" name="decision" value="Correct">Correct</button>
+                <button type="submit" name="decision" value="Reject">Reject</button>
+            </div>
+        </form>
+    </section>
+    """
+
+
+@htmx_transportation.get("/htmx/multi-agent/status")
+def get_multi_agent_status():
+    if not MULTI_AGENT_ENABLED:
+        return _multi_agent_status_html("Disabled", "Multi-Agent mode is disabled.")
+    try:
+        payload, status_code = _multi_agent_server_response(
+            "GET", "/health", timeout=5
+        )
+    except requests.RequestException:
+        return _multi_agent_status_html(
+            "Unavailable",
+            "Start the shared Multi-Agent Server locally on port 5005.",
+        )
+    if status_code == 200 and payload.get("status") == "ok":
+        return _multi_agent_status_html("Ready", "Transportation Planner, Worker, and Reviewer are available.")
+    return _multi_agent_status_html(
+        "Unavailable", "The Multi-Agent Server returned an unexpected health response."
+    ), 502
+
+
+@htmx_transportation.post("/htmx/multi-agent/workflow")
+def run_multi_agent_workflow():
+    if not MULTI_AGENT_ENABLED:
+        return "<p>Multi-Agent mode is disabled.</p>", 403
+    data = request.get_json(silent=True) or request.form
+    if not hasattr(data, "get"):
+        return "<p>Request body must be a JSON object or form.</p>", 400
+    user_request = data.get("request", "")
+    if not isinstance(user_request, str) or not user_request.strip():
+        return "<p>A request is required.</p>", 400
+    user_request = user_request.strip()
+    if len(user_request) > MAX_MULTI_AGENT_REQUEST_LENGTH:
+        return (
+            f"<p>Request must be {MAX_MULTI_AGENT_REQUEST_LENGTH} characters or fewer.</p>",
+            400,
+        )
+
+    try:
+        result, status_code = _multi_agent_server_response(
+            "POST",
+            "/workflow",
+            {"request": user_request, "domain": "transportation"},
+        )
+    except requests.RequestException:
+        return (
+            "<p>Could not reach the shared Multi-Agent Server. "
+            "Start it locally on port 5005 and try again.</p>",
+            503,
+        )
+    if status_code >= 500:
+        return "<p>The shared Multi-Agent Server failed to complete the workflow.</p>", 502
+    if status_code >= 400:
+        return f"<p>{escape(str(result.get('error', 'Workflow request was rejected.')))}</p>", status_code
+    if result.get("domain") != "transportation":
+        return "<p>The Multi-Agent Server returned a workflow for the wrong domain.</p>", 502
+    if not result.get("workflow_id"):
+        return "<p>The Multi-Agent Server returned a workflow without an ID.</p>", 502
+    return _render_multi_agent_workflow(result)
+
+
+@htmx_transportation.post("/htmx/multi-agent/decision")
+def record_multi_agent_decision():
+    if not MULTI_AGENT_ENABLED:
+        return "<p>Multi-Agent mode is disabled.</p>", 403
+    workflow_id = request.form.get("workflow_id", "").strip()
+    decision = request.form.get("decision", "").strip()
+    note = request.form.get("note", "").strip()
+    if not workflow_id:
+        return "<p>Workflow ID is required.</p>", 400
+    if decision not in MULTI_AGENT_ALLOWED_DECISIONS:
+        return "<p>Select Approve, Correct, or Reject.</p>", 400
+    if decision == "Correct" and not note:
+        return "<p>Enter a correction before selecting Correct.</p>", 400
+    if len(note) > MAX_MULTI_AGENT_NOTE_LENGTH:
+        return (
+            f"<p>Correction or reason must be {MAX_MULTI_AGENT_NOTE_LENGTH} characters or fewer.</p>",
+            400,
+        )
+
+    try:
+        result, status_code = _multi_agent_server_response(
+            "POST",
+            "/workflow/decision",
+            {
+                "workflow_id": workflow_id,
+                "decision": decision,
+                "note": note,
+                "domain": "transportation",
+            },
+            timeout=10,
+        )
+    except requests.RequestException:
+        return "<p>Could not reach the shared Multi-Agent Server to record the decision.</p>", 503
+    if status_code >= 400:
+        return f"<p>{escape(str(result.get('message') or result.get('error') or 'Decision was rejected.'))}</p>", status_code
+    return (
+        f"<p>Human decision recorded: <strong>{escape(decision)}</strong>"
+        + (f" - {escape(note)}" if note else "")
+        + "</p>"
+    )
 
 
 def _mcp_status_html(label: str, status: str, detail: str):

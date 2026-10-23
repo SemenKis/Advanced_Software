@@ -146,6 +146,14 @@ def collect_multi_agent_evidence(student_folder):
                 sections.append(f"--- ai-services/multi-agent-server/{name} ---\n{p.read_text()[:1200]}")
         history = _read_jsonl(server_dir / "workflow_history.jsonl")
         audit = _read_jsonl(server_dir / "coordination_audit.jsonl")
+        domain = {
+            "student-1-bea": "orders",
+            "student-3-lois": "warehouse",
+            "student-4-sam": "transportation",
+        }.get(student_folder, student_folder)
+        history = [row for row in history if row.get("domain", "warehouse") == domain]
+        audit = [row for row in audit if row.get("domain", "warehouse") == domain]
+        sections.append(f"Workflow evidence domain: {domain}")
         if history:
             last = history[-1]
             worker = last.get("worker", {})
@@ -158,6 +166,7 @@ def collect_multi_agent_evidence(student_folder):
                 f"worker output: {worker.get('output')}\n"
                 f"reviewer status: {last.get('reviewer', {}).get('status')}\n"
                 f"reviewer output: {last.get('reviewer', {}).get('output')}\n"
+                f"human decision: {json.dumps(last.get('human_decision', {}))}\n"
                 f"duration_ms: {last.get('duration_ms')}"
             )
             sections.append(f"Total workflows recorded: {len(history)}")
@@ -177,7 +186,7 @@ def collect_multi_agent_evidence(student_folder):
         sections.append("Shared ai-services/multi-agent-server/ directory not found at repo root.")
 
     student_dir = REPO_ROOT / student_folder
-    for rel in ("backend/app.py", "frontend/app.py"):
+    for rel in ("backend/app.py", "backend/htmx_routes.py", "frontend/app.py"):
         p = student_dir / rel
         if p.exists():
             lines = [l for l in p.read_text().splitlines() if "multi" in l.lower() and "agent" in l.lower()]
