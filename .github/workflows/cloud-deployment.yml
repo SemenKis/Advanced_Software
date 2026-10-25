@@ -1,0 +1,53 @@
+
+name: Cloud Deployment - AWS ECS Fargate
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+
+    env:
+      AWS_REGION: ap-southeast-2
+      VPC_ID: ${{ vars.VPC_ID }}
+      PUBLIC_SUBNET_IDS: ${{ vars.PUBLIC_SUBNET_IDS }}
+      TASK_EXECUTION_ROLE_ARN: ${{ vars.TASK_EXECUTION_ROLE_ARN }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Validate deployment scripts
+        run: |
+          bash -n scripts/deploy-ecs.sh
+          docker compose config --quiet
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Build and deploy application
+        run: |
+          bash scripts/deploy-ecs.sh --deploy-stack
+
+      - name: Verify ECS services
+        run: |
+          aws ecs describe-services \
+            --cluster advanced-software-cluster \
+            --services \
+              integrated-shared-frontend-service \
+              integrated-inventory-service \
+              integrated-order-service \
+              integrated-warehouse-service \
+              integrated-transportation-service \
+            --region "$AWS_REGION" \
+            --query 'services[].[serviceName,status,desiredCount,runningCount]' \
+            --output table

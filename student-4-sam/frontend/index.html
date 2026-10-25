@@ -134,6 +134,39 @@
             </div>
         </section>
 
+        <section class="mcp-rag-panel multi-agent-panel">
+            <h2>Transportation Multi-Agent Review</h2>
+            <p>
+                Planner, Worker, and Reviewer will analyse current shipment
+                records. Recommendations are advisory and require your decision.
+            </p>
+            <div
+                id="multi-agent-status"
+                class="mcp-rag-box"
+                hx-get="http://localhost:5004/htmx/multi-agent/status"
+                hx-trigger="load"
+                hx-swap="innerHTML">
+                <span class="label">Multi-Agent Server</span>
+                <strong>Checking...</strong>
+            </div>
+            <form
+                hx-post="http://localhost:5004/htmx/multi-agent/workflow"
+                hx-target="#multi-agent-result"
+                hx-swap="innerHTML">
+                <label for="multi-agent-request">What should the agents investigate?</label>
+                <textarea
+                    id="multi-agent-request"
+                    name="request"
+                    maxlength="1000"
+                    placeholder="For example: Review delayed shipments and recommend next steps."
+                    required></textarea>
+                <button type="submit">Run Planner, Worker, and Reviewer</button>
+            </form>
+            <div id="multi-agent-result" class="agent-results">
+                No multi-agent workflow has been run.
+            </div>
+        </section>
+
         <div class="panel-stack">
             <section class="mini-panel">
                 <h3>Current Shipments</h3>

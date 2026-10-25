@@ -149,6 +149,66 @@ button[type="button"],
     margin-top: 22px;
 }
 
+.multi-agent-panel > p {
+    color: var(--muted);
+    line-height: 1.5;
+}
+
+.multi-agent-panel > form {
+    margin: 16px 0;
+}
+
+.multi-agent-panel textarea,
+.agent-results textarea {
+    width: 100%;
+    min-height: 100px;
+    padding: 12px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--field);
+    color: var(--text);
+    font: inherit;
+    resize: vertical;
+}
+
+.multi-agent-panel > form button {
+    background: var(--primary);
+    color: var(--primary-text);
+}
+
+.agent-results {
+    overflow-wrap: anywhere;
+}
+
+.agent-results h4 {
+    margin: 18px 0 8px;
+}
+
+.agent-results pre {
+    max-height: 260px;
+    overflow: auto;
+    padding: 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--field);
+    white-space: pre-wrap;
+}
+
+.agent-results details {
+    margin: 12px 0;
+}
+
+.agent-decision-buttons {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.agent-decision-buttons button {
+    background: var(--primary);
+    color: var(--primary-text);
+}
+
 .mcp-rag-panel h2 {
     margin: 0 0 18px;
     font-size: 1.15rem;
