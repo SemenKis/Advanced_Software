@@ -28,56 +28,60 @@ def _append(path, record):
             f.write(json.dumps(record) + "\n")
 
 
-def _read_jsonl(path):
-    if not path.exists():
-        return []
-    lines = path.read_text(encoding="utf-8").strip().splitlines()
-    return [json.loads(line) for line in lines if line.strip()]
-
-
-def _domain_of(record):
-    # Records written before domains existed belong to the warehouse
-    return record.get("domain", DEFAULT_DOMAIN)
-
-
-def _audit(workflow_id, event, detail="", domain=DEFAULT_DOMAIN):
-    _append(
-        AUDIT_PATH,
-        {"workflow_id": workflow_id, "domain": domain, "timestamp": _now(), "event": event, "detail": detail},
-    )
+def _audit(workflow_id, event, detail="", domain=None):
+    record = {
+        "workflow_id": workflow_id,
+        "timestamp": _now(),
+        "event": event,
+        "detail": detail,
+    }
+    if domain:
+        record["domain"] = domain
+    _append(AUDIT_PATH, record)
 
 
 def _timeout_result(agent):
     return {"status": "timeout", "agent": agent, "output": f"{agent} timed out.", "evidence": []}
 
 
+def _run_agent(role, function, *args):
+    executor = ThreadPoolExecutor(max_workers=1)
+    future = executor.submit(function, *args)
+    try:
+        result = future.result(timeout=STEP_TIMEOUT)
+        if not isinstance(result, dict) or not {"status", "output"} <= result.keys():
+            raise ValueError("Invalid agent response")
+        return result
+    except TimeoutError:
+        return _timeout_result(role)
+    except Exception as exc:
+        return {
+            "status": "error", "agent": role, "evidence": [],
+            "output": f"{role} failed ({type(exc).__name__}). Manual review required.",
+        }
+    finally:
+        # Running model calls retain their own HTTP timeout; do not block this request.
+        executor.shutdown(wait=False, cancel_futures=True)
+
+
 def run_workflow(user_request, domain=DEFAULT_DOMAIN):
     if domain not in DOMAINS:
-        raise ValueError(f"Unknown domain: {domain}")
+        raise ValueError(f"Unsupported workflow domain: {domain}")
     agents = DOMAINS[domain]
-
     workflow_id = str(uuid.uuid4())
     started = time.time()
     _audit(workflow_id, "workflow_started", user_request, domain)
 
-    executor = ThreadPoolExecutor(max_workers=2)
-    planner_future = executor.submit(agents["plan"], user_request)
-    worker_future = executor.submit(agents["work"], user_request)
-
-    try:
-        planner_result = planner_future.result(timeout=STEP_TIMEOUT)
-    except Exception:
-        planner_result = _timeout_result("planner")
+    planner_result = _run_agent("planner", agents["plan"], user_request)
     _audit(workflow_id, "planner_done", planner_result["status"], domain)
 
-    try:
-        worker_result = worker_future.result(timeout=STEP_TIMEOUT)
-    except Exception:
-        worker_result = _timeout_result("worker")
+    # Existing domains retain their one-argument Worker contract.
+    worker_args = (user_request, planner_result) if agents.get("worker_uses_plan") else (user_request,)
+    worker_result = _run_agent("worker", agents["work"], *worker_args)
     _audit(workflow_id, "worker_done", worker_result["status"], domain)
-    executor.shutdown(wait=False)
-
-    reviewer_result = agents["review"](user_request, planner_result, worker_result)
+    reviewer_result = _run_agent(
+        "reviewer", agents["review"], user_request, planner_result, worker_result
+    )
     _audit(workflow_id, "reviewer_done", reviewer_result["status"], domain)
 
     result = {
@@ -101,28 +105,95 @@ def run_workflow(user_request, domain=DEFAULT_DOMAIN):
     return result
 
 
+def _read_workflows():
+    if HISTORY_PATH.exists():
+        lines = HISTORY_PATH.read_text(encoding="utf-8").splitlines()
+        return [json.loads(line) for line in lines if line.strip()]
+    return []
+
+
 def workflow_status(domain=None):
-    """With a domain, counts and the latest workflow cover only that domain."""
-    workflows = _read_jsonl(HISTORY_PATH)
-    audit = _read_jsonl(AUDIT_PATH)
-    if domain:
-        workflows = [w for w in workflows if _domain_of(w) == domain]
-        audit = [a for a in audit if _domain_of(a) == domain]
+    with HISTORY_LOCK:
+        workflows = _read_workflows()
+        if domain:
+            workflows = [
+                workflow for workflow in workflows
+                if workflow.get("domain", DEFAULT_DOMAIN) == domain
+            ]
+        audit_count = 0
+        if AUDIT_PATH.exists():
+            audit_records = [
+                json.loads(line)
+                for line in AUDIT_PATH.read_text(encoding="utf-8").splitlines()
+                if line.strip()
+            ]
+            audit_count = sum(
+                1 for record in audit_records
+                if not domain or record.get("domain", DEFAULT_DOMAIN) == domain
+            )
     return {
         "domain": domain,
         "workflow_count": len(workflows),
-        "audit_event_count": len(audit),
+        "audit_event_count": audit_count,
         "latest_workflow": workflows[-1] if workflows else None,
     }
 
 
-ALLOWED_DECISIONS = ["Accept", "Partially Accept", "Reject"]
-
-
-def record_decision(workflow_id, decision, note="", domain=DEFAULT_DOMAIN):
+def record_decision(workflow_id, decision, note="", domain=None):
     if not workflow_id:
         return False, "Field 'workflow_id' is required."
     if decision not in ALLOWED_DECISIONS:
         return False, "Decision must be one of: " + ", ".join(ALLOWED_DECISIONS)
-    _audit(workflow_id, "human_decision", json.dumps({"decision": decision, "note": note}), domain)
+    note = note.strip() if isinstance(note, str) else ""
+    if decision == "Correct" and not note:
+        return False, "A correction note is required for the Correct decision."
+
+    with HISTORY_LOCK:
+        workflows = _read_workflows()
+        workflow = next(
+            (item for item in workflows if item.get("workflow_id") == workflow_id),
+            None,
+        )
+        if workflow is None:
+            return False, "Workflow not found."
+        workflow_domain = workflow.get("domain", DEFAULT_DOMAIN)
+        if domain and workflow_domain != domain:
+            return False, f"Workflow belongs to domain '{workflow_domain}'."
+
+        human_decision = workflow.get("human_decision", {})
+        if human_decision.get("status") != "pending":
+            return False, "A human decision has already been recorded."
+
+        human_decision.update({
+            "status": "decided",
+            "decision": decision,
+            "note": note,
+            "decided_at": _now(),
+        })
+        workflow["human_decision"] = human_decision
+
+        temp_path = None
+        try:
+            with tempfile.NamedTemporaryFile(
+                "w",
+                encoding="utf-8",
+                dir=HISTORY_PATH.parent,
+                prefix="workflow_history.",
+                suffix=".tmp",
+                delete=False,
+            ) as temp_file:
+                temp_path = Path(temp_file.name)
+                for item in workflows:
+                    temp_file.write(json.dumps(item) + "\n")
+            temp_path.replace(HISTORY_PATH)
+        finally:
+            if temp_path and temp_path.exists():
+                temp_path.unlink()
+
+        _audit(
+            workflow_id,
+            "human_decision",
+            json.dumps({"decision": decision, "note": note}),
+            workflow_domain,
+        )
     return True, "Decision recorded."

@@ -1,24 +1,13 @@
 import os
 
 from flask import Flask, jsonify, request
+from flask_cors import CORS
 
 from coordinator import record_decision, run_workflow, workflow_status
 from domains import DEFAULT_DOMAIN, DOMAINS
 
 app = Flask(__name__)
-
-
-def _read_domain(raw, default=DEFAULT_DOMAIN):
-    """Returns a valid domain name, or None if the caller sent an unknown one."""
-    if raw is None or str(raw).strip() == "":
-        return default
-    domain = str(raw).strip().lower()
-    return domain if domain in DOMAINS else None
-
-
-def _unknown_domain():
-    allowed = ", ".join(DOMAINS)
-    return jsonify({"error": f"Unknown domain. Allowed values: {allowed}."}), 400
+CORS(app) 
 
 
 @app.get("/health")
@@ -37,32 +26,48 @@ def workflow():
     user_request = user_request.strip()
     if not user_request:
         return jsonify({"error": "Field 'request' is required."}), 400
-    domain = _read_domain(payload.get("domain"))
-    if domain is None:
-        return _unknown_domain()
+    if len(user_request) > 1000:
+        return jsonify({"error": "Field 'request' must be 1000 characters or fewer."}), 400
+    domain = payload.get("domain", DEFAULT_DOMAIN)
+    if not isinstance(domain, str) or domain not in DOMAINS:
+        return jsonify({
+            "error": "Field 'domain' must be one of: " + ", ".join(DOMAINS),
+        }), 400
     return jsonify(run_workflow(user_request, domain)), 200
 
 
 @app.get("/workflow/status")
 def status():
-    # Callers that send no domain get the warehouse view, so another domain's
-    # workflows never show up in a warehouse caller's history
-    domain = _read_domain(request.args.get("domain"))
-    if domain is None:
-        return _unknown_domain()
+    domain = request.args.get("domain")
+    if domain and domain not in DOMAINS:
+        return jsonify({
+            "error": "Query parameter 'domain' must be one of: " + ", ".join(DOMAINS),
+        }), 400
     return jsonify(workflow_status(domain)), 200
 
 
 @app.post("/workflow/decision")
 def decision():
     payload = request.get_json(silent=True) or {}
-    domain = _read_domain(payload.get("domain"))
-    if domain is None:
-        return _unknown_domain()
+    if not isinstance(payload, dict):
+        return jsonify({"error": "Request body must be a JSON object."}), 400
+    workflow_id = payload.get("workflow_id")
+    decision_value = payload.get("decision")
+    note = payload.get("note", "")
+    domain = payload.get("domain")
+    workflow_id = workflow_id.strip() if isinstance(workflow_id, str) else ""
+    decision_value = decision_value.strip() if isinstance(decision_value, str) else ""
+    note = note.strip() if isinstance(note, str) else ""
+    if domain is not None and (not isinstance(domain, str) or domain not in DOMAINS):
+        return jsonify({
+            "error": "Field 'domain' must be one of: " + ", ".join(DOMAINS),
+        }), 400
+    if len(note) > 500:
+        return jsonify({"error": "Field 'note' must be 500 characters or fewer."}), 400
     ok, message = record_decision(
-        (payload.get("workflow_id") or "").strip(),
-        (payload.get("decision") or "").strip(),
-        (payload.get("note") or "").strip(),
+        workflow_id,
+        decision_value,
+        note,
         domain,
     )
     return jsonify({"message": message}), (200 if ok else 400)
