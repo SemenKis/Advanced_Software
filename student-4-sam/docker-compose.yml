@@ -18,6 +18,8 @@ services:
       OLLAMA_GENERATE_URL: http://127.0.0.1:11434/api/generate
       OLLAMA_MODEL: qwen2.5:0.5b
       MCP_TOOLS_PATH: /workspace/mcp-server/tools.py
+      MULTI_AGENT_SERVER_URL: ${MULTI_AGENT_SERVER_URL:-http://127.0.0.1:5005}
+      MULTI_AGENT_ENABLED: ${MULTI_AGENT_ENABLED:-true}
 
   frontend:
     build:

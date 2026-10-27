@@ -3,108 +3,71 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-    <title>Supply Chain and Logistics System</title>
-
-    <style>
-        * {
-            box-sizing: border-box;
-        }
-
-        body {
-            margin: 0;
-            font-family: Arial, sans-serif;
-            background: #f4f6f8;
-        }
-
-        header {
-            padding: 30px;
-            text-align: center;
-        }
-
-        header h1 {
-            margin: 0 0 10px 0;
-        }
-
-
-        main {
-            max-width: 1100px;
-            margin: 40px auto;
-            padding: 0 20px;
-        }
-
-        .features {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
-        }
-
-        .feature-button {
-            display: inline-block;
-            padding: 12px 20px;
-            background: #e5566f;
-            color: white;
-            text-decoration: none;
-            border-radius: 6px;
-        }
-
-        .feature-button:hover {
-            background: #2a0a10;
-        }
-    </style>
+    <meta name="theme-color" content="#080a0c">
+    <meta name="description" content="AgriTrace brings inventory, orders, warehousing and transportation together in one workspace.">
+    <title>AgriTrace · Logistics Management</title>
+    <link rel="icon" type="image/png" href="/favicon.png">
+    <link rel="stylesheet" href="styles.css">
 </head>
-
 <body>
+    <svg class="icon-library" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <symbol id="cube" viewBox="0 0 24 24"><path d="m12 2 9 5v10l-9 5-9-5V7Z M3 7l9 5 9-5 M12 12v10 M7.5 4.5l9 5"/></symbol>
+        <symbol id="home" viewBox="0 0 24 24"><path d="m3 10 9-8 9 8v11h-7v-8h-4v8H3Z"/></symbol>
+        <symbol id="orders" viewBox="0 0 24 24"><path d="M5 3h11l3 3v15H5Z M16 3v4h3 M9 10h6 M9 14h6 M9 18h3"/></symbol>
+        <symbol id="warehouse" viewBox="0 0 24 24"><path d="m3 9 9-7 9 7v12H3Z M8 21V11h8v10 M8 15h8 M8 18h8"/></symbol>
+        <symbol id="truck" viewBox="0 0 24 24"><path d="M3 16H2V4h12v12H8 M14 8h4l4 5v5h-3 M14 16h1 M18 8v5h4"/><circle cx="5.5" cy="17.5" r="2.5"/><circle cx="16.5" cy="17.5" r="2.5"/></symbol>
+        <symbol id="arrow" viewBox="0 0 24 24"><path d="M4 12h15 m-6-6 6 6-6 6"/></symbol>
+    </svg>
 
-    <header>
-        <h1>Supply Chain and Logistics System</h1>
+    <a class="skip-link" href="#modules">Skip to modules</a>
+    <header class="site-header">
+        <div class="header-inner">
+            <a class="brand" href="./" aria-label="AgriTrace home"><svg><use href="#cube"/></svg><span>AgriTrace</span></a>
+            <nav aria-label="Main navigation">
+                <a class="active" href="./" aria-current="page"><svg><use href="#home"/></svg>Home</a>
+                <a href="http://localhost:8081"><svg><use href="#cube"/></svg>Inventory</a>
+                <a href="http://localhost:8082"><svg><use href="#orders"/></svg>Orders</a>
+                <a href="http://localhost:5000"><svg><use href="#warehouse"/></svg>Warehouse</a>
+                <a href="http://localhost:3004"><svg><use href="#truck"/></svg>Transportation</a>
+            </nav>
+            <span class="workspace"><span class="workspace-dot"></span>Logistics workspace</span>
+        </div>
     </header>
 
-    <main>
+    <main class="container">
+        <section class="hero" aria-labelledby="hero-title">
+            <div class="hero-copy">
+                <p class="eyebrow">Integrated logistics management</p>
+                <h1 id="hero-title">AgriTrace</h1>
+                <p class="intro">Your entire supply chain.<br>One connected workspace.</p>
+                <p class="hero-description">Bring inventory, orders, warehouse operations and transportation together. Keep every move in view.</p>
+                <a class="primary-button" href="#modules">Explore modules<svg><use href="#arrow"/></svg></a>
+            </div>
+            <div class="hero-note"><span class="note-line"></span><span>From the first order<br><strong>to the final mile.</strong></span></div>
+        </section>
 
-        <div class="features">
-
-            <h2>Inventory Management</h2>
-
-            <a
-                class="feature-button"
-                href="http://localhost:8081"
-            >
-                Open Inventory
-            </a>
-
-
-            <h2>Order Management</h2>
-
-            <a
-                class="feature-button"
-                href="http://localhost:8082"
-            >
-                Open Orders
-            </a>
-
-
-            <h2>Warehouse Management</h2>
-
-            <a
-                class="feature-button"
-                href="http://localhost:5000"
-            >
-                Open Warehouse
-            </a>
-
-
-            <h2>Transportation Management</h2>
-
-            <a
-                class="feature-button"
-                href="http://localhost:3004"
-            >
-                Open Transportation
-            </a>
-
-        </div>
+        <section class="modules" id="modules" aria-labelledby="modules-title">
+            <div class="section-heading"><div><p class="eyebrow">Your workspace</p><h2 id="modules-title">Choose a module</h2></div><span class="section-caption">Everything you need to keep moving.</span></div>
+            <div class="module-grid">
+                <a class="module-card inventory" href="http://localhost:8081">
+                    <div class="card-top"><span class="module-icon"><svg><use href="#cube"/></svg></span><span class="card-arrow"><svg><use href="#arrow"/></svg></span></div>
+                    <h3>Inventory Management</h3><p>Track stock levels and manage inventory across every location.</p><span class="module-label">Stock &amp; availability</span>
+                </a>
+                <a class="module-card orders" href="http://localhost:8082">
+                    <div class="card-top"><span class="module-icon"><svg><use href="#orders"/></svg></span><span class="card-arrow"><svg><use href="#arrow"/></svg></span></div>
+                    <h3>Order Management</h3><p>Keep orders moving, from creation through to fulfilment.</p><span class="module-label">Orders &amp; fulfilment</span>
+                </a>
+                <a class="module-card warehouse" href="http://localhost:5000">
+                    <div class="card-top"><span class="module-icon"><svg><use href="#warehouse"/></svg></span><span class="card-arrow"><svg><use href="#arrow"/></svg></span></div>
+                    <h3>Warehouse Management</h3><p>Organise warehouse operations, space and resources.</p><span class="module-label">Space &amp; operations</span>
+                </a>
+                <a class="module-card transportation" href="http://localhost:3004">
+                    <div class="card-top"><span class="module-icon"><svg><use href="#truck"/></svg></span><span class="card-arrow"><svg><use href="#arrow"/></svg></span></div>
+                    <h3>Transportation Management</h3><p>Plan, track and analyse your shipments with AI assistance.</p><span class="module-label">Shipments &amp; delivery</span>
+                </a>
+            </div>
+        </section>
+        <footer><span>AgriTrace <span class="footer-dot">·</span> Integrated Logistics Management</span><span>Connected at every step.</span></footer>
     </main>
-
 </body>
 </html>

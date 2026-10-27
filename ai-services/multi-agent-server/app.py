@@ -29,7 +29,12 @@ def health():
 @app.post("/workflow")
 def workflow():
     payload = request.get_json(silent=True) or {}
-    user_request = (payload.get("request") or "").strip()
+    if not isinstance(payload, dict):
+        return jsonify({"error": "Request body must be a JSON object."}), 400
+    user_request = payload.get("request")
+    if not isinstance(user_request, str):
+        user_request = ""
+    user_request = user_request.strip()
     if not user_request:
         return jsonify({"error": "Field 'request' is required."}), 400
     domain = _read_domain(payload.get("domain"))

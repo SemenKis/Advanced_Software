@@ -1,8 +1,10 @@
 import json
 import os
+import tempfile
+import threading
 import time
 import uuid
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, TimeoutError
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -12,6 +14,8 @@ APP_DIR = Path(__file__).resolve().parent
 HISTORY_PATH = APP_DIR / "workflow_history.jsonl"
 AUDIT_PATH = APP_DIR / "coordination_audit.jsonl"
 STEP_TIMEOUT = float(os.getenv("AGENT_STEP_TIMEOUT_SECONDS", "30"))
+HISTORY_LOCK = threading.RLock()
+ALLOWED_DECISIONS = ["Accept", "Partially Accept", "Correct", "Reject"]
 
 
 def _now():
@@ -19,8 +23,9 @@ def _now():
 
 
 def _append(path, record):
-    with path.open("a", encoding="utf-8") as f:
-        f.write(json.dumps(record) + "\n")
+    with HISTORY_LOCK:
+        with path.open("a", encoding="utf-8") as f:
+            f.write(json.dumps(record) + "\n")
 
 
 def _read_jsonl(path):
@@ -88,7 +93,7 @@ def run_workflow(user_request, domain=DEFAULT_DOMAIN):
         "human_decision": {
             "required": True,
             "status": "pending",
-            "allowed_values": ["Accept", "Partially Accept", "Reject"],
+            "allowed_values": ALLOWED_DECISIONS,
         },
     }
     _append(HISTORY_PATH, result)
