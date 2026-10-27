@@ -18,3 +18,9 @@ repos:
         language: python
         additional_dependencies: ["pip-audit==2.10.1"]
         files: requirements.*\.txt$
+      - id: student-1-scans
+        name: student-1 pytest scans
+        entry: python -m pytest -c student-1-bea/pytest.ini student-1-bea/tests -m pre_commit -q
+        language: system
+        pass_filenames: false
+        always_run: true
