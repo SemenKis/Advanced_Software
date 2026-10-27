@@ -5,43 +5,43 @@
     <title>Warehouse Management - Student 2 Yuting</title>
     <script src="/static/htmx.min.js"></script>
     <style>
-        body { font-family: sans-serif; margin: 2rem; color: #1F3D2B; background-color: #F1F0E2; }
-        table { border-collapse: collapse; width: 100%; margin-top: 1rem; background-color: #ffffff; }
-        th, td { border: 1px solid #D5D3BC; padding: 10px 14px; text-align: left; font-size: 0.9rem; }
-        th { background-color: #6B8F5E; color: #FFFFFF; }
-        tr:nth-child(even) td { background-color: #F8F7EE; }
-        nav { background-color: #1F3D2B; padding: 12px 20px; border-radius: 8px; }
-        nav a { margin-right: 0.4rem; padding: 6px 12px; border-radius: 6px; text-decoration: none; font-weight: bold; color: #E6EBD8; }
-        nav a:hover { background-color: #A65D57; color: #FFFFFF; }
+        body { font-family: sans-serif; margin: 2rem; color: #EFEAFB; background: #1F1A40 linear-gradient(160deg, #2A2158 0%, #1C2552 55%, #1F1A40 100%) fixed; min-height: 100vh; }
+        table { border-collapse: collapse; width: 100%; margin-top: 1rem; background-color: #272050; }
+        th, td { border: 1px solid #6A58B5; padding: 10px 14px; text-align: left; font-size: 0.9rem; }
+        th { background-color: #5B4A9E; color: #FFFFFF; }
+        tr:nth-child(even) td { background-color: #2F2760; }
+        nav { background-color: #33295F; border: 1px solid #4B3F78; padding: 12px 20px; border-radius: 8px; }
+        nav a { margin-right: 0.4rem; padding: 6px 12px; border-radius: 6px; text-decoration: none; font-weight: bold; color: #E4D8FB; }
+        nav a:hover { background-color: #8E5BD9; color: #FFFFFF; }
 
         button {
-            background-color: #4E7A47;
+            background-color: #8E5BD9;
             color: #FFFFFF;
             border: none;
             border-radius: 6px;
             font-weight: 600;
             cursor: pointer;
         }
-        button:hover { background-color: #3A6035; }
+        button:hover { background-color: #7A47C4; }
         td form.inline:not([hx-delete]) button {
             background-color: transparent;
-            color: #4E7A47;
-            border: 2px solid #4E7A47;
+            color: #AE7BEE;
+            border: 2px solid #AE7BEE;
         }
         td form.inline:not([hx-delete]) button:hover {
-            background-color: #4E7A47;
+            background-color: #8E5BD9;
             color: #FFFFFF;
         }
-        td form.inline[hx-delete] button { background-color: #A65D57; }
-        td form.inline[hx-delete] button:hover { background-color: #8C4A45; }
+        td form.inline[hx-delete] button { background-color: #C45A55; }
+        td form.inline[hx-delete] button:hover { background-color: #A94540; }
         input, select {
-            border: 1px solid #B9B7A0;
+            border: 1px solid #6A58B5;
             border-radius: 6px;
-            background-color: #FFFFFF;
+            background-color: #272050;
         }
 
         .ai-button {
-            background-color: #4E7A47;
+            background-color: #8E5BD9;
             color: #FFFFFF;
             border: none;
             padding: 10px 20px;
@@ -52,7 +52,7 @@
             margin-bottom: 1rem;
         }
         .ai-button:hover {
-            background-color: #3A6035;
+            background-color: #7A47C4;
         }
 
         form:not(.inline) input,
@@ -83,7 +83,95 @@
             padding: 5px 14px; 
         }
 
-    </style>
+            :root { color-scheme: dark; }
+        a { color: #AE7BEE; }
+        input, select, textarea { color: #EFEAFB; }
+        ::placeholder { color: #A99FCB; }
+            h1, h2, h3 { color: #D9C2FA; }
+    /* LIGHT-THEME-START */
+:root { color-scheme: light; }
+body { background: #EFEAF8 !important; color: #2A2140 !important; min-height: 100vh; }
+h1, h2, h3 { color: #50396D !important; }
+a { color: #7B40A5 !important; }
+nav { background: #50396D !important; border: 1px solid #50396D !important; }
+nav a { color: #E9E1F8 !important; }
+nav a:hover { background: #7B40A5 !important; color: #FFFFFF !important; }
+table { background: #FFFFFF !important; border-color: #D9CFEE !important; }
+th { background: #765B9E !important; color: #FFFFFF !important; border-color: #765B9E !important; }
+td { background: transparent !important; color: #2A2140 !important; border-color: #E2DAF1 !important; }
+tr { background: #FFFFFF !important; }
+tr:nth-child(even) { background: #F5F1FB !important; }
+input, select, textarea { background: #FFFFFF !important; color: #2A2140 !important; border: 1px solid #B9A9DC !important; }
+::placeholder { color: #8A7FA6 !important; }
+button { background: #7B40A5 !important; color: #FFFFFF !important; }
+button:hover { background: #50396D !important; }
+pre { background: #FFFFFF !important; color: #2A2140 !important; border: 1px solid #D9CFEE !important; }
+.ma-step { background: #FFFFFF !important; color: #50396D !important; border-color: #7B40A5 !important; }
+.ma-step b { background: #7B40A5 !important; color: #FFFFFF !important; }
+.ma-arrow { color: #7B40A5 !important; }
+.ma-sample { background: #FFFFFF !important; color: #50396D !important; border: 1px solid #B9A9DC !important; }
+.ma-suggest-label { color: #7B40A5 !important; }
+.ma-planner { background: #E8EDFD !important; color: #2A2140 !important; border-left-color: #6C86F7 !important; }
+.ma-worker { background: #FDF0E3 !important; color: #2A2140 !important; border-left-color: #E79F5B !important; }
+.ma-reviewer { background: #E3F6EE !important; color: #2A2140 !important; border-left-color: #4DB88F !important; }
+#ma-status { background: #FFFFFF !important; color: #2A2140 !important; border: 1px solid #D9CFEE !important; }
+td form.inline:not([hx-delete]) button,
+td form.inline:not([hx-delete]) button:hover,
+td form.inline[hx-delete] button,
+td form.inline[hx-delete] button:hover { background: #C0504D !important; color: #FFFFFF !important; border: none !important; }
+/* LIGHT-THEME-END */
+/* FIX-START */
+body td input { width: 80px !important; box-sizing: border-box !important; margin-right: 16px !important; }
+body td select { width: 130px !important; box-sizing: border-box !important; margin-right: 16px !important; }
+body td button { min-width: 96px !important; }
+/* FIX-END */
+/* TWEAK-START */
+nav { background: #FFFFFF !important; border: 1px solid #DCD2F0 !important; box-shadow: 0 2px 10px rgba(80, 57, 109, 0.10) !important; }
+nav a { color: #50396D !important; }
+nav a:hover { background: #EFEAF8 !important; color: #7B40A5 !important; }
+nav a.nav-current { background: #7B40A5 !important; color: #FFFFFF !important; }
+.ma-step { border-color: var(--c, #7B40A5) !important; }
+.ma-step b { background: var(--c, #7B40A5) !important; color: #FFFFFF !important; }
+/* TWEAK-END */
+/* THEME2-START */
+body { background: linear-gradient(180deg, #E9EFFB 0%, #F0E9F8 100%) fixed !important; color: #1E1838 !important; }
+h1, h2, h3 { color: #4A2F7D !important; }
+a { color: #4A2F7D !important; }
+nav { background: linear-gradient(90deg, #4A2F7D 0%, #8A5C9E 55%, #E8B0DE 100%) !important; border: none !important; box-shadow: 0 4px 14px rgba(74, 47, 125, 0.25) !important; }
+nav a { color: #FFFFFF !important; }
+nav a:hover { background: rgba(255, 255, 255, 0.22) !important; color: #FFFFFF !important; }
+nav a.nav-current { background: #FFFFFF !important; color: #4A2F7D !important; }
+table { background: #FFFFFF !important; border-color: #D5CCEA !important; }
+th { background: linear-gradient(90deg, #4A2F7D, #6B4A9B) !important; color: #FFFFFF !important; border-color: #4A2F7D !important; }
+td { color: #1E1838 !important; border-color: #E0D9F0 !important; }
+tr { background: #FFFFFF !important; }
+tr:nth-child(even) { background: #EEF3FC !important; }
+tr:hover { background: #E6DDF5 !important; }
+button { background: #4A2F7D !important; color: #FFFFFF !important; }
+button:hover { background: #0C1039 !important; }
+html body table tr td:has(select, input) button:not(.q):not(.qq) { background: #FFFFFF !important; color: #4A2F7D !important; border: 2px solid #4A2F7D !important; }
+html body table tr td:has(select, input) button:not(.q):not(.qq):hover { background: #4A2F7D !important; color: #FFFFFF !important; }
+html body table tr td:not(:has(select, input)) button:not(.q):not(.qq) { background: #C2506B !important; color: #FFFFFF !important; border: none !important; }
+html body table tr td:not(:has(select, input)) button:not(.q):not(.qq):hover { background: #A33F56 !important; }
+.ma-suggest-label { color: #9A669A !important; }
+.ma-arrow { color: #9A669A !important; }
+/* THEME2-END */
+/* THEME3-START */
+nav { background: linear-gradient(90deg, #0B0716 0%, #2A1A52 10%, #4A2F7D 26%, #8A5C9E 62%, #E8B0DE 100%) !important; }
+th { background: #4A2F7D !important; }
+.ma-sample { color: #4A2F7D !important; }
+.ma-sample:hover { background: #4A2F7D !important; color: #FFFFFF !important; border-color: #4A2F7D !important; }
+/* THEME3-END */
+/* THEME4-START */
+th { border: 1px solid rgba(255, 255, 255, 0.30) !important; }
+button.btn-ai { background: #4F6BE0 !important; color: #FFFFFF !important; }
+button.btn-ai:hover { background: #3A52C4 !important; }
+/* THEME4-END */
+/* THEME5-START */
+.ma-workflow { background: #FFFFFF !important; color: #1E1838 !important; border: 1px solid #D5CCEA !important; border-left: 4px solid #9A669A !important; }
+.ma-workflow * { color: #1E1838 !important; }
+/* THEME5-END */
+</style>
 </head>
 <body>
     <nav>
@@ -95,5 +183,23 @@
         <a href="/multi-agent">Multi-Agent</a>
     </nav>
     {% block content %}{% endblock %}
+<!-- TWEAK-JS-START -->
+<script>
+document.querySelectorAll('nav a').forEach(function (a) {
+  if (a.host === location.host && a.pathname === location.pathname) a.classList.add('nav-current');
+});
+var stepColours = ['#6C86F7', '#E79F5B', '#4DB88F', '#7B40A5'];
+document.querySelectorAll('.ma-step').forEach(function (el, i) {
+  el.style.setProperty('--c', stepColours[i % stepColours.length]);
+});
+</script>
+<!-- TWEAK-JS-END -->
+<!-- THEME4-JS-START -->
+<script>
+document.querySelectorAll('button').forEach(function (b) {
+  if (/run ai task/i.test(b.textContent)) b.classList.add('btn-ai');
+});
+</script>
+<!-- THEME4-JS-END -->
 </body>
 </html>

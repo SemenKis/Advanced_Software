@@ -3,22 +3,22 @@
 <h2>Multi-Agent Review</h2>
 <style>
     .ma-suggest { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 14px 0; }
-    .ma-suggest-label { font-size: 0.9rem; font-weight: 600; color: #4E7A47; }
-    .ma-sample { background: #DDE8D0; color: #1F3D2B; border: 1px solid #B7C9A5; border-radius: 999px; padding: 6px 14px; font-size: 0.9rem; cursor: pointer; }
-    .ma-sample:hover { background: #4E7A47; color: #FFFFFF; border-color: #4E7A47; }
+    .ma-suggest-label { font-size: 0.9rem; font-weight: 600; color: #AE7BEE; }
+    .ma-sample { background: #3A2F6B; color: #D9C2FA; border: 1px solid #6A58B5; border-radius: 999px; padding: 6px 14px; font-size: 0.9rem; cursor: pointer; }
+    .ma-sample:hover { background: #8E5BD9; color: #FFFFFF; border-color: #AE7BEE; }
     #ma-status:empty { display: none; }
     .ma-flow { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 12px 0 18px; }
-    .ma-step { display: inline-flex; align-items: center; gap: 8px; background: transparent; color: #3E2F1F; border: 2px solid #8B6B4A; font-weight: 600; border-radius: 8px; padding: 4px 14px 4px 6px; }
-    .ma-step b { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 50%; background: #8B6B4A; color: #FFFFFF; font-size: 0.8rem; }
-    .ma-arrow { color: #8B6B4A; font-weight: 700; }
-    #ma-run, #ma-decision-btn, #ma-status-btn { background: #4E7A47; color: #FFFFFF; border: none; border-radius: 6px; padding: 8px 16px; font-weight: 600; cursor: pointer; }
-    #ma-run:hover, #ma-decision-btn:hover, #ma-status-btn:hover { background: #3A6035; }
+    .ma-step { display: inline-flex; align-items: center; gap: 8px; background: transparent; color: #EFEAFB; border: 2px solid #AE7BEE; font-weight: 600; border-radius: 8px; padding: 4px 14px 4px 6px; }
+    .ma-step b { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 50%; background: #8E5BD9; color: #FFFFFF; font-size: 0.8rem; }
+    .ma-arrow { color: #AE7BEE; font-weight: 700; }
+    #ma-run, #ma-decision-btn, #ma-status-btn { background: #8E5BD9; color: #FFFFFF; border: none; border-radius: 6px; padding: 8px 16px; font-weight: 600; cursor: pointer; }
+    #ma-run:hover, #ma-decision-btn:hover, #ma-status-btn:hover { background: #7A47C4; }
     #ma-run:disabled { opacity: 0.6; cursor: wait; }
-    #ma-request, #ma-note, #ma-decision-value { border: 1px solid #B9B7A0; border-radius: 6px; padding: 8px 10px; background: #FFFFFF; }
-    .ma-planner { background: #E4EEDA; border-left: 5px solid #4E7A47; }
-    .ma-worker { background: #EFE6D2; border-left: 5px solid #A88B5A; }
-    .ma-reviewer { background: #DDEBE7; border-left: 5px solid #2F6F6B; }
-    .ma-workflow { background: #FFFFFF; border: 1px solid #DAD7BE; }
+    #ma-request, #ma-note, #ma-decision-value { border: 1px solid #6A58B5; border-radius: 6px; padding: 8px 10px; background: #272050; }
+    .ma-planner { background: #26306B; border-left: 5px solid #6C86F7; }
+    .ma-worker { background: #4A3320; border-left: 5px solid #E79F5B; }
+    .ma-reviewer { background: #1F4A3B; border-left: 5px solid #7BDCB7; }
+    .ma-workflow { background: #272050; border: 1px solid #4B3F78; }
 </style>
 <div class="ma-flow">
     <span class="ma-step"><b>1</b>Planner</span><span class="ma-arrow">&rarr;</span>
@@ -53,7 +53,7 @@
 
 <section id="ma-status-section" hidden style="margin-top: 24px;">
     <button type="button" id="ma-status-btn">Refresh History Status</button>
-    <pre id="ma-status" style="background: #FFFFFF; border: 1px solid #DAD7BE; padding: 10px; border-radius: 6px;"></pre>
+    <pre id="ma-status" style="background: #272050; border: 1px solid #4B3F78; padding: 10px; border-radius: 6px;"></pre>
 </section>
 
 <script>
