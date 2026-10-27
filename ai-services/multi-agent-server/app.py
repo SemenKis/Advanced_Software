@@ -1,12 +1,24 @@
 import os
 
 from flask import Flask, jsonify, request
-from flask_cors import CORS
 
 from coordinator import record_decision, run_workflow, workflow_status
+from domains import DEFAULT_DOMAIN, DOMAINS
 
 app = Flask(__name__)
-CORS(app) 
+
+
+def _read_domain(raw, default=DEFAULT_DOMAIN):
+    """Returns a valid domain name, or None if the caller sent an unknown one."""
+    if raw is None or str(raw).strip() == "":
+        return default
+    domain = str(raw).strip().lower()
+    return domain if domain in DOMAINS else None
+
+
+def _unknown_domain():
+    allowed = ", ".join(DOMAINS)
+    return jsonify({"error": f"Unknown domain. Allowed values: {allowed}."}), 400
 
 
 @app.get("/health")
@@ -20,21 +32,33 @@ def workflow():
     user_request = (payload.get("request") or "").strip()
     if not user_request:
         return jsonify({"error": "Field 'request' is required."}), 400
-    return jsonify(run_workflow(user_request)), 200
+    domain = _read_domain(payload.get("domain"))
+    if domain is None:
+        return _unknown_domain()
+    return jsonify(run_workflow(user_request, domain)), 200
 
 
 @app.get("/workflow/status")
 def status():
-    return jsonify(workflow_status()), 200
+    # Callers that send no domain get the warehouse view, so another domain's
+    # workflows never show up in a warehouse caller's history
+    domain = _read_domain(request.args.get("domain"))
+    if domain is None:
+        return _unknown_domain()
+    return jsonify(workflow_status(domain)), 200
 
 
 @app.post("/workflow/decision")
 def decision():
     payload = request.get_json(silent=True) or {}
+    domain = _read_domain(payload.get("domain"))
+    if domain is None:
+        return _unknown_domain()
     ok, message = record_decision(
         (payload.get("workflow_id") or "").strip(),
         (payload.get("decision") or "").strip(),
         (payload.get("note") or "").strip(),
+        domain,
     )
     return jsonify({"message": message}), (200 if ok else 400)
 

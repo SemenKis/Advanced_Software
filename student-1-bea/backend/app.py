@@ -26,6 +26,7 @@ def create_app():
     app.register_blueprint(mcp_bp)
     app.register_blueprint(rag_bp)
     app.register_blueprint(auth_bp)
+    app.register_blueprint(multi_agent_bp)
 
     return app
 
