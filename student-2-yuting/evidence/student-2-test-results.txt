@@ -1,0 +1,12 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-9.1.1, pluggy-1.7.0 -- /usr/bin/python
+cachedir: .pytest_cache
+rootdir: /home/runner/work/Advanced_Software/Advanced_Software
+configfile: pyproject.toml
+plugins: platformdirs-4.13.0
+collecting ... collected 2 items
+
+student-2-yuting/tests/test_backend_endpoints.py::test_health_endpoint PASSED [ 50%]
+student-2-yuting/tests/test_backend_endpoints.py::test_storage_locations_endpoint PASSED [100%]
+
+============================== 2 passed in 0.09s ===============================
