@@ -17,7 +17,7 @@ def call_ollama(system_prompt, user_prompt, model=None):
         resp = requests.post(
             f"{OLLAMA_HOST}/api/generate",
             json={"model": model or OLLAMA_MODEL, "prompt": prompt, "stream": False},
-            timeout=180,
+            timeout=600,
         )
         return resp.json().get("response", "")
     except Exception as e:
@@ -228,6 +228,14 @@ def collect_testing_evidence(student_folder):
         sections.append(f"--- .pre-commit-config.yaml ---\n{precommit.read_text()[:800]}")
     else:
         sections.append(".pre-commit-config.yaml not found at repo root.")
+
+    evidence_dir = student_dir / "evidence"
+    for name in ("pre-commit-report.txt", f"student-{number}-test-results.txt"):
+        report = evidence_dir / name
+        if report.exists():
+            sections.append(f"--- {student_folder}/evidence/{name} ---\n{report.read_text()[:3000]}")
+        else:
+            sections.append(f"Report not found: {student_folder}/evidence/{name}.")
 
     return "\n\n".join(sections)
 
