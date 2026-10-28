@@ -1,6 +1,5 @@
-
 name: student-3-lois
-
+ 
 on:
   push:
     paths:
@@ -9,7 +8,7 @@ on:
       - "pyproject.toml"
       - ".pre-commit-config.yaml"
       - ".github/workflows/student-3-ci.yml"
-
+ 
   pull_request:
     paths:
       - "student-3-lois/**"
@@ -17,26 +16,26 @@ on:
       - "pyproject.toml"
       - ".pre-commit-config.yaml"
       - ".github/workflows/student-3-ci.yml"
-
+ 
   workflow_dispatch:
-
+ 
 permissions:
   contents: read
-
+ 
 jobs:
-
+ 
   # 1. Python tests, security checks and multi-agent integration
   tests:
     runs-on: ubuntu-latest
-
+ 
     steps:
       - uses: actions/checkout@v4
-
+ 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-
+ 
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
@@ -44,10 +43,10 @@ jobs:
             -r student-3-lois/inventory-service/requirements.txt \
             -r ai-services/multi-agent-server/requirements.txt
           python -m pip install pytest ruff==0.17.1 detect-secrets==1.5.0
-
+ 
       - name: Create reports directory
         run: mkdir -p reports
-
+ 
       - name: Security checks
         run: |
           python -m pytest \
@@ -55,20 +54,19 @@ jobs:
             student-3-lois/tests \
             -m pre_commit -q \
             --junitxml=reports/security.xml
-
+ 
       - name: Shared multi-agent inventory workflow tests
         run: |
           python -m pytest \
             ai-services/multi-agent-server/tests/test_inventory_workflow.py \
             -q --junitxml=reports/multi-agent.xml
-
+ 
       - name: Inventory route and service tests
         run: |
           python -m pytest \
-            student-3-lois/inventory-service/tests \
             student-3-lois/tests/test_multi_agent_routes.py \
             -q --junitxml=reports/inventory-service.xml
-
+ 
       - name: Upload Python test reports
         if: always()
         uses: actions/upload-artifact@v4
@@ -76,36 +74,36 @@ jobs:
           name: inventory-junit-reports
           path: reports/
           if-no-files-found: ignore
-
+ 
   # 2. Test the database API separately
   api:
     runs-on: ubuntu-latest
-
+ 
     steps:
       - uses: actions/checkout@v4
-
+ 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-
+ 
       - name: Install API test dependencies
         run: |
           python -m pip install --upgrade pip
           python -m pip install pytest requests
-
+ 
       - name: Create reports directory
         run: mkdir -p reports
-
+ 
       - name: Create external Docker network
         run: docker network create team-network || true
-
+ 
       - name: Start database service
         run: |
           docker compose \
             -f student-3-lois/docker-compose.yml \
             up -d --build database-service
-
+ 
       - name: Wait for database API
         run: |
           for i in $(seq 1 30); do
@@ -115,27 +113,27 @@ jobs:
             fi
             sleep 2
           done
-
+ 
           docker compose \
             -f student-3-lois/docker-compose.yml \
             logs database-service
-
+ 
           exit 1
-
+ 
       - name: Run inventory API tests
         run: |
           python -m pytest \
             -c student-3-lois/pytest.ini \
-            student-3-lois/inventory-service/tests/test_api_inventory.py \
+            student-3-lois/tests/test_api_inventory.py \
             -q --junitxml=reports/api.xml
-
+ 
       - name: Stop database service
         if: always()
         run: |
           docker compose \
             -f student-3-lois/docker-compose.yml \
             down -v
-
+ 
       - name: Upload API test report
         if: always()
         uses: actions/upload-artifact@v4
@@ -143,95 +141,95 @@ jobs:
           name: inventory-api-junit-report
           path: reports/api.xml
           if-no-files-found: ignore
-
+ 
   # 3. Verify that all Docker services build
   build-images:
     runs-on: ubuntu-latest
     needs: [tests, api]
-
+ 
     steps:
       - uses: actions/checkout@v4
-
+ 
       - name: Verify Docker Compose
         run: docker compose version
-
+ 
       - name: Build services
         working-directory: ./student-3-lois
         run: docker compose build
-
+ 
   # 4. Start the application and check its endpoints
   smoke-check:
     runs-on: ubuntu-latest
     needs: [build-images]
-
+ 
     env:
       MCP_ENABLED: "false"
       RAG_ENABLED: "false"
-
+ 
     steps:
       - uses: actions/checkout@v4
-
+ 
       - name: Verify Docker Compose
         run: docker compose version
-
+ 
       - name: Create external network
         run: docker network create team-network || true
-
+ 
       - name: Start services
         working-directory: ./student-3-lois
         run: docker compose up -d --build
-
+ 
       - name: Smoke checks
         run: |
           check_url() {
             local url="$1"
             local attempts=8
             local code=""
-
+ 
             for i in $(seq 1 "$attempts"); do
               code=$(curl -sS -o /dev/null \
                 -w "%{http_code}" \
                 --connect-timeout 5 \
                 --max-time 20 "$url" || true)
-
+ 
               if [ "$code" = "200" ]; then
                 echo "PASS $url -> $code"
                 return 0
               fi
-
+ 
               echo "Retry $i/$attempts for $url (got: ${code:-none})"
               sleep 2
             done
-
+ 
             echo "FAIL $url after $attempts attempts"
             return 1
           }
-
+ 
           check_url "http://localhost:8081/"
           check_url "http://localhost:5001/"
           check_url "http://localhost:5002/"
-
+ 
       - name: Show service logs on failure
         if: failure()
         working-directory: ./student-3-lois
         run: docker compose logs --no-color
-
+ 
       - name: Stop services
         if: always()
         working-directory: ./student-3-lois
         run: docker compose down -v
-
+ 
   # 5. Generate evidence only after all required checks pass
   evidence-pack:
     runs-on: ubuntu-latest
     needs: [tests, api, build-images, smoke-check]
-
+ 
     steps:
       - uses: actions/checkout@v4
-
+ 
       - name: Create reports directory
         run: mkdir -p reports
-
+ 
       - name: Generate report.json
         env:
           RUN_ID: ${{ github.run_id }}
@@ -239,7 +237,8 @@ jobs:
           BRANCH: ${{ github.ref_name }}
         run: |
           TIMESTAMP=$(date -u +%Y-%m-%dT%H:%M:%SZ)
-
+          export TIMESTAMP
+ 
           python -c 'import json, os; json.dump({
           "workflow_name": "student-3-lois",
           "run_id": os.environ["RUN_ID"],
@@ -248,8 +247,7 @@ jobs:
           "generated_timestamp": os.environ["TIMESTAMP"]
           }, open("reports/report.json", "w"), indent=2)' \
           || exit 1
-
-        # TIMESTAMP is added to the environment in the next step below.
+ 
       - name: Generate report metadata
         env:
           RUN_ID: ${{ github.run_id }}
@@ -258,21 +256,23 @@ jobs:
         run: |
           cat > reports/report.md << EOF
           ## Workflow Report
-
+ 
           - Workflow: student-3-lois
           - Run ID: ${RUN_ID}
           - Commit SHA: ${COMMIT_SHA}
           - Branch: ${BRANCH}
           - Timestamp (UTC): $(date -u +%Y-%m-%dT%H:%M:%SZ)
           EOF
-
+ 
           cat > reports/run-view.md << EOF
           Run URL:
           https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}
           EOF
-
+ 
       - name: Upload evidence pack
         uses: actions/upload-artifact@v4
         with:
           name: student-3-lois-report
           path: reports/
+ 
+
