@@ -24,3 +24,4 @@ def test_detect_secrets_scan_passes():
     assert returncode == 0, result.stderr
     findings = json.loads(result.stdout)
     assert findings.get("results", {}) == {}, "Potential secrets detected"
+    
