@@ -16,7 +16,7 @@ DEFAULT_DOMAIN = "warehouse"
 DOMAINS = {
     "warehouse": {"plan": plan_warehouse, "work": work_warehouse, "review": review_warehouse},
     "orders": {"plan": plan_orders, "work": work_orders, "review": review_orders},
-    "inventory": {"plan": plan_inventory, "work": work_inventory, "review": review_inventory},
+    "inventory": {"plan": plan_inventory, "work": work_inventory, "review": review_inventory, "worker_uses_plan": True},
     "transportation": {
         "plan": plan_transportation,
         "work": work_transportation,
