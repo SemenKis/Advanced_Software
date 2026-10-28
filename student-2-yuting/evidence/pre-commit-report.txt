@@ -1,0 +1,6 @@
+Pre-commit security report - Fri 23 Oct 2026 00:27:03 AEDT
+
+All checks passed!
+Ruff security scan (flake8-bandit S rules)...............................Passed
+detect-secrets scan......................................................Passed
+pip-audit dependency scan................................................Passed
