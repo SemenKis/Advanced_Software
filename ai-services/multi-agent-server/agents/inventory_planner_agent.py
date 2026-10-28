@@ -4,13 +4,14 @@ from pathlib import Path
 from agents.llm import call_model
 
 APP_DIR = Path(__file__).resolve().parent.parent
-PROMPT_PATH = APP_DIR / "prompts" / "planner_prompt.txt"
+PROMPT_PATH = APP_DIR / "prompts" / "inventory_planner_prompt.txt"
 MODEL = os.getenv("OLLAMA_MODEL", "qwen2.5:0.5b")
 
 FALLBACK_PLAN = (
-    "1. Review the live product inventory. "
-    "2. Compare each quantity against its reorder level. "
-    "3. Prioritise low-stock products and recommend reorder actions."
+    "1. Fetch the current products from the Inventory API. "
+    "2. Apply any product id, category, supplier or low-stock filter the request names. "
+    "3. Compare each product's quantity with its reorder level. "
+    "4. Summarise stock levels and recommend review actions without changing any records."
 )
 
 

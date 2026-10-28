@@ -24,3 +24,9 @@ repos:
         language: system
         pass_filenames: false
         always_run: true
+      - id: student-3-scans
+        name: student-3 pytest scans
+        entry: python -m pytest -c student-3-lois/pytest.ini student-3-lois/tests -m pre_commit -q
+        language: system
+        pass_filenames: false
+        always_run: true
