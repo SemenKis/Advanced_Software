@@ -119,7 +119,7 @@ Dependencies and tests are maintained per module. For the transportation and sha
 python3 -m pip install -r student-4-sam/backend/requirements.txt \
   -r ai-services/multi-agent-server/requirements.txt \
   -r ai-services/rag-server/requirements.txt
-python3 -m pytest student-4-sam/tests ai-services/multi-agent-server/tests
+python3 scripts/transportation/test_report.py
 ```
 
 These tests replace model and external service calls, so Ollama does not need to be running. Refer to the module workflows in [`.github/workflows/`](.github/workflows/) for their individual build, test, and smoke-check commands.

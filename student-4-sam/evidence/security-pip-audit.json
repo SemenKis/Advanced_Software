@@ -1,9 +1,9 @@
 {
   "scanner": "pip-audit",
   "context": "local-pre-commit",
-  "timestamp": "2026-10-28T08:59:16.762062+00:00",
-  "source_index_sha256": "2be34f471f2221f10495c37aeff5f2e3f1deaf9e1ceb1b1c9b721329536d8a2c",
-  "commit": "da0975b21998bba7e745c64ae0edc9d48cc95bd6",
+  "timestamp": "2026-10-28T09:59:54.500119+00:00",
+  "source_index_sha256": "f5bf28a8da8c5d31b81a5cd67ca5d7ade99ee123a2733022188d7d624da64daf",
+  "commit": "d622a1d4877a3dcffa86d7556f344c7eae3045f2",
   "command": [
     "/home/sam/.cache/pre-commit/repo4e22p4iv/py_env-python3.12/bin/python",
     "-m",

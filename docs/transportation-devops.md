@@ -89,7 +89,7 @@ The assigned workflow is [student-4-ci.yml](../.github/workflows/student-4-ci.ym
 | `get_shipments` | `GET /api/shipments` | Empty list, JSON response, persisted records, descending IDs |
 | `create_shipment` | `POST /api/shipments` | HTTP 201, persisted field values, default status/delay, status normalisation, HTTP 400 for invalid input without inserting rows |
 
-Contract tests use a new temporary SQLite database per test and do not require running cloud/AI services. Existing MCP, multi-agent, and URL tests are retained. Evidence validation tests check stale, missing, skipped, and incorrectly attributed scanner reports.
+Contract tests use a new temporary SQLite database per test and do not require running cloud/AI services. Existing MCP, transportation multi-agent, and URL tests are retained. The transportation runner explicitly selects `ai-services/multi-agent-server/tests/test_transportation_workflow.py`; tests for other domains in that shared directory are outside this service's CI report. Evidence validation tests check stale, missing, skipped, and incorrectly attributed scanner reports.
 
 Run the same suite locally:
 

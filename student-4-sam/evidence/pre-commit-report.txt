@@ -2,8 +2,8 @@ Transportation security testing report
 
 detect-secrets: PASS
 Context: local-pre-commit
-Time: 2026-10-28T08:59:11.571596+00:00
-Source index: 2be34f471f2221f10495c37aeff5f2e3f1deaf9e1ceb1b1c9b721329536d8a2c
+Time: 2026-10-28T09:59:49.151559+00:00
+Source index: f5bf28a8da8c5d31b81a5cd67ca5d7ade99ee123a2733022188d7d624da64daf
 Command: /home/sam/.cache/pre-commit/repoxtx8lhm9/py_env-python3.12/bin/python -m detect_secrets scan --all-files student-4-sam/backend/agentic_loop.py student-4-sam/backend/app.py student-4-sam/backend/database.py student-4-sam/backend/htmx_routes.py student-4-sam/backend/ollama_service.py student-4-sam/backend/requirements.txt student-4-sam/backend/transportation.py student-4-sam/database/requirements.txt student-4-sam/database/schema.sql student-4-sam/database/seed.sql student-4-sam/docker-compose.yml student-4-sam/frontend/index.html student-4-sam/frontend/nginx.conf student-4-sam/tests/test_mcp_route.py student-4-sam/tests/test_multi_agent_routes.py student-4-sam/tests/test_ollama_url.py student-4-sam/tests/test_shipment_endpoints.py
 {
   "version": "1.5.0",
@@ -130,15 +130,15 @@ Command: /home/sam/.cache/pre-commit/repoxtx8lhm9/py_env-python3.12/bin/python -
     }
   ],
   "results": {},
-  "generated_at": "2026-10-28T08:59:11Z"
+  "generated_at": "2026-10-28T09:59:49Z"
 }
 
 
 
 pip-audit: PASS
 Context: local-pre-commit
-Time: 2026-10-28T08:59:16.762062+00:00
-Source index: 2be34f471f2221f10495c37aeff5f2e3f1deaf9e1ceb1b1c9b721329536d8a2c
+Time: 2026-10-28T09:59:54.500119+00:00
+Source index: f5bf28a8da8c5d31b81a5cd67ca5d7ade99ee123a2733022188d7d624da64daf
 Command: /home/sam/.cache/pre-commit/repo4e22p4iv/py_env-python3.12/bin/python -m pip_audit -r student-4-sam/backend/requirements.txt -r student-4-sam/database/requirements.txt --progress-spinner off
 
 No known vulnerabilities found
@@ -146,8 +146,8 @@ No known vulnerabilities found
 
 ruff: PASS
 Context: local-pre-commit
-Time: 2026-10-28T08:59:11.062298+00:00
-Source index: 2be34f471f2221f10495c37aeff5f2e3f1deaf9e1ceb1b1c9b721329536d8a2c
+Time: 2026-10-28T09:59:48.648101+00:00
+Source index: f5bf28a8da8c5d31b81a5cd67ca5d7ade99ee123a2733022188d7d624da64daf
 Command: /home/sam/.cache/pre-commit/repoxd9s55kp/py_env-python3.12/bin/python -m ruff check student-4-sam/backend/agentic_loop.py student-4-sam/backend/app.py student-4-sam/backend/database.py student-4-sam/backend/htmx_routes.py student-4-sam/backend/ollama_service.py student-4-sam/backend/transportation.py student-4-sam/tests/test_mcp_route.py student-4-sam/tests/test_multi_agent_routes.py student-4-sam/tests/test_ollama_url.py student-4-sam/tests/test_shipment_endpoints.py
 All checks passed!
 
