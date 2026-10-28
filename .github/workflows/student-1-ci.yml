@@ -64,6 +64,25 @@ jobs:
           check_url "http://localhost:8082/"
           check_url "http://localhost:8082/api/orders"
 
+      - name: Run backend endpoint tests
+        run: |
+          set -o pipefail
+          pip install pytest requests
+          for i in $(seq 1 15); do curl -sf http://localhost:5011/health && break; sleep 2; done
+          mkdir -p reports
+          python -m pytest student-1-yuting/tests -v | tee reports/student-1-test-results.txt
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: student-1-test-results
+          path: reports/student-1-test-results.txt
+
+      - name: Stop services
+        if: always()
+        run: docker compose down -v
+      
       - name: Stop services
         if: always()
         working-directory: ./student-1-bea
