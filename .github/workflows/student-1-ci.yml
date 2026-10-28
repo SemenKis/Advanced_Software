@@ -87,7 +87,7 @@ jobs:
           # Wait for the order-database API (host port 5012) before testing
           for i in $(seq 1 30); do curl -sf http://localhost:5012/ > /dev/null && break; sleep 2; done
           mkdir -p reports
-          python -m pytest student-1-bea/tests -v | tee reports/student-1-test-results.txt
+          python -m pytest student-1-bea/tests -m "not pre_commit" -v | tee reports/student-1-test-results.txt
 
       - name: Upload test results
         if: always()
