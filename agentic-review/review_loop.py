@@ -148,7 +148,7 @@ def collect_multi_agent_evidence(student_folder):
         audit = _read_jsonl(server_dir / "coordination_audit.jsonl")
         domain = {
             "student-1-bea": "orders",
-            "student-3-lois": "warehouse",
+            "student-3-lois": "inventory",
             "student-4-sam": "transportation",
         }.get(student_folder, student_folder)
         history = [row for row in history if row.get("domain", "warehouse") == domain]

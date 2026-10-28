@@ -2,43 +2,168 @@
 <html>
 <head>
 <meta charset="utf-8">
-<title>Multi-Agent Inventory Assistant</title>
-<link rel="stylesheet" href="/css/styles.css">
-<style>body{margin:0;min-height:auto;background:transparent}.app-shell{max-width:none;padding:0}textarea{width:100%;min-height:100px;box-sizing:border-box}pre{white-space:pre-wrap;overflow-wrap:anywhere}</style>
+<title>Multi-Agent</title>
+<link rel="stylesheet" href="../css/styles.css">
+<style>
+  body { margin: 0; min-height: auto; background: transparent; }
+  .app-shell { max-width: none; padding: 0; }
+  pre { white-space: pre-wrap; overflow-wrap: anywhere; margin: 0 0 0.6rem; }
+  .agent-meta { color: var(--muted); font-size: 0.8rem; margin-bottom: 0.25rem; }
+</style>
 </head>
 <body>
-<main class="app-shell"><section class="card">
-<h2>Shared Multi-Agent Server</h2>
-<p style="color:var(--muted)">Run a Planner, Worker, and Reviewer workflow against live inventory data. Results remain pending until a human records a decision.</p>
-<div class="feature-toggle-row"><label class="toggle-switch" for="agent-mode-toggle"><input id="agent-mode-toggle" type="checkbox" checked><span class="toggle-label">Multi-Agent Enabled</span></label><span id="agent-mode-state" class="feature-state feature-on">ON</span></div>
-<form id="workflow-form" class="stack-form"><label for="workflow-request">Inventory question or task</label><textarea id="workflow-request" required placeholder="Example: Which products need reordering, and what should we prioritise?"></textarea><button type="submit" class="rag-action">Run Multi-Agent Workflow</button></form>
-<div id="workflow-results" class="panel panel-mcp" aria-live="polite">Workflow results will appear here.</div>
-<form id="decision-form" class="stack-form"><h3>Human review</h3><label for="workflow-id">Workflow ID</label><input id="workflow-id" required placeholder="Filled after a workflow runs"><label for="decision">Decision</label><select id="decision" required><option value="Accept">Accept</option><option value="Partially Accept">Partially Accept</option><option value="Reject">Reject</option></select><label for="decision-note">Note (optional)</label><input id="decision-note" placeholder="Reason for your decision"><button type="submit" class="rag-action">Record Decision</button></form>
-</section></main>
+<main class="app-shell">
+  <section class="card">
+    <h2>Multi-Agent Mode</h2>
+    <p style="color: var(--muted); margin-top: -0.3rem;">A Planner, Worker and Reviewer agent run on the shared multi-agent server against real inventory data. Agents only read data; a human records the final decision.</p>
+ 
+    <div class="feature-toggle-row">
+      <label class="toggle-switch" for="multi-agent-toggle">
+        <input id="multi-agent-toggle" type="checkbox" checked>
+        <span class="toggle-label">Multi-Agent Enabled</span>
+      </label>
+      <span id="multi-agent-state" class="feature-state feature-on">ON</span>
+    </div>
+ 
+    <h3>run_workflow</h3>
+    <form id="multi-agent-workflow-form" class="feature-form">
+      <label for="multi_agent_request">Inventory question or task</label>
+      <textarea id="multi_agent_request" name="request" maxlength="1000" placeholder="Example: Which products are low on stock, and what should we prioritise?" required></textarea>
+      <button type="submit" class="rag-action">Run Workflow</button>
+    </form>
+ 
+    <h3>record_decision</h3>
+    <form id="multi-agent-decision-form" class="feature-form">
+      <label for="multi_agent_workflow_id">Workflow ID</label>
+      <input id="multi_agent_workflow_id" name="workflow_id" type="text" placeholder="Filled in after a workflow runs" required>
+      <label for="multi_agent_decision">Decision</label>
+      <select id="multi_agent_decision" name="decision">
+        <option value="Accept">Accept</option>
+        <option value="Partially Accept">Partially Accept</option>
+        <option value="Correct">Correct (note required)</option>
+        <option value="Reject">Reject</option>
+      </select>
+      <label for="multi_agent_note">Note</label>
+      <input id="multi_agent_note" name="note" type="text" maxlength="500" placeholder="Reason or correction (required for Correct)">
+      <button type="submit" class="rag-action">Record Decision</button>
+    </form>
+ 
+    <div id="multi-agent-result" class="panel panel-mcp">Multi-agent responses will appear here.</div>
+  </section>
+</main>
+ 
 <script>
-const SERVER = `${window.location.protocol}//${window.location.hostname}:5006`;
-const enabled = document.getElementById("agent-mode-toggle");
-const state = document.getElementById("agent-mode-state");
-const output = document.getElementById("workflow-results");
-const storageKey = "multi_agent_mode_enabled";
-function renderState(){state.textContent=enabled.checked?"ON":"OFF";state.classList.toggle("feature-on",enabled.checked);state.classList.toggle("feature-off",!enabled.checked);}
-function renderPayload(title,payload){const heading=document.createElement("h3");heading.textContent=title;const pre=document.createElement("pre");pre.textContent=JSON.stringify(payload,null,2);output.replaceChildren(heading,pre);}
-async function postJson(path,payload){
-  let response;
-  try {
-    response = await fetch(`${SERVER}${path}`, {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(payload)});
-  } catch (error) {
-    throw new Error(`Cannot reach Multi-Agent API at ${SERVER}. Check that the multi-agent-server container is running and port 5006 is published. Browser detail: ${error.message}`);
-  }
+const BACKEND = "http://localhost:5001";
+const multiAgentToggle = document.getElementById("multi-agent-toggle");
+const multiAgentState = document.getElementById("multi-agent-state");
+const multiAgentResultPanel = document.getElementById("multi-agent-result");
+const MULTI_AGENT_STORAGE_KEY = "multi_agent_mode_enabled";
+ 
+function isMultiAgentEnabled() { return multiAgentToggle.checked; }
+ 
+function renderMultiAgentState() {
+  multiAgentState.textContent = isMultiAgentEnabled() ? "ON" : "OFF";
+  multiAgentState.classList.toggle("feature-on", isMultiAgentEnabled());
+  multiAgentState.classList.toggle("feature-off", !isMultiAgentEnabled());
+}
+ 
+function renderMultiAgentDisabledMessage() {
+  multiAgentResultPanel.textContent = "Multi-Agent Mode is OFF. Enable Multi-Agent Mode to run workflows.";
+}
+ 
+function saveMultiAgentMode() { localStorage.setItem(MULTI_AGENT_STORAGE_KEY, String(isMultiAgentEnabled())); }
+ 
+function loadMultiAgentMode() {
+  const persisted = localStorage.getItem(MULTI_AGENT_STORAGE_KEY);
+  multiAgentToggle.checked = persisted === null ? true : persisted === "true";
+  renderMultiAgentState();
+}
+ 
+multiAgentToggle.addEventListener("change", () => {
+  saveMultiAgentMode();
+  renderMultiAgentState();
+  if (!isMultiAgentEnabled()) renderMultiAgentDisabledMessage();
+});
+ 
+function agentBlock(title, agent) {
+  const wrap = document.createElement("div");
+  const h = document.createElement("h3");
+  h.textContent = title;
+  const meta = document.createElement("div");
+  meta.className = "agent-meta";
+  meta.textContent = `status: ${agent.status || "n/a"} | model: ${agent.model || "n/a"}`;
+  const pre = document.createElement("pre");
+  pre.textContent = agent.output || "(no output)";
+  wrap.append(h, meta, pre);
+  return wrap;
+}
+ 
+function renderWorkflow(data) {
+  const meta = document.createElement("div");
+  meta.className = "agent-meta";
+  meta.textContent = `Workflow ${data.workflow_id} | domain: ${data.domain} | ${data.duration_ms} ms | decision: ${(data.human_decision || {}).status || "pending"}`;
+  const parts = [meta, agentBlock("Planner", data.planner || {}), agentBlock("Worker", data.worker || {})];
+  parts.push(agentBlock("Reviewer", data.reviewer || {}));
+  multiAgentResultPanel.replaceChildren(...parts);
+}
+ 
+function renderJson(title, payload) {
+  const h = document.createElement("h3");
+  h.textContent = title;
+  const pre = document.createElement("pre");
+  pre.textContent = JSON.stringify(payload, null, 2);
+  multiAgentResultPanel.replaceChildren(h, pre);
+}
+ 
+async function callMultiAgent(path, payload) {
+  const response = await fetch(`${BACKEND}${path}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "X-Multi-Agent-Mode": "on" },
+    body: JSON.stringify(payload),
+  });
   const raw = await response.text();
   let data;
-  try { data = raw ? JSON.parse(raw) : {}; } catch (_) { data = {error: raw || "The API returned an empty response."}; }
-  if(!response.ok) throw new Error(data.error||data.message||`Request failed (${response.status})`);
+  try { data = raw ? JSON.parse(raw) : {}; } catch (_) { data = { error: raw || "Empty response." }; }
+  if (!response.ok) throw new Error(data.error || data.message || `Request failed (${response.status})`);
   return data;
 }
-enabled.checked=localStorage.getItem(storageKey)!=="false";renderState();enabled.addEventListener("change",()=>{localStorage.setItem(storageKey,String(enabled.checked));renderState();if(!enabled.checked)output.textContent="Multi-Agent Mode is OFF. Enable it to run workflows.";});
-document.getElementById("workflow-form").addEventListener("submit",async(e)=>{e.preventDefault();if(!enabled.checked){output.textContent="Multi-Agent Mode is OFF.";return;}output.textContent="Running Planner, Worker, and Reviewer...";try{const data=await postJson("/workflow",{request:document.getElementById("workflow-request").value.trim()});document.getElementById("workflow-id").value=data.workflow_id||"";renderPayload("Multi-Agent Workflow",data);}catch(error){output.textContent=`Workflow failed: ${error.message}`;}});
-document.getElementById("decision-form").addEventListener("submit",async(e)=>{e.preventDefault();try{const data=await postJson("/workflow/decision",{workflow_id:document.getElementById("workflow-id").value.trim(),decision:document.getElementById("decision").value,note:document.getElementById("decision-note").value.trim()});renderPayload("Human Decision",data);}catch(error){output.textContent=`Could not record decision: ${error.message}`;}});
+ 
+document.getElementById("multi-agent-workflow-form").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  if (!isMultiAgentEnabled()) { renderMultiAgentDisabledMessage(); return; }
+  multiAgentResultPanel.textContent = "Running Planner, Worker, and Reviewer...";
+  try {
+    const data = await callMultiAgent("/api/multi-agent/workflow", { request: event.target.request.value.trim() });
+    document.getElementById("multi_agent_workflow_id").value = data.workflow_id || "";
+    renderWorkflow(data);
+  } catch (error) {
+    multiAgentResultPanel.textContent = `Workflow failed: ${error.message}`;
+  }
+});
+ 
+document.getElementById("multi-agent-decision-form").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  if (!isMultiAgentEnabled()) { renderMultiAgentDisabledMessage(); return; }
+  const form = event.target;
+  const decision = form.decision.value;
+  const note = form.note.value.trim();
+  if (decision === "Correct" && !note) {
+    multiAgentResultPanel.textContent = "A correction note is required for the Correct decision.";
+    return;
+  }
+  try {
+    const data = await callMultiAgent("/api/multi-agent/decision", {
+      workflow_id: form.workflow_id.value.trim(), decision, note,
+    });
+    renderJson("Human Decision", data);
+  } catch (error) {
+    multiAgentResultPanel.textContent = `Could not record decision: ${error.message}`;
+  }
+});
+ 
+loadMultiAgentMode();
+if (!isMultiAgentEnabled()) renderMultiAgentDisabledMessage();
 </script>
 </body>
 </html>
+ 
