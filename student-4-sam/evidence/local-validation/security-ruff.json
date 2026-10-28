@@ -1,0 +1,27 @@
+{
+  "scanner": "ruff",
+  "context": "local-manual",
+  "timestamp": "2026-10-28T08:35:40.577661+00:00",
+  "source_index_sha256": "b084cf242fca3c6cedb38eddb92bede9440c211dc9a8a57aeac37032689cb711",
+  "commit": "da0975b21998bba7e745c64ae0edc9d48cc95bd6",
+  "command": [
+    "/tmp/transportation-ci-venv/bin/python",
+    "-m",
+    "ruff",
+    "check",
+    "student-4-sam/backend/agentic_loop.py",
+    "student-4-sam/backend/app.py",
+    "student-4-sam/backend/database.py",
+    "student-4-sam/backend/htmx_routes.py",
+    "student-4-sam/backend/ollama_service.py",
+    "student-4-sam/backend/transportation.py",
+    "student-4-sam/tests/test_mcp_route.py",
+    "student-4-sam/tests/test_multi_agent_routes.py",
+    "student-4-sam/tests/test_ollama_url.py",
+    "student-4-sam/tests/test_shipment_endpoints.py"
+  ],
+  "tool_exit_code": 0,
+  "exit_code": 0,
+  "stdout": "All checks passed!\n",
+  "stderr": ""
+}

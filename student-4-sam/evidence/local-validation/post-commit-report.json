@@ -1,0 +1,185 @@
+{
+  "schema_version": 1,
+  "timestamp": "2026-10-28T08:40:34.214556+00:00",
+  "context": "local-test",
+  "commit": null,
+  "source_index_sha256": "b084cf242fca3c6cedb38eddb92bede9440c211dc9a8a57aeac37032689cb711",
+  "run_url": null,
+  "exit_code": 0,
+  "command": [
+    "/tmp/transportation-ci-venv/bin/python",
+    "-m",
+    "pytest",
+    "student-4-sam/tests",
+    "ai-services/multi-agent-server/tests",
+    "scripts/transportation/tests",
+    "-v",
+    "--junitxml=student-4-sam/evidence/local-validation/transportation-tests.xml"
+  ],
+  "test_cases": [
+    {
+      "name": "test_mcp_valid_shipment_id",
+      "class": "student-4-sam.tests.test_mcp_route",
+      "status": "passed"
+    },
+    {
+      "name": "test_mcp_invalid_shipment_id_is_not_server_error",
+      "class": "student-4-sam.tests.test_mcp_route",
+      "status": "passed"
+    },
+    {
+      "name": "test_mcp_missing_shipment_id_uses_count",
+      "class": "student-4-sam.tests.test_mcp_route",
+      "status": "passed"
+    },
+    {
+      "name": "test_transportation_workflow_uses_shared_transportation_domain",
+      "class": "student-4-sam.tests.test_multi_agent_routes",
+      "status": "passed"
+    },
+    {
+      "name": "test_transportation_correction_requires_note",
+      "class": "student-4-sam.tests.test_multi_agent_routes",
+      "status": "passed"
+    },
+    {
+      "name": "test_transportation_human_decision_is_forwarded",
+      "class": "student-4-sam.tests.test_multi_agent_routes",
+      "status": "passed"
+    },
+    {
+      "name": "test_default_uses_localhost",
+      "class": "student-4-sam.tests.test_ollama_url.TestOllamaUrlResolution",
+      "status": "passed"
+    },
+    {
+      "name": "test_falls_back_to_ollama_url",
+      "class": "student-4-sam.tests.test_ollama_url.TestOllamaUrlResolution",
+      "status": "passed"
+    },
+    {
+      "name": "test_prefers_explicit_generate_url",
+      "class": "student-4-sam.tests.test_ollama_url.TestOllamaUrlResolution",
+      "status": "passed"
+    },
+    {
+      "name": "test_get_shipments_returns_persisted_records_in_descending_order",
+      "class": "student-4-sam.tests.test_shipment_endpoints",
+      "status": "passed"
+    },
+    {
+      "name": "test_create_shipment_persists_defaults_and_normalises_status",
+      "class": "student-4-sam.tests.test_shipment_endpoints",
+      "status": "passed"
+    },
+    {
+      "name": "test_create_shipment_rejects_invalid_input_without_writing[payload0-Request body is required]",
+      "class": "student-4-sam.tests.test_shipment_endpoints",
+      "status": "passed"
+    },
+    {
+      "name": "test_create_shipment_rejects_invalid_input_without_writing[payload1-Origin and destination are required]",
+      "class": "student-4-sam.tests.test_shipment_endpoints",
+      "status": "passed"
+    },
+    {
+      "name": "test_create_shipment_rejects_invalid_input_without_writing[payload2-Invalid shipment status]",
+      "class": "student-4-sam.tests.test_shipment_endpoints",
+      "status": "passed"
+    },
+    {
+      "name": "test_planner_flows_to_worker_and_reviewer_failure_is_recorded",
+      "class": "ai-services.multi-agent-server.tests.test_transportation_workflow",
+      "status": "passed"
+    },
+    {
+      "name": "test_reviewer_timeout_does_not_block_workflow",
+      "class": "ai-services.multi-agent-server.tests.test_transportation_workflow",
+      "status": "passed"
+    },
+    {
+      "name": "test_transportation_domain_runs_transport_agents_and_persists_correction",
+      "class": "ai-services.multi-agent-server.tests.test_transportation_workflow",
+      "status": "passed"
+    },
+    {
+      "name": "test_transportation_api_rejects_unknown_domain",
+      "class": "ai-services.multi-agent-server.tests.test_transportation_workflow",
+      "status": "passed"
+    },
+    {
+      "name": "test_worker_receives_plan_and_reviewer_receives_evidence",
+      "class": "ai-services.multi-agent-server.tests.test_transportation_workflow",
+      "status": "passed"
+    },
+    {
+      "name": "test_shared_review_uses_only_transportation_history",
+      "class": "ai-services.multi-agent-server.tests.test_transportation_workflow",
+      "status": "passed"
+    },
+    {
+      "name": "test_transportation_worker_filters_evidence_and_avoids_model_for_no_match",
+      "class": "ai-services.multi-agent-server.tests.test_transportation_workflow",
+      "status": "passed"
+    },
+    {
+      "name": "test_missing_evidence_fails",
+      "class": "scripts.transportation.tests.test_review_evidence",
+      "status": "passed"
+    },
+    {
+      "name": "test_matching_successful_evidence_passes",
+      "class": "scripts.transportation.tests.test_review_evidence",
+      "status": "passed"
+    },
+    {
+      "name": "test_stale_evidence_fails",
+      "class": "scripts.transportation.tests.test_review_evidence",
+      "status": "passed"
+    },
+    {
+      "name": "test_ci_scans_cannot_claim_local_commit_evidence",
+      "class": "scripts.transportation.tests.test_review_evidence",
+      "status": "passed"
+    },
+    {
+      "name": "test_skipped_endpoint_test_fails",
+      "class": "scripts.transportation.tests.test_review_evidence",
+      "status": "passed"
+    },
+    {
+      "name": "test_post_commit_report_must_match_current_ci_commit",
+      "class": "scripts.transportation.tests.test_review_evidence",
+      "status": "passed"
+    },
+    {
+      "name": "test_secret_findings_and_errors_fail_the_hook[0-{\"results\": {}}-0]",
+      "class": "scripts.transportation.tests.test_security_report",
+      "status": "passed"
+    },
+    {
+      "name": "test_secret_findings_and_errors_fail_the_hook[0-{\"results\": {\"backend.py\": [{\"type\": \"potential secret\"}]}}-1]",
+      "class": "scripts.transportation.tests.test_security_report",
+      "status": "passed"
+    },
+    {
+      "name": "test_secret_findings_and_errors_fail_the_hook[0-not JSON-2]",
+      "class": "scripts.transportation.tests.test_security_report",
+      "status": "passed"
+    },
+    {
+      "name": "test_secret_findings_and_errors_fail_the_hook[3--3]",
+      "class": "scripts.transportation.tests.test_security_report",
+      "status": "passed"
+    },
+    {
+      "name": "test_identical_scans_do_not_keep_modifying_staged_reports",
+      "class": "scripts.transportation.tests.test_security_report",
+      "status": "passed"
+    }
+  ],
+  "endpoint_functions": {
+    "get_shipments": "GET /api/shipments",
+    "create_shipment": "POST /api/shipments"
+  }
+}

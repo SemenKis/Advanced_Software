@@ -88,7 +88,7 @@ def _render_multi_agent_workflow(result):
         <p>Recommendations do not change shipment records. Review and record
         your approval, correction, or rejection.</p>
         <form
-            hx-post="http://localhost:5004/htmx/multi-agent/decision"
+            hx-post="/htmx/multi-agent/decision"
             hx-target="#multi-agent-result"
             hx-swap="innerHTML">
             <input type="hidden" name="workflow_id" value="{escape(workflow_id)}">
@@ -336,14 +336,14 @@ def render_shipments():
             <td>
 
                 <button
-                    hx-get="http://localhost:5004/htmx/shipments/{shipment_id}/edit"
+                    hx-get="/htmx/shipments/{shipment_id}/edit"
                     hx-target="#shipment-{shipment_id}"
                     hx-swap="outerHTML">
                     Edit
                 </button>
 
                 <button
-                    hx-delete="http://localhost:5004/htmx/shipments/{shipment_id}"
+                    hx-delete="/htmx/shipments/{shipment_id}"
                     hx-target="#shipment-table"
                     hx-swap="innerHTML"
                     hx-confirm="Delete this shipment?">
@@ -351,7 +351,7 @@ def render_shipments():
                 </button>
 
                 <button
-                    hx-post="http://localhost:5004/htmx/shipments/{shipment_id}/analyse"
+                    hx-post="/htmx/shipments/{shipment_id}/analyse"
                     hx-target="#ai-result"
                     hx-swap="innerHTML">
                     Analyse with Qwen
@@ -659,7 +659,7 @@ def edit_shipment(shipment_id):
         <td>
 
             <button
-                hx-put="http://localhost:5004/htmx/shipments/{shipment_id}"
+                hx-put="/htmx/shipments/{shipment_id}"
                 hx-include="#shipment-{shipment_id} input, #shipment-{shipment_id} select"
                 hx-target="#shipment-table"
                 hx-swap="innerHTML">
@@ -667,7 +667,7 @@ def edit_shipment(shipment_id):
             </button>
 
             <button
-                hx-get="http://localhost:5004/htmx/shipments"
+                hx-get="/htmx/shipments"
                 hx-target="#shipment-table"
                 hx-swap="innerHTML">
                 Cancel

@@ -1,118 +1,88 @@
-
-import os
-
-import requests
 from flask import Blueprint, jsonify, request
 
-from services.database_api import get_products
+from services.multi_agent_api import (
+    MAX_NOTE_CHARS,
+    MAX_REQUEST_CHARS,
+    MultiAgentError,
+    health,
+    multi_agent_mode_is_enabled,
+    record_decision,
+    run_workflow,
+    workflow_status,
+)
 
 multi_agent_bp = Blueprint("multi_agent_mode", __name__)
 
-MULTI_AGENT_SERVICE_URL = os.getenv(
-    "MULTI_AGENT_SERVICE_URL",
-    "http://host.docker.internal:5006"
-)
+
+def _disabled_response():
+    return jsonify({"error": "Multi-Agent mode is disabled."}), 403
 
 
-@multi_agent_bp.get("/api/multi-agent/inventory")
-def inventory_snapshot():
-    """Expose a read-only snapshot of products to the inventory multi-agent server."""
+def _error_response(exc: MultiAgentError):
+    return jsonify({"error": exc.message}), exc.status_code
+
+
+@multi_agent_bp.get("/api/multi-agent/health")
+def multi_agent_health():
     try:
-        return jsonify({"products": get_products()}), 200
-    except Exception as exc:
-        return jsonify({
-            "error": "Could not fetch inventory data.",
-            "detail": str(exc),
-        }), 503
+        return jsonify(health()), 200
+    except MultiAgentError as exc:
+        return _error_response(exc)
 
 
 @multi_agent_bp.post("/api/multi-agent/workflow")
-def run_multi_agent_workflow():
-    """Forward a user request to the locally running inventory multi-agent server."""
+def multi_agent_workflow():
+    """Forward an inventory request to the shared multi-agent server."""
+    if not multi_agent_mode_is_enabled(request):
+        return _disabled_response()
+
     data = request.get_json(silent=True) or {}
     user_request = data.get("request")
-
     if not isinstance(user_request, str) or not user_request.strip():
-        return jsonify({
-            "error": "A non-empty 'request' field is required."
-        }), 400
+        return jsonify({"error": "A non-empty 'request' field is required."}), 400
+    user_request = user_request.strip()
+    if len(user_request) > MAX_REQUEST_CHARS:
+        return jsonify({"error": f"'request' must be {MAX_REQUEST_CHARS} characters or fewer."}), 400
 
     try:
-        response = requests.post(
-            f"{MULTI_AGENT_SERVICE_URL.rstrip('/')}/workflow",
-            json={"request": user_request},
-            timeout=120,
-        )
-
-        return (
-            response.text,
-            response.status_code,
-            {"Content-Type": response.headers.get(
-                "Content-Type", "application/json"
-            )},
-        )
-
-    except requests.RequestException as exc:
-        return jsonify({
-            "error": "Could not connect to the multi-agent server.",
-            "detail": str(exc),
-        }), 502
-
-"""
-MULTI_AGENT_SERVICE_URL = os.getenv("MULTI_AGENT_SERVICE_URL", "http://localhost:5004")
-
-try:
-    MULTI_AGENT_SERVICE_TIMEOUT_SECONDS = int(os.getenv("MULTI_AGENT_SERVICE_TIMEOUT_SECONDS", "60"))
-except ValueError:
-    MULTI_AGENT_SERVICE_TIMEOUT_SECONDS = 60
+        return jsonify(run_workflow(user_request)), 200
+    except MultiAgentError as exc:
+        return _error_response(exc)
 
 
-def multi_agent_mode_is_enabled(req) -> bool:
-    enabled = os.getenv("MULTI_AGENT_ENABLED", "true").strip().lower() in ("1", "true", "yes", "on")
-    if not enabled:
-        return False
-
-    mode_header = req.headers.get("X-Multi-Agent-Mode", "on").strip().lower()
-    return mode_header in ("1", "true", "yes", "on")
-
-
-def multi_agent_disabled_response():
-    return {"status": "error", "error": "Multi-Agent mode is disabled."}, 403
-
-
-@multi_agent_bp.post("/multi-agent/workflow")
-def multi_agent_workflow():
+@multi_agent_bp.post("/api/multi-agent/decision")
+def multi_agent_decision():
+    """Record the human decision for an inventory workflow."""
     if not multi_agent_mode_is_enabled(request):
-        return multi_agent_disabled_response()
+        return _disabled_response()
 
     data = request.get_json(silent=True) or {}
-    user_request = data.get("user_request", "").strip()
+    workflow_id = data.get("workflow_id")
+    decision = data.get("decision")
+    note = data.get("note", "")
 
-    if not user_request:
-        return {"status": "error", "error": "user_request is required"}, 400
+    workflow_id = workflow_id.strip() if isinstance(workflow_id, str) else ""
+    decision = decision.strip() if isinstance(decision, str) else ""
+    note = note.strip() if isinstance(note, str) else ""
+
+    if not workflow_id:
+        return jsonify({"error": "'workflow_id' is required."}), 400
+    if not decision:
+        return jsonify({"error": "'decision' is required."}), 400
+    if len(note) > MAX_NOTE_CHARS:
+        return jsonify({"error": f"'note' must be {MAX_NOTE_CHARS} characters or fewer."}), 400
 
     try:
-        response = requests.post(
-            f"{MULTI_AGENT_SERVICE_URL}/workflow",
-            json={"user_request": user_request},
-            timeout=MULTI_AGENT_SERVICE_TIMEOUT_SECONDS,
-        )
-        return response.json(), response.status_code
-    except requests.RequestException as exc:
-        return {"status": "error", "error": str(exc)}, 503
+        return jsonify(record_decision(workflow_id, decision, note)), 200
+    except MultiAgentError as exc:
+        return _error_response(exc)
 
 
-@multi_agent_bp.get("/multi-agent/workflow/status")
-def multi_agent_workflow_status():
+@multi_agent_bp.get("/api/multi-agent/status")
+def multi_agent_status():
     if not multi_agent_mode_is_enabled(request):
-        return multi_agent_disabled_response()
-
+        return _disabled_response()
     try:
-        response = requests.get(
-            f"{MULTI_AGENT_SERVICE_URL}/workflow/status",
-            timeout=MULTI_AGENT_SERVICE_TIMEOUT_SECONDS,
-        )
-        return response.json(), response.status_code
-    except requests.RequestException as exc:
-        return {"status": "error", "error": str(exc)}, 503
-"""
+        return jsonify(workflow_status()), 200
+    except MultiAgentError as exc:
+        return _error_response(exc)

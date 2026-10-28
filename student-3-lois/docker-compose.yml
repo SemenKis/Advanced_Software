@@ -25,7 +25,7 @@ services:
       MCP_ENABLED: "false"
       RAG_ENABLED: "false"
       RAG_SERVICE_URL: http://host.docker.internal:5003
-      MULTI_AGENT_SERVICE_URL: http://host.docker.internal:5006
+      MULTI_AGENT_SERVER_URL: http://host.docker.internal:5005
       MULTI_AGENT_ENABLED: "true"
     extra_hosts:
       - "host.docker.internal:host-gateway"
@@ -53,3 +53,4 @@ networks:
 
 volumes:
   inventory_database_data:
+

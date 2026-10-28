@@ -1,0 +1,27 @@
+{
+  "scanner": "ruff",
+  "context": "local-pre-commit",
+  "timestamp": "2026-10-28T09:59:48.648101+00:00",
+  "source_index_sha256": "f5bf28a8da8c5d31b81a5cd67ca5d7ade99ee123a2733022188d7d624da64daf",
+  "commit": "d622a1d4877a3dcffa86d7556f344c7eae3045f2",
+  "command": [
+    "/home/sam/.cache/pre-commit/repoxd9s55kp/py_env-python3.12/bin/python",
+    "-m",
+    "ruff",
+    "check",
+    "student-4-sam/backend/agentic_loop.py",
+    "student-4-sam/backend/app.py",
+    "student-4-sam/backend/database.py",
+    "student-4-sam/backend/htmx_routes.py",
+    "student-4-sam/backend/ollama_service.py",
+    "student-4-sam/backend/transportation.py",
+    "student-4-sam/tests/test_mcp_route.py",
+    "student-4-sam/tests/test_multi_agent_routes.py",
+    "student-4-sam/tests/test_ollama_url.py",
+    "student-4-sam/tests/test_shipment_endpoints.py"
+  ],
+  "tool_exit_code": 0,
+  "exit_code": 0,
+  "stdout": "All checks passed!\n",
+  "stderr": ""
+}

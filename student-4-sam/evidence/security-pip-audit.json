@@ -1,0 +1,22 @@
+{
+  "scanner": "pip-audit",
+  "context": "local-pre-commit",
+  "timestamp": "2026-10-28T09:59:54.500119+00:00",
+  "source_index_sha256": "f5bf28a8da8c5d31b81a5cd67ca5d7ade99ee123a2733022188d7d624da64daf",
+  "commit": "d622a1d4877a3dcffa86d7556f344c7eae3045f2",
+  "command": [
+    "/home/sam/.cache/pre-commit/repo4e22p4iv/py_env-python3.12/bin/python",
+    "-m",
+    "pip_audit",
+    "-r",
+    "student-4-sam/backend/requirements.txt",
+    "-r",
+    "student-4-sam/database/requirements.txt",
+    "--progress-spinner",
+    "off"
+  ],
+  "tool_exit_code": 0,
+  "exit_code": 0,
+  "stdout": "",
+  "stderr": "No known vulnerabilities found\n"
+}

@@ -1,0 +1,154 @@
+Transportation security testing report
+
+detect-secrets: PASS
+Context: local-manual
+Time: 2026-10-28T08:26:19.415837+00:00
+Source index: b084cf242fca3c6cedb38eddb92bede9440c211dc9a8a57aeac37032689cb711
+Command: /tmp/transportation-ci-venv/bin/python -m detect_secrets scan --all-files student-4-sam/backend/agentic_loop.py student-4-sam/backend/app.py student-4-sam/backend/database.py student-4-sam/backend/htmx_routes.py student-4-sam/backend/ollama_service.py student-4-sam/backend/requirements.txt student-4-sam/backend/transportation.py student-4-sam/database/requirements.txt student-4-sam/database/schema.sql student-4-sam/database/seed.sql student-4-sam/docker-compose.yml student-4-sam/frontend/index.html student-4-sam/frontend/nginx.conf student-4-sam/tests/test_mcp_route.py student-4-sam/tests/test_multi_agent_routes.py student-4-sam/tests/test_ollama_url.py student-4-sam/tests/test_shipment_endpoints.py
+{
+  "version": "1.5.0",
+  "plugins_used": [
+    {
+      "name": "ArtifactoryDetector"
+    },
+    {
+      "name": "AWSKeyDetector"
+    },
+    {
+      "name": "AzureStorageKeyDetector"
+    },
+    {
+      "name": "Base64HighEntropyString",
+      "limit": 4.5
+    },
+    {
+      "name": "BasicAuthDetector"
+    },
+    {
+      "name": "CloudantDetector"
+    },
+    {
+      "name": "DiscordBotTokenDetector"
+    },
+    {
+      "name": "GitHubTokenDetector"
+    },
+    {
+      "name": "GitLabTokenDetector"
+    },
+    {
+      "name": "HexHighEntropyString",
+      "limit": 3.0
+    },
+    {
+      "name": "IbmCloudIamDetector"
+    },
+    {
+      "name": "IbmCosHmacDetector"
+    },
+    {
+      "name": "IPPublicDetector"
+    },
+    {
+      "name": "JwtTokenDetector"
+    },
+    {
+      "name": "KeywordDetector",
+      "keyword_exclude": ""
+    },
+    {
+      "name": "MailchimpDetector"
+    },
+    {
+      "name": "NpmDetector"
+    },
+    {
+      "name": "OpenAIDetector"
+    },
+    {
+      "name": "PrivateKeyDetector"
+    },
+    {
+      "name": "PypiTokenDetector"
+    },
+    {
+      "name": "SendGridDetector"
+    },
+    {
+      "name": "SlackDetector"
+    },
+    {
+      "name": "SoftlayerDetector"
+    },
+    {
+      "name": "SquareOAuthDetector"
+    },
+    {
+      "name": "StripeDetector"
+    },
+    {
+      "name": "TelegramBotTokenDetector"
+    },
+    {
+      "name": "TwilioKeyDetector"
+    }
+  ],
+  "filters_used": [
+    {
+      "path": "detect_secrets.filters.allowlist.is_line_allowlisted"
+    },
+    {
+      "path": "detect_secrets.filters.common.is_ignored_due_to_verification_policies",
+      "min_level": 2
+    },
+    {
+      "path": "detect_secrets.filters.heuristic.is_indirect_reference"
+    },
+    {
+      "path": "detect_secrets.filters.heuristic.is_likely_id_string"
+    },
+    {
+      "path": "detect_secrets.filters.heuristic.is_lock_file"
+    },
+    {
+      "path": "detect_secrets.filters.heuristic.is_not_alphanumeric_string"
+    },
+    {
+      "path": "detect_secrets.filters.heuristic.is_potential_uuid"
+    },
+    {
+      "path": "detect_secrets.filters.heuristic.is_prefixed_with_dollar_sign"
+    },
+    {
+      "path": "detect_secrets.filters.heuristic.is_sequential_string"
+    },
+    {
+      "path": "detect_secrets.filters.heuristic.is_swagger_file"
+    },
+    {
+      "path": "detect_secrets.filters.heuristic.is_templated_secret"
+    }
+  ],
+  "results": {},
+  "generated_at": "2026-10-28T08:26:19Z"
+}
+
+
+
+pip-audit: PASS
+Context: local-manual
+Time: 2026-10-28T08:34:19.166449+00:00
+Source index: b084cf242fca3c6cedb38eddb92bede9440c211dc9a8a57aeac37032689cb711
+Command: /tmp/transportation-ci-venv/bin/python -m pip_audit -r student-4-sam/backend/requirements.txt -r student-4-sam/database/requirements.txt --progress-spinner off
+
+No known vulnerabilities found
+
+
+ruff: PASS
+Context: local-manual
+Time: 2026-10-28T08:35:40.577661+00:00
+Source index: b084cf242fca3c6cedb38eddb92bede9440c211dc9a8a57aeac37032689cb711
+Command: /tmp/transportation-ci-venv/bin/python -m ruff check student-4-sam/backend/agentic_loop.py student-4-sam/backend/app.py student-4-sam/backend/database.py student-4-sam/backend/htmx_routes.py student-4-sam/backend/ollama_service.py student-4-sam/backend/transportation.py student-4-sam/tests/test_mcp_route.py student-4-sam/tests/test_multi_agent_routes.py student-4-sam/tests/test_ollama_url.py student-4-sam/tests/test_shipment_endpoints.py
+All checks passed!
+
+
