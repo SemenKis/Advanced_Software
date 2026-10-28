@@ -22,8 +22,10 @@ def main():
     args.output_dir.mkdir(parents=True, exist_ok=True)
     junit = args.output_dir / "transportation-tests.xml"
     junit.unlink(missing_ok=True)
+    # Other domains have independent implementations and tests in this shared directory.
+    # Keep the transportation CI report scoped to its assigned service.
     command = [sys.executable, "-m", "pytest", "student-4-sam/tests",
-               "ai-services/multi-agent-server/tests", "scripts/transportation/tests",
+               "ai-services/multi-agent-server/tests/test_transportation_workflow.py", "scripts/transportation/tests",
                "-v", f"--junitxml={junit}"]
     result = subprocess.run(command, cwd=ROOT, text=True, capture_output=True, check=False)  # noqa: S603
     output = result.stdout + "\n" + result.stderr
