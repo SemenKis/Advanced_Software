@@ -47,5 +47,9 @@ repos:
         entry: python scripts/transportation/security_report.py pip-audit --context local-pre-commit
         language: python
         additional_dependencies: ["pip-audit==2.10.1"]
+      - id: student-3-scans
+        name: student-3 pytest scans
+        entry: python -m pytest -c student-3-lois/pytest.ini student-3-lois/tests -m pre_commit -q
+        language: system
         pass_filenames: false
         always_run: true
