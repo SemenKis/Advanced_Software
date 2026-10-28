@@ -1,3 +1,5 @@
+import argparse
+import importlib.util
 import os
 import json
 import requests
@@ -33,7 +35,7 @@ def log_review(student, evidence_preview, review):
     }
     with open(LOG_PATH, "a") as f:
         f.write(json.dumps(entry) + "\n")
-    print(f"\n[{student}] AI REVIEW:\n{review}\n")
+    print(f"\n[{student}] REVIEW:\n{review}\n")
     return entry
 
 
@@ -315,7 +317,20 @@ def load_prompt(student_folder):
     return prompt_path.read_text()
 
 
-def run_review(student_folder, evidence_category):
+def run_review(student_folder, evidence_category, offline=False, evidence_dir=None):
+    if student_folder == "student-4-sam" and evidence_category == "testing":
+        spec = importlib.util.spec_from_file_location(
+            "transportation_evidence_review", REPO_ROOT / "scripts/transportation/review_evidence.py"
+        )
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        result = module.generate_review(
+            Path(evidence_dir) if evidence_dir else REPO_ROOT / student_folder / "evidence",
+            offline=offline, model_call=call_ollama,
+        )
+        log_review(student_folder, json.dumps(result["evidence_sha256"]), json.dumps(result))
+        return result
+
     print(f"[PLAN] Collecting {evidence_category} evidence for {student_folder} only...")
     evidence = COLLECTORS[evidence_category](student_folder)
 
@@ -344,6 +359,21 @@ def run_review(student_folder, evidence_category):
 
 
 def main():
+    parser = argparse.ArgumentParser(description="Shared agentic evidence review loop")
+    parser.add_argument("--student")
+    parser.add_argument("--category", choices=COLLECTORS)
+    parser.add_argument("--evidence-dir", type=Path)
+    parser.add_argument("--offline", action="store_true", help="Validate recorded testing results without Ollama")
+    args = parser.parse_args()
+    if args.student or args.category:
+        if not args.student or not args.category:
+            parser.error("--student and --category must be supplied together")
+        if args.student not in {"student-1-bea", "student-2-yuting", "student-3-lois", "student-4-sam"}:
+            parser.error("Unknown student")
+        if args.offline and (args.student != "student-4-sam" or args.category != "testing"):
+            parser.error("Offline review is supported for transportation testing")
+        result = run_review(args.student, args.category, args.offline, args.evidence_dir)
+        return 0 if not isinstance(result, dict) or result["status"] == "PASS" else 1
     students = sorted(p.name for p in (Path(__file__).resolve().parent / "prompts").iterdir() if p.is_dir())
     print("=" * 60)
     print("SHARED AGENTIC REVIEW LOOP")
@@ -376,4 +406,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

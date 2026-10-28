@@ -1,0 +1,44 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-9.0.3, pluggy-1.7.0 -- /tmp/transportation-ci-venv/bin/python
+cachedir: .pytest_cache
+rootdir: /home/sam/Documents/Advanced_Software
+configfile: pyproject.toml
+plugins: anyio-4.15.1, platformdirs-4.13.7
+collecting ... collected 32 items
+
+student-4-sam/tests/test_mcp_route.py::test_mcp_valid_shipment_id PASSED [  3%]
+student-4-sam/tests/test_mcp_route.py::test_mcp_invalid_shipment_id_is_not_server_error PASSED [  6%]
+student-4-sam/tests/test_mcp_route.py::test_mcp_missing_shipment_id_uses_count PASSED [  9%]
+student-4-sam/tests/test_multi_agent_routes.py::test_transportation_workflow_uses_shared_transportation_domain PASSED [ 12%]
+student-4-sam/tests/test_multi_agent_routes.py::test_transportation_correction_requires_note PASSED [ 15%]
+student-4-sam/tests/test_multi_agent_routes.py::test_transportation_human_decision_is_forwarded PASSED [ 18%]
+student-4-sam/tests/test_ollama_url.py::TestOllamaUrlResolution::test_default_uses_localhost PASSED [ 21%]
+student-4-sam/tests/test_ollama_url.py::TestOllamaUrlResolution::test_falls_back_to_ollama_url PASSED [ 25%]
+student-4-sam/tests/test_ollama_url.py::TestOllamaUrlResolution::test_prefers_explicit_generate_url PASSED [ 28%]
+student-4-sam/tests/test_shipment_endpoints.py::test_get_shipments_returns_persisted_records_in_descending_order PASSED [ 31%]
+student-4-sam/tests/test_shipment_endpoints.py::test_create_shipment_persists_defaults_and_normalises_status PASSED [ 34%]
+student-4-sam/tests/test_shipment_endpoints.py::test_create_shipment_rejects_invalid_input_without_writing[payload0-Request body is required] PASSED [ 37%]
+student-4-sam/tests/test_shipment_endpoints.py::test_create_shipment_rejects_invalid_input_without_writing[payload1-Origin and destination are required] PASSED [ 40%]
+student-4-sam/tests/test_shipment_endpoints.py::test_create_shipment_rejects_invalid_input_without_writing[payload2-Invalid shipment status] PASSED [ 43%]
+ai-services/multi-agent-server/tests/test_transportation_workflow.py::test_planner_flows_to_worker_and_reviewer_failure_is_recorded PASSED [ 46%]
+ai-services/multi-agent-server/tests/test_transportation_workflow.py::test_reviewer_timeout_does_not_block_workflow PASSED [ 50%]
+ai-services/multi-agent-server/tests/test_transportation_workflow.py::test_transportation_domain_runs_transport_agents_and_persists_correction PASSED [ 53%]
+ai-services/multi-agent-server/tests/test_transportation_workflow.py::test_transportation_api_rejects_unknown_domain PASSED [ 56%]
+ai-services/multi-agent-server/tests/test_transportation_workflow.py::test_worker_receives_plan_and_reviewer_receives_evidence PASSED [ 59%]
+ai-services/multi-agent-server/tests/test_transportation_workflow.py::test_shared_review_uses_only_transportation_history PASSED [ 62%]
+ai-services/multi-agent-server/tests/test_transportation_workflow.py::test_transportation_worker_filters_evidence_and_avoids_model_for_no_match PASSED [ 65%]
+scripts/transportation/tests/test_review_evidence.py::test_missing_evidence_fails PASSED [ 68%]
+scripts/transportation/tests/test_review_evidence.py::test_matching_successful_evidence_passes PASSED [ 71%]
+scripts/transportation/tests/test_review_evidence.py::test_stale_evidence_fails PASSED [ 75%]
+scripts/transportation/tests/test_review_evidence.py::test_ci_scans_cannot_claim_local_commit_evidence PASSED [ 78%]
+scripts/transportation/tests/test_review_evidence.py::test_skipped_endpoint_test_fails PASSED [ 81%]
+scripts/transportation/tests/test_review_evidence.py::test_post_commit_report_must_match_current_ci_commit PASSED [ 84%]
+scripts/transportation/tests/test_security_report.py::test_secret_findings_and_errors_fail_the_hook[0-{"results": {}}-0] PASSED [ 87%]
+scripts/transportation/tests/test_security_report.py::test_secret_findings_and_errors_fail_the_hook[0-{"results": {"backend.py": [{"type": "potential secret"}]}}-1] PASSED [ 90%]
+scripts/transportation/tests/test_security_report.py::test_secret_findings_and_errors_fail_the_hook[0-not JSON-2] PASSED [ 93%]
+scripts/transportation/tests/test_security_report.py::test_secret_findings_and_errors_fail_the_hook[3--3] PASSED [ 96%]
+scripts/transportation/tests/test_security_report.py::test_identical_scans_do_not_keep_modifying_staged_reports PASSED [100%]
+
+- generated xml file: /home/sam/Documents/Advanced_Software/student-4-sam/evidence/local-validation/transportation-tests.xml -
+============================== 32 passed in 1.19s ==============================
+

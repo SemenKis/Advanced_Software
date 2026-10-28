@@ -1,0 +1,209 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Transportation demo - ALB, Fargate frontend/API, persistent SQLite on EFS
+Parameters:
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+  PublicSubnetIds:
+    Type: List<AWS::EC2::Subnet::Id>
+    Description: Exactly two public subnets in distinct availability zones
+  ExecutionRoleArn:
+    Type: String
+    Description: Existing ECS task execution role with ECR pull and CloudWatch Logs permissions
+  BackendImage:
+    Type: String
+  FrontendImage:
+    Type: String
+  AllowedCidr:
+    Type: String
+    Description: CIDR permitted to reach the demo ALB, for example your public IPv4 address /32
+  ImageRevision:
+    Type: String
+Resources:
+  Cluster:
+    Type: AWS::ECS::Cluster
+  Logs:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      RetentionInDays: 14
+  LoadBalancerSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: HTTP access to transportation demo
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: !Ref AllowedCidr
+  TaskSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Frontend accessible only from ALB
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 3004
+          ToPort: 3004
+          SourceSecurityGroupId: !Ref LoadBalancerSecurityGroup
+  StorageSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: EFS accessible only from application tasks
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 2049
+          ToPort: 2049
+          SourceSecurityGroupId: !Ref TaskSecurityGroup
+  FileSystem:
+    Type: AWS::EFS::FileSystem
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      Encrypted: true
+      BackupPolicy:
+        Status: ENABLED
+  AccessPoint:
+    Type: AWS::EFS::AccessPoint
+    Properties:
+      FileSystemId: !Ref FileSystem
+      PosixUser:
+        Uid: '1000'
+        Gid: '1000'
+      RootDirectory:
+        Path: /transportation
+        CreationInfo:
+          OwnerUid: '1000'
+          OwnerGid: '1000'
+          Permissions: '0750'
+  MountTargetOne:
+    Type: AWS::EFS::MountTarget
+    Properties:
+      FileSystemId: !Ref FileSystem
+      SubnetId: !Select [0, !Ref PublicSubnetIds]
+      SecurityGroups: [!Ref StorageSecurityGroup]
+  MountTargetTwo:
+    Type: AWS::EFS::MountTarget
+    Properties:
+      FileSystemId: !Ref FileSystem
+      SubnetId: !Select [1, !Ref PublicSubnetIds]
+      SecurityGroups: [!Ref StorageSecurityGroup]
+  LoadBalancer:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Scheme: internet-facing
+      Type: application
+      Subnets: !Ref PublicSubnetIds
+      SecurityGroups: [!Ref LoadBalancerSecurityGroup]
+  TargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      VpcId: !Ref VpcId
+      TargetType: ip
+      Port: 3004
+      Protocol: HTTP
+      HealthCheckPath: /health
+      TargetGroupAttributes:
+        - Key: deregistration_delay.timeout_seconds
+          Value: '10'
+  Listener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      LoadBalancerArn: !Ref LoadBalancer
+      Port: 80
+      Protocol: HTTP
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref TargetGroup
+  Task:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Cpu: '512'
+      Memory: '1024'
+      NetworkMode: awsvpc
+      RequiresCompatibilities: [FARGATE]
+      ExecutionRoleArn: !Ref ExecutionRoleArn
+      Volumes:
+        - Name: database
+          EFSVolumeConfiguration:
+            FilesystemId: !Ref FileSystem
+            TransitEncryption: ENABLED
+            AuthorizationConfig:
+              AccessPointId: !Ref AccessPoint
+      ContainerDefinitions:
+        - Name: backend
+          Image: !Ref BackendImage
+          Essential: true
+          PortMappings:
+            - ContainerPort: 5004
+          Environment:
+            - Name: DATABASE_PATH
+              Value: /data/transportation.db
+            - Name: MULTI_AGENT_ENABLED
+              Value: 'false'
+          MountPoints:
+            - SourceVolume: database
+              ContainerPath: /data
+          HealthCheck:
+            Command: [CMD-SHELL, 'python -c "import urllib.request; urllib.request.urlopen(''http://127.0.0.1:5004/health'', timeout=5)"']
+            Interval: 15
+            Timeout: 10
+            Retries: 3
+            StartPeriod: 30
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref Logs
+              awslogs-region: !Ref AWS::Region
+              awslogs-stream-prefix: backend
+        - Name: frontend
+          Image: !Ref FrontendImage
+          Essential: true
+          DependsOn:
+            - ContainerName: backend
+              Condition: HEALTHY
+          PortMappings:
+            - ContainerPort: 3004
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref Logs
+              awslogs-region: !Ref AWS::Region
+              awslogs-stream-prefix: frontend
+      Tags:
+        - Key: Revision
+          Value: !Ref ImageRevision
+  Service:
+    Type: AWS::ECS::Service
+    DependsOn: [Listener, MountTargetOne, MountTargetTwo]
+    Properties:
+      Cluster: !Ref Cluster
+      TaskDefinition: !Ref Task
+      LaunchType: FARGATE
+      PlatformVersion: '1.4.0'
+      DesiredCount: 1
+      HealthCheckGracePeriodSeconds: 60
+      DeploymentConfiguration:
+        MinimumHealthyPercent: 0
+        MaximumPercent: 100
+        DeploymentCircuitBreaker:
+          Enable: true
+          Rollback: true
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: ENABLED
+          Subnets: !Ref PublicSubnetIds
+          SecurityGroups: [!Ref TaskSecurityGroup]
+      LoadBalancers:
+        - ContainerName: frontend
+          ContainerPort: 3004
+          TargetGroupArn: !Ref TargetGroup
+Outputs:
+  ApplicationUrl:
+    Value: !Sub 'http://${LoadBalancer.DNSName}'
+  ClusterName:
+    Value: !Ref Cluster
+  ServiceName:
+    Value: !GetAtt Service.Name
+  DatabaseFileSystemId:
+    Value: !Ref FileSystem

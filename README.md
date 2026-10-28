@@ -141,7 +141,7 @@ Each module has a GitHub Actions workflow for its own checks. Two manually trigg
 - [Test AWS Connection](.github/workflows/aws-connection-test.yml) uses GitHub OIDC with repository variables `AWS_ROLE_ARN` and `AWS_REGION`, then checks AWS identity and the `advanced-software/shared-frontend` ECR repository.
 - [Cloud Deployment](.github/workflows/cloud-deployment.yml) targets ECS Fargate in `ap-southeast-2`. It expects the `AWS_DEPLOY_ROLE_ARN` secret and repository variables `VPC_ID`, `PUBLIC_SUBNET_IDS`, and `TASK_EXECUTION_ROLE_ARN`.
 
-The deployment workflow currently references `scripts/deploy-ecs.sh`, which is absent from this checkout. Restore or implement that script before attempting deployment. AWS authentication also requires the corresponding IAM role and GitHub OIDC trust configuration.
+The cloud workflow deploys transportation through CloudFormation after a successful transportation CI run, using the tested frontend/backend images. It provisions an ALB, ECS Fargate service, and persistent EFS storage for SQLite. It additionally requires `ALLOWED_CIDR` and the `aws-transportation` GitHub environment. See the [transportation DevOps guide](docs/transportation-devops.md) for the architecture, local security reports, post-commit testing evidence, agentic-loop Testing Review, and AWS setup.
 
 ## Troubleshooting
 
@@ -150,3 +150,5 @@ The deployment workflow currently references `scripts/deploy-ecs.sh`, which is a
 - **Port already in use:** check the endpoint table and stop the conflicting process or update the relevant configuration. In particular, transportation and standalone MCP default to the same port.
 - **AI service unreachable:** confirm the host service is running and inspect the module's configured URL. Most bridged containers use `host.docker.internal`; transportation uses host networking and loopback addresses. The warehouse backend currently has no explicit Linux `host-gateway` mapping, so add one if your Docker setup cannot resolve `host.docker.internal`.
 - **Container exits or a page fails to load:** inspect `docker compose ps` and `docker compose logs <service-name>` for startup errors.
+
+Transportation security hooks generate local reports under `student-4-sam/evidence/`. Stage the implementation, run the three transportation hooks, and stage their reports before committing; the Testing Review checks that these reports match the committed source. See the [complete evidence workflow](docs/transportation-devops.md).

@@ -1,0 +1,4 @@
+-r ../../student-4-sam/backend/requirements.txt
+-r ../../ai-services/multi-agent-server/requirements.txt
+-r ../../ai-services/rag-server/requirements.txt
+defusedxml==0.7.1

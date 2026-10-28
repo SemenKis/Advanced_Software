@@ -10,6 +10,10 @@ repos:
       - id: detect-secrets-scan
         name: detect-secrets scan
         entry: detect-secrets-hook
+        # Public source/report digests only; other report content is still scanned.
+        args:
+          - --exclude-lines
+          - '^\s*"(?:source_index_sha256|commit|pre-commit-report\.json|post-commit-report\.json)"\s*:\s*"(?:[0-9a-f]{40}|[0-9a-f]{64})",?\s*$'
         language: python
         additional_dependencies: ["detect-secrets==1.5.0"]
       - id: pip-audit-scan
@@ -22,5 +26,26 @@ repos:
         name: student-1 pytest scans
         entry: python -m pytest -c student-1-bea/pytest.ini student-1-bea/tests -m pre_commit -q
         language: system
+        pass_filenames: false
+        always_run: true
+      - id: transportation-ruff-report
+        name: Transportation Ruff security report
+        entry: python scripts/transportation/security_report.py ruff --context local-pre-commit
+        language: python
+        additional_dependencies: ["ruff==0.17.1"]
+        pass_filenames: false
+        always_run: true
+      - id: transportation-secrets-report
+        name: Transportation detect-secrets report
+        entry: python scripts/transportation/security_report.py detect-secrets --context local-pre-commit
+        language: python
+        additional_dependencies: ["detect-secrets==1.5.0"]
+        pass_filenames: false
+        always_run: true
+      - id: transportation-audit-report
+        name: Transportation pip-audit report
+        entry: python scripts/transportation/security_report.py pip-audit --context local-pre-commit
+        language: python
+        additional_dependencies: ["pip-audit==2.10.1"]
         pass_filenames: false
         always_run: true

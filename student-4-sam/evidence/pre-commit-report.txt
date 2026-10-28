@@ -1,0 +1,154 @@
+Transportation security testing report
+
+detect-secrets: PASS
+Context: local-pre-commit
+Time: 2026-10-28T08:59:11.571596+00:00
+Source index: 2be34f471f2221f10495c37aeff5f2e3f1deaf9e1ceb1b1c9b721329536d8a2c
+Command: /home/sam/.cache/pre-commit/repoxtx8lhm9/py_env-python3.12/bin/python -m detect_secrets scan --all-files student-4-sam/backend/agentic_loop.py student-4-sam/backend/app.py student-4-sam/backend/database.py student-4-sam/backend/htmx_routes.py student-4-sam/backend/ollama_service.py student-4-sam/backend/requirements.txt student-4-sam/backend/transportation.py student-4-sam/database/requirements.txt student-4-sam/database/schema.sql student-4-sam/database/seed.sql student-4-sam/docker-compose.yml student-4-sam/frontend/index.html student-4-sam/frontend/nginx.conf student-4-sam/tests/test_mcp_route.py student-4-sam/tests/test_multi_agent_routes.py student-4-sam/tests/test_ollama_url.py student-4-sam/tests/test_shipment_endpoints.py
+{
+  "version": "1.5.0",
+  "plugins_used": [
+    {
+      "name": "ArtifactoryDetector"
+    },
+    {
+      "name": "AWSKeyDetector"
+    },
+    {
+      "name": "AzureStorageKeyDetector"
+    },
+    {
+      "name": "Base64HighEntropyString",
+      "limit": 4.5
+    },
+    {
+      "name": "BasicAuthDetector"
+    },
+    {
+      "name": "CloudantDetector"
+    },
+    {
+      "name": "DiscordBotTokenDetector"
+    },
+    {
+      "name": "GitHubTokenDetector"
+    },
+    {
+      "name": "GitLabTokenDetector"
+    },
+    {
+      "name": "HexHighEntropyString",
+      "limit": 3.0
+    },
+    {
+      "name": "IbmCloudIamDetector"
+    },
+    {
+      "name": "IbmCosHmacDetector"
+    },
+    {
+      "name": "IPPublicDetector"
+    },
+    {
+      "name": "JwtTokenDetector"
+    },
+    {
+      "name": "KeywordDetector",
+      "keyword_exclude": ""
+    },
+    {
+      "name": "MailchimpDetector"
+    },
+    {
+      "name": "NpmDetector"
+    },
+    {
+      "name": "OpenAIDetector"
+    },
+    {
+      "name": "PrivateKeyDetector"
+    },
+    {
+      "name": "PypiTokenDetector"
+    },
+    {
+      "name": "SendGridDetector"
+    },
+    {
+      "name": "SlackDetector"
+    },
+    {
+      "name": "SoftlayerDetector"
+    },
+    {
+      "name": "SquareOAuthDetector"
+    },
+    {
+      "name": "StripeDetector"
+    },
+    {
+      "name": "TelegramBotTokenDetector"
+    },
+    {
+      "name": "TwilioKeyDetector"
+    }
+  ],
+  "filters_used": [
+    {
+      "path": "detect_secrets.filters.allowlist.is_line_allowlisted"
+    },
+    {
+      "path": "detect_secrets.filters.common.is_ignored_due_to_verification_policies",
+      "min_level": 2
+    },
+    {
+      "path": "detect_secrets.filters.heuristic.is_indirect_reference"
+    },
+    {
+      "path": "detect_secrets.filters.heuristic.is_likely_id_string"
+    },
+    {
+      "path": "detect_secrets.filters.heuristic.is_lock_file"
+    },
+    {
+      "path": "detect_secrets.filters.heuristic.is_not_alphanumeric_string"
+    },
+    {
+      "path": "detect_secrets.filters.heuristic.is_potential_uuid"
+    },
+    {
+      "path": "detect_secrets.filters.heuristic.is_prefixed_with_dollar_sign"
+    },
+    {
+      "path": "detect_secrets.filters.heuristic.is_sequential_string"
+    },
+    {
+      "path": "detect_secrets.filters.heuristic.is_swagger_file"
+    },
+    {
+      "path": "detect_secrets.filters.heuristic.is_templated_secret"
+    }
+  ],
+  "results": {},
+  "generated_at": "2026-10-28T08:59:11Z"
+}
+
+
+
+pip-audit: PASS
+Context: local-pre-commit
+Time: 2026-10-28T08:59:16.762062+00:00
+Source index: 2be34f471f2221f10495c37aeff5f2e3f1deaf9e1ceb1b1c9b721329536d8a2c
+Command: /home/sam/.cache/pre-commit/repo4e22p4iv/py_env-python3.12/bin/python -m pip_audit -r student-4-sam/backend/requirements.txt -r student-4-sam/database/requirements.txt --progress-spinner off
+
+No known vulnerabilities found
+
+
+ruff: PASS
+Context: local-pre-commit
+Time: 2026-10-28T08:59:11.062298+00:00
+Source index: 2be34f471f2221f10495c37aeff5f2e3f1deaf9e1ceb1b1c9b721329536d8a2c
+Command: /home/sam/.cache/pre-commit/repoxd9s55kp/py_env-python3.12/bin/python -m ruff check student-4-sam/backend/agentic_loop.py student-4-sam/backend/app.py student-4-sam/backend/database.py student-4-sam/backend/htmx_routes.py student-4-sam/backend/ollama_service.py student-4-sam/backend/transportation.py student-4-sam/tests/test_mcp_route.py student-4-sam/tests/test_multi_agent_routes.py student-4-sam/tests/test_ollama_url.py student-4-sam/tests/test_shipment_endpoints.py
+All checks passed!
+
+
