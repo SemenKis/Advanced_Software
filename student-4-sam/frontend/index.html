@@ -8,13 +8,39 @@
 
     <title>Transportation Management</title>
     <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/site-chrome.css">
 
     <!-- HTMX -->
     <script src="https://unpkg.com/htmx.org@2.0.8"></script>
 </head>
 
 <body>
-    <div class="page">
+
+    <svg class="icon-library" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <symbol id="cube" viewBox="0 0 24 24"><path d="m12 2 9 5v10l-9 5-9-5V7Z M3 7l9 5 9-5 M12 12v10 M7.5 4.5l9 5"/></symbol>
+        <symbol id="home" viewBox="0 0 24 24"><path d="m3 10 9-8 9 8v11h-7v-8h-4v8H3Z"/></symbol>
+        <symbol id="orders" viewBox="0 0 24 24"><path d="M5 3h11l3 3v15H5Z M16 3v4h3 M9 10h6 M9 14h6 M9 18h3"/></symbol>
+        <symbol id="warehouse" viewBox="0 0 24 24"><path d="m3 9 9-7 9 7v12H3Z M8 21V11h8v10 M8 15h8 M8 18h8"/></symbol>
+        <symbol id="truck" viewBox="0 0 24 24"><path d="M3 16H2V4h12v12H8 M14 8h4l4 5v5h-3 M14 16h1 M18 8v5h4"/><circle cx="5.5" cy="17.5" r="2.5"/><circle cx="16.5" cy="17.5" r="2.5"/></symbol>
+        <symbol id="arrow" viewBox="0 0 24 24"><path d="M4 12h15 m-6-6 6 6-6 6"/></symbol>
+    </svg>
+
+    <a class="skip-link" href="#main-content">Skip to content</a>
+    <header class="site-header">
+        <div class="header-inner">
+            <a class="brand" href="http://localhost:8080" aria-label="AgriTrace home"><svg><use href="#cube"/></svg><span>AgriTrace</span></a>
+            <nav aria-label="Main navigation">
+                <a href="http://localhost:8080"><svg><use href="#home"/></svg>Home</a>
+                <a href="http://localhost:8081"><svg><use href="#cube"/></svg>Inventory</a>
+                <a href="http://localhost:8082"><svg><use href="#orders"/></svg>Orders</a>
+                <a href="http://localhost:5000"><svg><use href="#warehouse"/></svg>Warehouse</a>
+                <a class="active" href="http://localhost:3004" aria-current="page"><svg><use href="#truck"/></svg>Transportation</a>
+            </nav>
+            <span class="workspace"><span class="workspace-dot"></span>Logistics workspace</span>
+        </div>
+    </header>
+
+    <main class="page" id="main-content">
         <header class="title-wrap">
             <h1>Transportation Manager</h1>
             <p>Create, track, and monitor shipment operations.</p>
@@ -187,7 +213,9 @@
                 </div>
             </section>
         </div>
-    </div>
+    </main>
+
+    <footer class="site-footer"><span>AgriTrace <span class="footer-dot">·</span> Integrated Logistics Management</span><span>Connected at every step.</span></footer>
 </body>
 
 </html>

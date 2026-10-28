@@ -1,0 +1,263 @@
+/* Header and footer copied from shared/frontend/styles.css. */
+.site-header svg {
+    width: 24px;
+    height: 24px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.7;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    flex-shrink: 0
+}
+
+.icon-library {
+    position: absolute;
+    width: 0;
+    height: 0;
+    overflow: hidden
+}
+
+.site-header {
+    border-bottom: 1px solid var(--border);
+    background: rgba(8, 10, 12, .95)
+}
+
+.header-inner {
+    max-width: 1480px;
+    margin: auto;
+    padding: 0 5%;
+    min-height: 80px;
+    display: flex;
+    align-items: center;
+    gap: 40px
+}
+
+.brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 27px;
+    font-weight: 700;
+    letter-spacing: -1px
+}
+
+.brand svg {
+    width: 36px;
+    height: 36px
+}
+
+.header-inner nav {
+    display: flex;
+    gap: 12px;
+    margin: auto;
+    align-self: stretch
+}
+
+.site-header nav a {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0 13px;
+    font-size: 14px;
+    color: #b6bbc4;
+    white-space: nowrap;
+    transition: color .2s
+}
+
+.site-header nav a:hover,
+.site-header nav .active {
+    color: #fff
+}
+
+.site-header nav .active::after {
+    content: "";
+    height: 3px;
+    background: #526cff;
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0
+}
+
+.site-header nav svg {
+    width: 21px;
+    height: 21px
+}
+
+.workspace {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #a5abb6;
+    font-size: 12px;
+    white-space: nowrap
+}
+
+.workspace-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #8390ad
+}
+
+.site-footer {
+    border-top: 1px solid var(--border);
+    padding: 25px 0 28px;
+    display: flex;
+    justify-content: space-between;
+    gap: 20px;
+    color: #7f8794;
+    font-size: 12px;
+    line-height: 1.6
+}
+
+.footer-dot {
+    margin: 0 8px
+}
+
+.site-header :focus-visible {
+    outline: 2px solid #8da1ff;
+    outline-offset: 6px
+}
+
+.skip-link {
+    position: fixed;
+    top: 10px;
+    left: 10px;
+    z-index: 5;
+    padding: 12px;
+    background: #fff;
+    color: #111;
+    border-radius: 6px;
+    transform: translateY(-160%)
+}
+
+.skip-link:focus {
+    transform: translateY(0)
+}
+
+@media(max-width:1200px) {
+.workspace {
+        display: none
+    }
+
+.header-inner {
+        gap: 25px
+    }
+
+.header-inner nav {
+        margin-left: auto;
+        margin-right: 0;
+        gap: 0
+    }
+
+.site-header nav a {
+        padding: 0 10px
+    }
+}
+
+@media(max-width:950px) {
+.header-inner {
+        flex-wrap: wrap;
+        gap: 0;
+        padding-top: 20px
+    }
+
+.brand {
+        margin-bottom: 16px
+    }
+
+.header-inner nav {
+        width: 100%;
+        overflow-x: auto;
+        margin: 0;
+        min-height: 53px;
+        justify-content: space-between
+    }
+
+.site-header nav a {
+        font-size: 12px;
+        padding: 0 8px;
+        gap: 7px
+    }
+}
+
+@media(max-width:540px) {
+.header-inner {
+        padding-left: 6%;
+        padding-right: 6%
+    }
+
+.brand {
+        font-size: 24px
+    }
+
+.brand svg {
+        width: 30px;
+        height: 30px
+    }
+
+.site-header nav a {
+        padding: 0 12px
+    }
+
+.site-header nav a:first-child {
+        padding-left: 0
+    }
+
+.site-header nav svg {
+        display: none
+    }
+
+.header-inner nav {
+        justify-content: flex-start;
+        gap: 6px
+    }
+
+.site-footer {
+        flex-direction: column;
+        gap: 6px
+    }
+}
+
+.site-header,
+.site-footer {
+    --border: rgba(255, 255, 255, .1);
+    font-family: Inter, "Segoe UI", Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+}
+
+.site-header {
+    color: #f5f6f8;
+}
+
+.site-header a {
+    color: inherit;
+    text-decoration: none;
+}
+
+.site-header nav a {
+    color: #b6bbc4;
+}
+
+.site-header nav a:hover,
+.site-header nav .active {
+    color: #fff;
+}
+
+.site-footer {
+    width: 88%;
+    max-width: 1302.4px;
+    margin: auto auto 0;
+}
+
+body {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.page {
+    width: 100%;
+}
