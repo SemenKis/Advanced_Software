@@ -1,11 +1,11 @@
 {
   "scanner": "ruff",
   "context": "local-pre-commit",
-  "timestamp": "2026-10-28T09:59:48.648101+00:00",
-  "source_index_sha256": "f5bf28a8da8c5d31b81a5cd67ca5d7ade99ee123a2733022188d7d624da64daf",
-  "commit": "d622a1d4877a3dcffa86d7556f344c7eae3045f2",
+  "timestamp": "2026-10-28T11:26:58.635231+00:00",
+  "source_index_sha256": "adf88c9421ae3700249ac6c8d2babc438807a326939bd9cffc831e2d0a115b68",
+  "commit": "6907ada52dbb9ad0df6979e157d612864bd08df2",
   "command": [
-    "/home/sam/.cache/pre-commit/repoxd9s55kp/py_env-python3.12/bin/python",
+    "/home/bea/.cache/pre-commit/reponcpqit7y/py_env-python3.10/bin/python",
     "-m",
     "ruff",
     "check",
