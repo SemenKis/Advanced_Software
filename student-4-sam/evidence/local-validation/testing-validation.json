@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "timestamp": "2026-10-28T08:40:34.315966+00:00",
+  "source_index_sha256": "b084cf242fca3c6cedb38eddb92bede9440c211dc9a8a57aeac37032689cb711",
+  "evidence_sha256": {
+    "pre-commit-report.json": "e7a64a65e92da0fdfaaf229f91d40db1d6d33001dcc55f4b97c083e1ea5bb8fd",
+    "post-commit-report.json": "f019665f4907afbd84830e5f69008202389ee64e4cfa46ab348df34725ece5ff"
+  },
+  "status": "INCOMPLETE_OR_FAILED",
+  "checks": [
+    {
+      "check": "local ruff",
+      "passed": false,
+      "detail": "Requires one successful local-pre-commit result for the current source index."
+    },
+    {
+      "check": "local detect-secrets",
+      "passed": false,
+      "detail": "Requires one successful local-pre-commit result for the current source index."
+    },
+    {
+      "check": "local pip-audit",
+      "passed": false,
+      "detail": "Requires one successful local-pre-commit result for the current source index."
+    },
+    {
+      "check": "post-commit execution",
+      "passed": false,
+      "detail": "Requires a successful GitHub Actions run for matching source, with a run URL."
+    },
+    {
+      "check": "test_create_shipment_persists_defaults_and_normalises_status",
+      "passed": true,
+      "detail": "Endpoint contract test must be present and passed, not skipped."
+    },
+    {
+      "check": "test_get_shipments_returns_persisted_records_in_descending_order",
+      "passed": true,
+      "detail": "Endpoint contract test must be present and passed, not skipped."
+    },
+    {
+      "check": "suite results",
+      "passed": true,
+      "detail": "Every recorded test must pass."
+    }
+  ],
+  "review_mode": "deterministic evidence review (no model invoked)"
+}

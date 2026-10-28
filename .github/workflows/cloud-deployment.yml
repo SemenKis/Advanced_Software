@@ -1,53 +1,113 @@
-
 name: Cloud Deployment - AWS ECS Fargate
 
 on:
   workflow_dispatch:
+    inputs:
+      ci_run_id:
+        description: Successful student-4-sam CI run ID for this exact commit (including Testing Review)
+        required: true
+        type: string
+  workflow_run:
+    workflows: ['student-4-sam']
+    types: [completed]
+    branches: [main]
 
 permissions:
   contents: read
-  id-token: write
+
+concurrency:
+  group: transportation-aws-deployment
+  cancel-in-progress: false
 
 jobs:
-  deploy:
+  verify-ci:
+    if: github.event_name == 'workflow_dispatch' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push' && github.event.workflow_run.head_repository.full_name == github.repository)
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    outputs:
+      sha: ${{ steps.verify.outputs.sha }}
+      run_id: ${{ steps.verify.outputs.run_id }}
+      run_attempt: ${{ steps.verify.outputs.run_attempt }}
+    steps:
+      - name: Verify successful CI workflow, trusted branch, and exact source revision
+        id: verify
+        uses: actions/github-script@v7
+        env:
+          REQUESTED_RUN_ID: ${{ inputs.ci_run_id }}
+        with:
+          script: |
+            const runId = context.eventName === 'workflow_run'
+              ? context.payload.workflow_run.id : Number(process.env.REQUESTED_RUN_ID);
+            if (!Number.isSafeInteger(runId) || runId <= 0) throw new Error('Invalid CI run ID');
+            const {data: run} = await github.rest.actions.getWorkflowRun({...context.repo, run_id: runId});
+            const {data: repo} = await github.rest.repos.get(context.repo);
+            if (run.path !== '.github/workflows/student-4-ci.yml' || run.conclusion !== 'success'
+                || run.event !== 'push' || run.head_branch !== repo.default_branch
+                || run.head_repository.full_name !== `${context.repo.owner}/${context.repo.repo}`) {
+              throw new Error('Require a successful transportation push CI run on the default branch');
+            }
+            const {data: branch} = await github.rest.repos.getBranch({...context.repo, branch: repo.default_branch});
+            if (run.head_sha !== branch.commit.sha) throw new Error('CI run is stale; validate the current default-branch commit');
+            if (context.eventName === 'workflow_dispatch' && context.sha !== run.head_sha) {
+              throw new Error('Dispatch must select the same commit as the successful CI run');
+            }
+            core.setOutput('sha', run.head_sha);
+            core.setOutput('run_id', runId);
+            core.setOutput('run_attempt', run.run_attempt);
+    permissions:
+      contents: read
+      actions: read
 
+  deploy:
+    needs: verify-ci
+    runs-on: ubuntu-latest
+    environment: aws-transportation
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      actions: read
+      id-token: write
     env:
-      AWS_REGION: ap-southeast-2
+      AWS_REGION: ${{ vars.AWS_REGION || 'ap-southeast-2' }}
       VPC_ID: ${{ vars.VPC_ID }}
       PUBLIC_SUBNET_IDS: ${{ vars.PUBLIC_SUBNET_IDS }}
       TASK_EXECUTION_ROLE_ARN: ${{ vars.TASK_EXECUTION_ROLE_ARN }}
-
+      ALLOWED_CIDR: ${{ vars.ALLOWED_CIDR }}
+      DEPLOY_SHA: ${{ needs.verify-ci.outputs.sha }}
+      IMAGE_TAG: ${{ needs.verify-ci.outputs.sha }}-${{ needs.verify-ci.outputs.run_id }}-${{ needs.verify-ci.outputs.run_attempt }}
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Validate deployment scripts
-        run: |
-          bash -n scripts/deploy-ecs.sh
-          docker compose config --quiet
-
-      - name: Configure AWS credentials
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.verify-ci.outputs.sha }}
+      - name: Validate deployment script
+        run: bash -n scripts/deploy/deploy-transportation.sh
+      - name: Download Docker images from the validated CI run
+        uses: actions/download-artifact@v4
+        with:
+          name: transportation-images
+          path: reports/images/
+          run-id: ${{ needs.verify-ci.outputs.run_id }}
+          github-token: ${{ github.token }}
+      - name: Load tested images
+        run: docker load -i reports/images/transportation-images.tar
+      - name: Configure AWS credentials using OIDC
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
-
-      - name: Build and deploy application
+      - name: Log in to ECR
+        id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+      - name: Deploy frontend, API, network controls, and persistent database storage
+        env:
+          ECR_REGISTRY: ${{ steps.ecr.outputs.registry }}
         run: |
-          bash scripts/deploy-ecs.sh --deploy-stack
-
-      - name: Verify ECS services
-        run: |
-          aws ecs describe-services \
-            --cluster advanced-software-cluster \
-            --services \
-              integrated-shared-frontend-service \
-              integrated-inventory-service \
-              integrated-order-service \
-              integrated-warehouse-service \
-              integrated-transportation-service \
-            --region "$AWS_REGION" \
-            --query 'services[].[serviceName,status,desiredCount,runningCount]' \
-            --output table
+          set -o pipefail
+          bash scripts/deploy/deploy-transportation.sh 2>&1 | tee deployment.log
+      - name: Upload deployment evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: transportation-cloud-deployment
+          path: |
+            deployment.log
+            reports/cloud/

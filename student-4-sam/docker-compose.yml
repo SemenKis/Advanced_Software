@@ -28,8 +28,7 @@ services:
 
     container_name: transportation-frontend
 
-    ports:
-      - "3004:80"
+    network_mode: host
 
     depends_on:
       - backend
