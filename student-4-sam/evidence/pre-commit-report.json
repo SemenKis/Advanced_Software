@@ -4,11 +4,11 @@
     {
       "scanner": "detect-secrets",
       "context": "local-pre-commit",
-      "timestamp": "2026-10-28T09:59:49.151559+00:00",
-      "source_index_sha256": "f5bf28a8da8c5d31b81a5cd67ca5d7ade99ee123a2733022188d7d624da64daf",
-      "commit": "d622a1d4877a3dcffa86d7556f344c7eae3045f2",
+      "timestamp": "2026-10-28T11:26:59.075929+00:00",
+      "source_index_sha256": "adf88c9421ae3700249ac6c8d2babc438807a326939bd9cffc831e2d0a115b68",
+      "commit": "6907ada52dbb9ad0df6979e157d612864bd08df2",
       "command": [
-        "/home/sam/.cache/pre-commit/repoxtx8lhm9/py_env-python3.12/bin/python",
+        "/home/bea/.cache/pre-commit/repoi9s_vyje/py_env-python3.10/bin/python",
         "-m",
         "detect_secrets",
         "scan",
@@ -33,7 +33,7 @@
       ],
       "tool_exit_code": 0,
       "exit_code": 0,
-      "stdout": "{\n  \"version\": \"1.5.0\",\n  \"plugins_used\": [\n    {\n      \"name\": \"ArtifactoryDetector\"\n    },\n    {\n      \"name\": \"AWSKeyDetector\"\n    },\n    {\n      \"name\": \"AzureStorageKeyDetector\"\n    },\n    {\n      \"name\": \"Base64HighEntropyString\",\n      \"limit\": 4.5\n    },\n    {\n      \"name\": \"BasicAuthDetector\"\n    },\n    {\n      \"name\": \"CloudantDetector\"\n    },\n    {\n      \"name\": \"DiscordBotTokenDetector\"\n    },\n    {\n      \"name\": \"GitHubTokenDetector\"\n    },\n    {\n      \"name\": \"GitLabTokenDetector\"\n    },\n    {\n      \"name\": \"HexHighEntropyString\",\n      \"limit\": 3.0\n    },\n    {\n      \"name\": \"IbmCloudIamDetector\"\n    },\n    {\n      \"name\": \"IbmCosHmacDetector\"\n    },\n    {\n      \"name\": \"IPPublicDetector\"\n    },\n    {\n      \"name\": \"JwtTokenDetector\"\n    },\n    {\n      \"name\": \"KeywordDetector\",\n      \"keyword_exclude\": \"\"\n    },\n    {\n      \"name\": \"MailchimpDetector\"\n    },\n    {\n      \"name\": \"NpmDetector\"\n    },\n    {\n      \"name\": \"OpenAIDetector\"\n    },\n    {\n      \"name\": \"PrivateKeyDetector\"\n    },\n    {\n      \"name\": \"PypiTokenDetector\"\n    },\n    {\n      \"name\": \"SendGridDetector\"\n    },\n    {\n      \"name\": \"SlackDetector\"\n    },\n    {\n      \"name\": \"SoftlayerDetector\"\n    },\n    {\n      \"name\": \"SquareOAuthDetector\"\n    },\n    {\n      \"name\": \"StripeDetector\"\n    },\n    {\n      \"name\": \"TelegramBotTokenDetector\"\n    },\n    {\n      \"name\": \"TwilioKeyDetector\"\n    }\n  ],\n  \"filters_used\": [\n    {\n      \"path\": \"detect_secrets.filters.allowlist.is_line_allowlisted\"\n    },\n    {\n      \"path\": \"detect_secrets.filters.common.is_ignored_due_to_verification_policies\",\n      \"min_level\": 2\n    },\n    {\n      \"path\": \"detect_secrets.filters.heuristic.is_indirect_reference\"\n    },\n    {\n      \"path\": \"detect_secrets.filters.heuristic.is_likely_id_string\"\n    },\n    {\n      \"path\": \"detect_secrets.filters.heuristic.is_lock_file\"\n    },\n    {\n      \"path\": \"detect_secrets.filters.heuristic.is_not_alphanumeric_string\"\n    },\n    {\n      \"path\": \"detect_secrets.filters.heuristic.is_potential_uuid\"\n    },\n    {\n      \"path\": \"detect_secrets.filters.heuristic.is_prefixed_with_dollar_sign\"\n    },\n    {\n      \"path\": \"detect_secrets.filters.heuristic.is_sequential_string\"\n    },\n    {\n      \"path\": \"detect_secrets.filters.heuristic.is_swagger_file\"\n    },\n    {\n      \"path\": \"detect_secrets.filters.heuristic.is_templated_secret\"\n    }\n  ],\n  \"results\": {},\n  \"generated_at\": \"2026-10-28T09:59:49Z\"\n}\n",
+      "stdout": "{\n  \"version\": \"1.5.0\",\n  \"plugins_used\": [\n    {\n      \"name\": \"ArtifactoryDetector\"\n    },\n    {\n      \"name\": \"AWSKeyDetector\"\n    },\n    {\n      \"name\": \"AzureStorageKeyDetector\"\n    },\n    {\n      \"name\": \"Base64HighEntropyString\",\n      \"limit\": 4.5\n    },\n    {\n      \"name\": \"BasicAuthDetector\"\n    },\n    {\n      \"name\": \"CloudantDetector\"\n    },\n    {\n      \"name\": \"DiscordBotTokenDetector\"\n    },\n    {\n      \"name\": \"GitHubTokenDetector\"\n    },\n    {\n      \"name\": \"GitLabTokenDetector\"\n    },\n    {\n      \"name\": \"HexHighEntropyString\",\n      \"limit\": 3.0\n    },\n    {\n      \"name\": \"IbmCloudIamDetector\"\n    },\n    {\n      \"name\": \"IbmCosHmacDetector\"\n    },\n    {\n      \"name\": \"IPPublicDetector\"\n    },\n    {\n      \"name\": \"JwtTokenDetector\"\n    },\n    {\n      \"name\": \"KeywordDetector\",\n      \"keyword_exclude\": \"\"\n    },\n    {\n      \"name\": \"MailchimpDetector\"\n    },\n    {\n      \"name\": \"NpmDetector\"\n    },\n    {\n      \"name\": \"OpenAIDetector\"\n    },\n    {\n      \"name\": \"PrivateKeyDetector\"\n    },\n    {\n      \"name\": \"PypiTokenDetector\"\n    },\n    {\n      \"name\": \"SendGridDetector\"\n    },\n    {\n      \"name\": \"SlackDetector\"\n    },\n    {\n      \"name\": \"SoftlayerDetector\"\n    },\n    {\n      \"name\": \"SquareOAuthDetector\"\n    },\n    {\n      \"name\": \"StripeDetector\"\n    },\n    {\n      \"name\": \"TelegramBotTokenDetector\"\n    },\n    {\n      \"name\": \"TwilioKeyDetector\"\n    }\n  ],\n  \"filters_used\": [\n    {\n      \"path\": \"detect_secrets.filters.allowlist.is_line_allowlisted\"\n    },\n    {\n      \"path\": \"detect_secrets.filters.common.is_ignored_due_to_verification_policies\",\n      \"min_level\": 2\n    },\n    {\n      \"path\": \"detect_secrets.filters.heuristic.is_indirect_reference\"\n    },\n    {\n      \"path\": \"detect_secrets.filters.heuristic.is_likely_id_string\"\n    },\n    {\n      \"path\": \"detect_secrets.filters.heuristic.is_lock_file\"\n    },\n    {\n      \"path\": \"detect_secrets.filters.heuristic.is_not_alphanumeric_string\"\n    },\n    {\n      \"path\": \"detect_secrets.filters.heuristic.is_potential_uuid\"\n    },\n    {\n      \"path\": \"detect_secrets.filters.heuristic.is_prefixed_with_dollar_sign\"\n    },\n    {\n      \"path\": \"detect_secrets.filters.heuristic.is_sequential_string\"\n    },\n    {\n      \"path\": \"detect_secrets.filters.heuristic.is_swagger_file\"\n    },\n    {\n      \"path\": \"detect_secrets.filters.heuristic.is_templated_secret\"\n    }\n  ],\n  \"results\": {},\n  \"generated_at\": \"2026-10-28T11:26:59Z\"\n}\n",
       "stderr": ""
     },
     {
@@ -61,11 +61,11 @@
     {
       "scanner": "ruff",
       "context": "local-pre-commit",
-      "timestamp": "2026-10-28T09:59:48.648101+00:00",
-      "source_index_sha256": "f5bf28a8da8c5d31b81a5cd67ca5d7ade99ee123a2733022188d7d624da64daf",
-      "commit": "d622a1d4877a3dcffa86d7556f344c7eae3045f2",
+      "timestamp": "2026-10-28T11:26:58.635231+00:00",
+      "source_index_sha256": "adf88c9421ae3700249ac6c8d2babc438807a326939bd9cffc831e2d0a115b68",
+      "commit": "6907ada52dbb9ad0df6979e157d612864bd08df2",
       "command": [
-        "/home/sam/.cache/pre-commit/repoxd9s55kp/py_env-python3.12/bin/python",
+        "/home/bea/.cache/pre-commit/reponcpqit7y/py_env-python3.10/bin/python",
         "-m",
         "ruff",
         "check",

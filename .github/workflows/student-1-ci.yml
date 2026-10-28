@@ -1,7 +1,23 @@
 name: student-1-bea
 
 on:
+  push:
+    paths:
+      - "student-1-bea/**"
+      - "ai-services/multi-agent-server/**"
+      - "pyproject.toml"
+      - ".pre-commit-config.yaml"
+      - ".github/workflows/student-1-ci.yml"
+  pull_request:
+    paths:
+      - "student-1-bea/**"
+      - "ai-services/multi-agent-server/**"
+      - ".github/workflows/student-1-ci.yml"
+  workflow_dispatch:
   workflow_call:
+
+permissions:
+  contents: read
 
 jobs:
 
@@ -21,7 +37,7 @@ jobs:
 
   smoke-check:
     runs-on: ubuntu-latest
-    needs: [build-images]    
+    needs: [build-images]
     env:
       MCP_ENABLED: "false"
       RAG_ENABLED: "false"
@@ -64,11 +80,31 @@ jobs:
           check_url "http://localhost:8082/"
           check_url "http://localhost:8082/api/orders"
 
+      - name: Run backend endpoint tests
+        run: |
+          set -o pipefail
+          pip install pytest requests flask "PyJWT>=2.11.0"
+          # Wait for the order-database API (host port 5012) before testing
+          for i in $(seq 1 30); do curl -sf http://localhost:5012/ > /dev/null && break; sleep 2; done
+          mkdir -p reports
+          python -m pytest student-1-bea/tests -m "not pre_commit" -v | tee reports/student-1-test-results.txt
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: student-1-test-results
+          path: reports/student-1-test-results.txt
+
+      - name: Show service logs on failure
+        if: failure()
+        working-directory: ./student-1-bea
+        run: docker compose logs --tail=100
+
       - name: Stop services
         if: always()
         working-directory: ./student-1-bea
         run: docker compose down -v
-
 
   evidence-pack:
     runs-on: ubuntu-latest
@@ -82,13 +118,13 @@ jobs:
 
       - name: Generate report.json
         run: |
-          cat > reports/report.json << 'EOF'
+          cat > reports/report.json << EOF
           {
             "workflow_name": "student-1-bea",
             "run_id": "${{ github.run_id }}",
             "commit_sha": "${{ github.sha }}",
             "branch": "${{ github.ref_name }}",
-            "generated_timestamp": "$(date -u %Y-%m-%dT%H:%M:%SZ)"
+            "generated_timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
           }
           EOF
 

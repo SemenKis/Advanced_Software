@@ -29,7 +29,9 @@ services:
 
 volumes:
     order-database-data:
-
+# networks:
+#   team-network:
+#     driver: bridge
 networks:
   team-network:
     external: true

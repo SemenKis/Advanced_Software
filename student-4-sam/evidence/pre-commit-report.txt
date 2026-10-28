@@ -2,9 +2,9 @@ Transportation security testing report
 
 detect-secrets: PASS
 Context: local-pre-commit
-Time: 2026-10-28T09:59:49.151559+00:00
-Source index: f5bf28a8da8c5d31b81a5cd67ca5d7ade99ee123a2733022188d7d624da64daf
-Command: /home/sam/.cache/pre-commit/repoxtx8lhm9/py_env-python3.12/bin/python -m detect_secrets scan --all-files student-4-sam/backend/agentic_loop.py student-4-sam/backend/app.py student-4-sam/backend/database.py student-4-sam/backend/htmx_routes.py student-4-sam/backend/ollama_service.py student-4-sam/backend/requirements.txt student-4-sam/backend/transportation.py student-4-sam/database/requirements.txt student-4-sam/database/schema.sql student-4-sam/database/seed.sql student-4-sam/docker-compose.yml student-4-sam/frontend/index.html student-4-sam/frontend/nginx.conf student-4-sam/tests/test_mcp_route.py student-4-sam/tests/test_multi_agent_routes.py student-4-sam/tests/test_ollama_url.py student-4-sam/tests/test_shipment_endpoints.py
+Time: 2026-10-28T11:26:59.075929+00:00
+Source index: adf88c9421ae3700249ac6c8d2babc438807a326939bd9cffc831e2d0a115b68
+Command: /home/bea/.cache/pre-commit/repoi9s_vyje/py_env-python3.10/bin/python -m detect_secrets scan --all-files student-4-sam/backend/agentic_loop.py student-4-sam/backend/app.py student-4-sam/backend/database.py student-4-sam/backend/htmx_routes.py student-4-sam/backend/ollama_service.py student-4-sam/backend/requirements.txt student-4-sam/backend/transportation.py student-4-sam/database/requirements.txt student-4-sam/database/schema.sql student-4-sam/database/seed.sql student-4-sam/docker-compose.yml student-4-sam/frontend/index.html student-4-sam/frontend/nginx.conf student-4-sam/tests/test_mcp_route.py student-4-sam/tests/test_multi_agent_routes.py student-4-sam/tests/test_ollama_url.py student-4-sam/tests/test_shipment_endpoints.py
 {
   "version": "1.5.0",
   "plugins_used": [
@@ -130,7 +130,7 @@ Command: /home/sam/.cache/pre-commit/repoxtx8lhm9/py_env-python3.12/bin/python -
     }
   ],
   "results": {},
-  "generated_at": "2026-10-28T09:59:49Z"
+  "generated_at": "2026-10-28T11:26:59Z"
 }
 
 
@@ -146,9 +146,9 @@ No known vulnerabilities found
 
 ruff: PASS
 Context: local-pre-commit
-Time: 2026-10-28T09:59:48.648101+00:00
-Source index: f5bf28a8da8c5d31b81a5cd67ca5d7ade99ee123a2733022188d7d624da64daf
-Command: /home/sam/.cache/pre-commit/repoxd9s55kp/py_env-python3.12/bin/python -m ruff check student-4-sam/backend/agentic_loop.py student-4-sam/backend/app.py student-4-sam/backend/database.py student-4-sam/backend/htmx_routes.py student-4-sam/backend/ollama_service.py student-4-sam/backend/transportation.py student-4-sam/tests/test_mcp_route.py student-4-sam/tests/test_multi_agent_routes.py student-4-sam/tests/test_ollama_url.py student-4-sam/tests/test_shipment_endpoints.py
+Time: 2026-10-28T11:26:58.635231+00:00
+Source index: adf88c9421ae3700249ac6c8d2babc438807a326939bd9cffc831e2d0a115b68
+Command: /home/bea/.cache/pre-commit/reponcpqit7y/py_env-python3.10/bin/python -m ruff check student-4-sam/backend/agentic_loop.py student-4-sam/backend/app.py student-4-sam/backend/database.py student-4-sam/backend/htmx_routes.py student-4-sam/backend/ollama_service.py student-4-sam/backend/transportation.py student-4-sam/tests/test_mcp_route.py student-4-sam/tests/test_multi_agent_routes.py student-4-sam/tests/test_ollama_url.py student-4-sam/tests/test_shipment_endpoints.py
 All checks passed!
 
 
